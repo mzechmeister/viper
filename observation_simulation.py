@@ -92,10 +92,13 @@ def PSF_convolve(wave,spec,CenGauss_sigma,SatGauss1_amp,SatGauss2_amp):
 
 
      mult_gauss = gaussian(nx,gauss_a1,gauss_c1,gauss_s1)+gaussian(nx,gauss_a2,gauss_c2,gauss_s2)+gaussian(nx,gauss_a3,gauss_c3,gauss_s3)
+#     mult_gauss = mult_gauss/np.max(mult_gauss)
+    
 
      nf = len(spec)
      spec_1 = np.concatenate((np.ones(nf) * spec[0], spec, np.ones(nf) * spec[-1]))
      result = np.convolve(spec_1, mult_gauss, mode="same")[nf:-nf]
+
      return result
 
 def model_spec(params, input_data):  
@@ -182,7 +185,7 @@ for r in range(2):
 
                    
      data_out = pd.DataFrame([])
-     
+     observed_spec = pd.DataFrame([])
           
      sigma_gauss1 = 0.01
      
@@ -230,187 +233,108 @@ for r in range(2):
 
                                                                   })
          
+###############      Loop for each of the Shifts in RV time series      ######################
+         
+     for i in range (param_in.Dop_shift.values.size):
           
                          
-     wave_split=np.arange(wave_select[0],wave_select[-1],5)
-
-###############       Loop for each wavelength chunk     ######################
-         
-     
+          wave_split=np.arange(wave_select[0],wave_select[-1],5)
+              
+          
 #          for o in range(wave_split.size-1):
-     for o in range(1):
+          for o in range(1):
 #               o=360
-          
-          FTS_range = FTS_df.loc[(FTS_df['wave']>wave_split[o]) & (FTS_df['wave']<wave_split[o+1])]
+               
+               FTS_range = FTS_df.loc[(FTS_df['wave']>wave_split[o]) & (FTS_df['wave']<wave_split[o+1])]
+     
 
-
-          FTS_wavearr =FTS_range['wave'].values
-          FTS_fluxarr = FTS_range['flux'].values
+               FTS_wavearr =FTS_range['wave'].values
+               FTS_fluxarr = FTS_range['flux'].values
     
 
-          
-          
-          Synth_range = Synth_df.loc[(Synth_df['wave']>wave_split[o]) & (Synth_df['wave']<wave_split[o+1])]
-          
-          Synth_range= Synth_range.sort_values(by=['wave'])
-          
-          
-          Synth_wavearr =Synth_range['wave'].values
-          Synth_fluxarr = Synth_range['flux'].values
-              
-          
-          Synthflux_interpolated = pyasl.intep(Synth_wavearr,Synth_fluxarr,FTS_wavearr,boundsError=False)
+               
+               
+               Synth_range = Synth_df.loc[(Synth_df['wave']>wave_split[o]) & (Synth_df['wave']<wave_split[o+1])]
+               
+               Synth_range= Synth_range.sort_values(by=['wave'])
+               
+               
+               Synth_wavearr =Synth_range['wave'].values
+               Synth_fluxarr = Synth_range['flux'].values
+                   
+               
+               Synthflux_interpolated = pyasl.intep(Synth_wavearr,Synth_fluxarr,FTS_wavearr,boundsError=False)
 
-              
-          ## rearraging the wavelength on a linear scale
+                   
+               ## rearraging the wavelength on a linear scale
    
-          FTS_wavelin = np.linspace(FTS_wavearr[0],FTS_wavearr[-1],FTS_wavearr.size)
-    
-          ## fitting a 2nd order polynomial
-              
-          FTS_polycoefs = poly.polyfit(FTS_wavearr, FTS_fluxarr, 2)
-          FTS_polyfit = poly.polyval(FTS_wavelin, FTS_polycoefs)
-          
-              
-          FTS_contflux = FTS_fluxarr/FTS_polyfit    
-              
-          FTS_normflux = FTS_contflux/np.max(FTS_contflux) ## Normalized flux
-          
-          
+               FTS_wavelin = np.linspace(FTS_wavearr[0],FTS_wavearr[-1],FTS_wavearr.size)
+         
+               ## fitting a 2nd order polynomial
+                   
+               FTS_polycoefs = poly.polyfit(FTS_wavearr, FTS_fluxarr, 2)
+               FTS_polyfit = poly.polyval(FTS_wavelin, FTS_polycoefs)
+               
+                   
+               FTS_contflux = FTS_fluxarr/FTS_polyfit    
+                   
+               FTS_normflux = FTS_contflux/np.max(FTS_contflux) ## Normalized flux
+               
+               
 #               plt.figure(1)
 #               plt.plot(FTS_wavearr,FTS_fluxarr)
 #               plt.plot(FTS_wavelin, FTS_normflux,'b')
-          
-              
-          ## fitting a 2nd order polynomial
-          Synth_polycoefs = poly.polyfit(FTS_wavearr, Synthflux_interpolated, 2)
-          Synth_polyfit = poly.polyval(FTS_wavelin, Synth_polycoefs)
-          
-          Synth_contflux = Synthflux_interpolated/Synth_polyfit    
-              
-          Synth_normflux = Synth_contflux/np.max(Synth_contflux) ## Normalized flux
-          
+               
+                   
+               ## fitting a 2nd order polynomial
+               Synth_polycoefs = poly.polyfit(FTS_wavearr, Synthflux_interpolated, 2)
+               Synth_polyfit = poly.polyval(FTS_wavelin, Synth_polycoefs)
+               
+               Synth_contflux = Synthflux_interpolated/Synth_polyfit    
+                   
+               Synth_normflux = Synth_contflux/np.max(Synth_contflux) ## Normalized flux
+               
 #               plt.figure(2)
 #               #plt.plot(FTS_wavearr,Synth_fluxarr)
 #               plt.plot(FTS_wavelin, Synth_normflux,'b')
-          
-
-     
-          
-          w_t = FTS_wavelin
-          f_s = Synth_normflux
-          f_i = FTS_normflux
-
-     
-          f_ts, w_ts = doppler_shift(w_t, f_s, Dop_shift)
-          f_is, w_is = doppler_shift(w_t, f_i, Ins_shift)
-
-     
-#         fig,ax = plt.subplots()
-#         
-#         ax.plot(w_t[0], f_s[0],'b',label='original_Star')
-#         ax.plot(w_ts, f_ts,'r',label='Doppler shifted')
-#         ax.legend()
-#         
-#         fig,ax = plt.subplots()
-#         
-#         ax.plot(w_t[0], f_i[0],'b',label='original_iodine')
-#         ax.plot(w_ts, f_is,'r',label='instrument shifted')
-#         ax.legend()
-         
-         
-          pdt_shift =  f_ts*f_is
-             
-             
-          shift_g = PSF_convolve(w_t, pdt_shift, sigma_gauss1,
-                                 amp_gauss2,amp_gauss3)
-          spec_noise = shift_g + np.random.normal(0.0, 0.01, shift_g.size)
-
-
-         
-         
-#              fig,ax = plt.subplots()
-#              
-#              ax.plot(w_t[0], pdt_shift,'b',label='original_Star')
-#              ax.plot(w_t[0], shift_g,'r',label='convolved')
-#              
-#              ax.legend()
-#              
-         
-         
-          params = Parameters()
-            
-          params.add('Dop_shift', value=Dop_in,min=Dop_min,max=Dop_max)
-          params.add('Ins_shift', value= Ins_in,min=Ins_min,max=Ins_max)
-          params.add('CenGauss_sigma', value= sigma1_in,min=sigma1_min,max=sigma1_max)
-          params.add('SatGauss1_amp', value= amp2_in,min=amp2_min,max= amp2_max)
-          params.add('SatGauss2_amp', value= amp3_in,min=amp3_min,max=amp3_max)
-   
-   
-   
-   
-   
-    
-   
-   
-          x= w_t
-          data = spec_noise
-          f1=f_s
-          f2=f_i
-             
-          min_func_input = {'wave':x,'flux_star':f1,'flux_gas':f2}
-             
-          result= minimize(minimize_func, params, args= (min_func_input,data),method='least_squares')
-          final = data + result.residual
-             #
-             #
-             #
-             #report_fit(result)
-             #
-          star_pred = result.params['Dop_shift'].value
-          iod_pred = result.params['Ins_shift'].value
-          sig1_pred = result.params['CenGauss_sigma'].value
-          amp2_pred = result.params['SatGauss1_amp'].value
-          amp3_pred = result.params['SatGauss2_amp'].value
-   
-   
-   
-   
-   
-   
-   
-   
-   
-          star_err = result.params['Dop_shift'].stderr
-          iod_err = result.params['Ins_shift'].stderr
-          sig1_err = result.params['CenGauss_sigma'].stderr
-          amp2_err = result.params['SatGauss1_amp'].stderr
-          amp3_err = result.params['SatGauss2_amp'].stderr
-             
-             
-             
-             
-          RV_given = Dop_shift-Ins_shift
-          RV_pred = star_pred-iod_pred
-             
-          w_start = w_t[0]
-          w_end = w_t[-1]
-          w_mean = np.mean(w_t)
-          
-          
-             
-             
-          data_out = data_out.append(pd.DataFrame({'Dop_shift':Dop_shift,'Ins_shift':Ins_shift,
-                                                 'star_pred':star_pred,'iod_pred':iod_pred,'star_err':star_err,'iod_err':iod_err,
-                                                 'RV_given':RV_given,'RV_pred':RV_pred,'w_start':w_start,'w_end':w_end,'w_mean':w_mean,
-                                                 'sigma_gauss1':sigma_gauss1,'sig1_pred':sig1_pred,'sig1_err':sig1_err,
-                                                 'amp_gauss2':amp_gauss2,'amp2_pred':amp2_pred,'amp2_err':amp2_err,
-                                                 'amp_gauss3':amp_gauss3,'amp3_pred':amp3_pred,'amp3_err':amp3_err,
-          
-                                                 
-                                                 }, index=[0]), ignore_index=True)
-         
-            
                
-     rootout = r'/home/sireesha/Desktop/CRIRES/stage4/data/output/'
-     data_out.to_csv(rootout+'version1'+'RV'+str(r)+'.csv')
+
+          
+               
+               w_t = FTS_wavelin
+               f_s = Synth_normflux
+               f_i = FTS_normflux
+     
+          
+               f_ts, w_ts = doppler_shift(w_t, f_s, param_in['Dop_shift'][i])
+               f_is, w_is = doppler_shift(w_t, f_i, param_in['Ins_shift'][i])
+
+          
+     #         fig,ax = plt.subplots()
+     #         
+     #         ax.plot(w_t[0], f_s[0],'b',label='original_Star')
+     #         ax.plot(w_ts, f_ts,'r',label='Doppler shifted')
+     #         ax.legend()
+     #         
+     #         fig,ax = plt.subplots()
+     #         
+     #         ax.plot(w_t[0], f_i[0],'b',label='original_iodine')
+     #         ax.plot(w_ts, f_is,'r',label='instrument shifted')
+     #         ax.legend()
+              
+              
+               pdt_shift =  f_ts*f_is
+                  
+                  
+               shift_g = PSF_convolve(w_t, pdt_shift, param_in['sigma_gauss1'][i],
+                                      param_in['amp_gauss2'][i],param_in['amp_gauss3'][i])
+               spec_noise = shift_g + np.random.normal(0.0, 0.01, shift_g.size)
+
+
+              
+               observed_spec = observed_spec.append(pd.DataFrame({'wave':w_t,'spec':spec_noise}))
+               
+               
+               
+     rootout = r'/home/sireesha/Desktop/CRIRES/stage4/data/output/observed_spec/'
+     observed_spec.to_csv(rootout+'test'+'RV'+str(r)+'.csv')
