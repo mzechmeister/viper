@@ -2,7 +2,7 @@ from astropy.io import fits
 from readmultispec import readmultispec
 # see ttps://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-filename = '../TLS/data/BETA_GEM.fits'
+filename = '../data/TLS/BETA_GEM.fits'
 hdu = fits.open(filename)[0]
 f = hdu.data[33]
 #w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
