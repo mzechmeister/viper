@@ -10,7 +10,7 @@ gplot.tmp='$'
 lmin = 6120
 lmax = 6250
 
-root_FTS = r'TLS/data/'
+root_FTS = r'data/TLS/'
 
 
 #########################  FTS  ########################################
