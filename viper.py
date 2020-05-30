@@ -12,6 +12,7 @@ lmax = 6250
 
 root_FTS = r'lib/TLS/other/'
 
+c = 3e5   # [km/s] speed of light
 
 #########################  FTS  ########################################
 
@@ -52,7 +53,7 @@ w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
 
 # pre-look data
 gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,',w_i,f_i, 'w lp lc 1 pt 7 ps 0.5')
-gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/3e5), f_tpl[s_s], 'w l lc 3,',w_i,f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
+gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,',w_i,f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
 
 
 # prepare input; convert discrete data to model
@@ -62,14 +63,14 @@ xk = np.linspace(np.log(lmin), np.log(lmax), w_I2[s].size)
 iod_k = interpolate.interp1d(np.log(w_I2), f_I2/1.18)(xk)
 
 dx = xk[1] - xk[0]  # sampling in uniform resampled Iod
-print("sampling [km/s]:", dx*3e5)
+print("sampling [km/s]:", dx*c)
 
 # convert PESPI data into a function
 S_star = interpolate.interp1d(np.log(w_tpl), f_tpl)
 
 
 # IP sampling in velocity space
-vl = np.arange(-50,50+1) * dx * 3e5
+vl = np.arange(-50,50+1) * dx * c
 IP_l = np.exp(-(vl/1.5)**2)  # Gauss IP
 IP_l /= IP_l.sum()           # normalise IP
 
@@ -89,7 +90,7 @@ def _S_eff(v):
     #S_eff(ln(lam)) = IP(v) x ((a0+a1*ln(lam))*S_PEPSI(ln(lam)+v_star/c) * G_I2(ln(lam)))
     #S_eff(ln(lam)) = IP(v) x ((A+ln(lan) )*S_PEPSI(ln(lam)+v_star/c) * G_I2(ln(lam))) 
     # discrete supersampled effective spectrum
-    Sk_eff = np.convolve(IP_l, S_star(xk+v/3e5) * iod_k, mode='valid')
+    Sk_eff = np.convolve(IP_l, S_star(xk+v/c) * iod_k, mode='valid')
     
     # return continous supersampled effective spectrum
     return interpolate.interp1d(xk_eff, Sk_eff)
@@ -99,7 +100,7 @@ def _S_eff(v):
 S_eff = _S_eff(v=3)
 
 
-gplot(np.exp(xk), iod_k, S_star(xk+3/3e5), 'w l lc 9 t "iodine I", "" us 1:3 w l lc 3 t "template + 3 km/s (PEPSI)",', np.exp(xk_eff), S_eff(xk_eff), 'w l lc 1 t "IP x (tpl*I2)"' )
+gplot(np.exp(xk), iod_k, S_star(xk+3/c), 'w l lc 9 t "iodine I", "" us 1:3 w l lc 3 t "template + 3 km/s (PEPSI)",', np.exp(xk_eff), S_eff(xk_eff), 'w l lc 1 t "IP x (tpl*I2)"' )
 
 # Now wavelength solution
 
