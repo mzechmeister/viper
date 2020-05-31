@@ -52,8 +52,8 @@ w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
 
 
 # pre-look data
-gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,',w_i,f_i, 'w lp lc 1 pt 7 ps 0.5')
-gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,',w_i,f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
+gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
+gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w_i, f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
 
 
 # prepare input; convert discrete data to model
@@ -101,7 +101,7 @@ def _S_eff(v):
 S_eff = _S_eff(v=3)
 
 
-gplot(np.exp(xj), iod_j, S_star(xj+3/c), 'w l lc 9 t "iodine I", "" us 1:3 w l lc 3 t "template + 3 km/s (PEPSI)",', np.exp(xj_eff), S_eff(xj_eff), 'w l lc 1 t "IP x (tpl*I2)"' )
+gplot(np.exp(xj), iod_j, S_star(xj+3/c), 'w l lc 9 t "iodine", "" us 1:3 w l lc 3 t "template + 3 km/s (PEPSI)",', np.exp(xj_eff), S_eff(xj_eff), 'w l lc 1 t "IP x (tpl*I2)"')
 
 # Now wavelength solution
 
