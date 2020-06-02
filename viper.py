@@ -125,7 +125,7 @@ a = [0.96]
 b = [6128.8833940969, 0.05453566108124]
 
 def S_mod(i, v, a, b, IP_k):
-    # A forward model
+    '''A forward model'''
     # wavelength solution
     xi = np.log(np.poly1d(b[::-1])(i))
     # IP convolution
@@ -136,24 +136,37 @@ def S_mod(i, v, a, b, IP_k):
     Si_mod = np.poly1d(a[::-1])(xi) * Si_eff
     return Si_mod
 
+
+def show_model(x, y, ymod, res=True):
+    gplot(x, y, ymod, 'w lp pt 7 ps 0.5 t "S_i",',
+          '"" us 1:3w lp pt 6 ps 0.5 lc 3 t "S(i)"')
+    if res:
+        gplot.mxtics().mytics().my2tics()
+        # overplot residuals
+        gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
+        gplot+(x, y-ymod, "w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res', 0 lc 3axis x1y2")
+
+
 Si_mod = S_mod(i, v=0, a=[1], b=b, IP_k=IP_k)
 
 gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
-
+show_model(i, f_i, Si_mod, res=False)
 
 S_a = lambda x, a0: S_mod(x, v, [a0], b, IP_k)
 
 a, e_a = curve_fit(S_a, i, f_i)
  
-gplot(i, S_a(i,*a), 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+show_model(i, f_i, S_a(i,*a), res=False)
 
 S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], IP_k)
 
-v=-12
+v = -12
 bg = np.polyfit(i,w_i,3)[::-1]
 b, e_b = curve_fit(S_b, i, f_i, p0=bg)
-gplot(i, S_b(i,*bg), 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 
+show_model(i, f_i, S_b(i,*bg))
+
+show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
 
 
 
