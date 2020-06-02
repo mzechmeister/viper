@@ -8,8 +8,10 @@ from astropy.io import fits
 from gplot import *
 gplot.tmp = '$'
 
-lmin = 6120
-lmax = 6250
+
+o = 33; lmin = 6120; lmax = 6250
+#o = 18; lmin = 6120; lmax = 6250
+
 
 root_FTS = r'lib/TLS/'
 
@@ -21,8 +23,8 @@ hdu_I2 = fits.open(root_FTS+'/FTS/TLS_I2_FTS.fits')[0]
 
 f_I2 = hdu_I2.data[::-1]
 h = hdu_I2.header
-w_I2 = h['CRVAL1'] + h['CDELT1'] * np.arange(f_I2.size)   # re-check conversion
-w_I2 = 1e8 / w_I2[::-1]   # scale convertion from wavenumber to wavelength (angstrom)
+w_I2 = h['CRVAL1'] + h['CDELT1'] * (np.arange(f_I2.size) + 1. - h['CRPIX1'])
+w_I2 = 1e8 / w_I2[::-1]   # convert wavenumbers to wavelength [angstrom]
 
 # display
 s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
@@ -42,6 +44,8 @@ gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3')
 
 
 #### data TLS
+hdu = fits.open('data/TLS/other/pepsib.20150409.000.sxt.awl.all6')
+
 from inst.inst_TLS import Spectrum
 w, f = Spectrum('data/TLS/other/BETA_GEM.fits')
 #hdu = fits.open(root_FTS+'BETA_GEM.fits')[0]
@@ -156,7 +160,7 @@ show_model(i, f_i, Si_mod, res=False)
 S_a = lambda x, a0: S_mod(x, v, [a0], b, IP_k)
 
 a, e_a = curve_fit(S_a, i, f_i)
- 
+
 show_model(i, f_i, S_a(i,*a), res=False)
 
 # A wrapper to fit the wavelength solution
