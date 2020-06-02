@@ -8,18 +8,21 @@ from astropy.io import fits
 from gplot import *
 gplot.tmp = '$'
 
+c = 3e5   # [km/s] speed of light
+
 
 o = 33; lmin = 6120; lmax = 6250
-#o = 18; lmin = 6120; lmax = 6250
+o = 18; lmin = 5240; lmax = 5390
 
 
-root_FTS = r'lib/TLS/'
-
-c = 3e5   # [km/s] speed of light
+dirname = r''
+ftsname = dirname + 'lib/TLS//FTS/TLS_I2_FTS.fits'
+tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
+obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 
 #########################  FTS  ########################################
 
-hdu_I2 = fits.open(root_FTS+'/FTS/TLS_I2_FTS.fits')[0]
+hdu_I2 = fits.open(ftsname)[0]
 
 f_I2 = hdu_I2.data[::-1]
 h = hdu_I2.header
@@ -33,7 +36,7 @@ gplot(w_I2[s], f_I2[s], 'w l lc 9')
 
 #####  stellar template   ####
 
-hdu = fits.open('data/TLS/other/pepsib.20150409.000.sxt.awl.all6')
+hdu = fits.open(tplname)
 
 w_tpl = hdu[1].data.field('Arg')
 f_tpl = hdu[1].data.field('Fun')
@@ -44,15 +47,13 @@ gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3')
 
 
 #### data TLS
-hdu = fits.open('data/TLS/other/pepsib.20150409.000.sxt.awl.all6')
-
 from inst.inst_TLS import Spectrum
-w, f = Spectrum('data/TLS/other/BETA_GEM.fits')
+w, f = Spectrum(obsname)
 #hdu = fits.open(root_FTS+'BETA_GEM.fits')[0]
 #hdu = fits.open('lib/TLS/observations/SPECTRA/TV00007.fits')[0]
 #f_i = hdu.data[33]
-w_i = w[33]
-f_i = f[33]
+w_i = w[o]
+f_i = f[o]
 i = np.arange(f_i.size)
 #w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
 
@@ -114,7 +115,8 @@ gplot(np.exp(xj), iod_j, S_star(xj+3/c), 'w l lc 9 t "iodine", "" us 1:3 w l lc 
 # mapping between pixel and wavelength
 
 #lam(x) = b0 + b_1 * x + b_2 * x**2
-lam = np.poly1d([6128.8833940969, 0.05453566108124][::-1])
+
+lam = np.poly1d([w_i[0], (w_i[-1]-w_i[0])/w_i.size][::-1])
 
 # well, we see the wavelength solution can be improved
 
@@ -126,7 +128,7 @@ gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3
 
 v=0
 a = [0.96]
-b = [6128.8833940969, 0.05453566108124]
+b = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
 
 def S_mod(i, v, a, b, IP_k):
     '''A forward model'''
@@ -153,7 +155,7 @@ def show_model(x, y, ymod, res=True):
 # a simple call to the forward model
 Si_mod = S_mod(i, v=0, a=[1], b=b, IP_k=IP_k)
 
-gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+#gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 show_model(i, f_i, Si_mod, res=False)
 
 # A wrapper to fit the continuum
