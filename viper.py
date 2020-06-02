@@ -103,9 +103,13 @@ S_star = interpolate.interp1d(np.log(w_tpl), f_tpl)
 
 # IP sampling in velocity space
 # index k for IP space
-vk = np.arange(-50,50+1) * dx * c
-IP_k = np.exp(-(vk/2.2)**2)  # Gauss IP
-IP_k /= IP_k.sum()           # normalise IP
+def IP(s=2.2):
+    vk = np.arange(-50,50+1) * dx * c
+    IP_k = np.exp(-(vk/s)**2)  # Gauss IP
+    IP_k /= IP_k.sum()           # normalise IP
+    return IP_k
+
+IP_k = IP()
 
 # plot
 gplot(vk, IP_k)
@@ -156,13 +160,14 @@ gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3
 v=0
 a = [0.96]
 b = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
+s = 2.5
 
-def S_mod(i, v, a, b, IP_k):
+def S_mod(i, v, a, b, s):
     '''A forward model'''
     # wavelength solution
     xi = np.log(np.poly1d(b[::-1])(i))
     # IP convolution
-    Sj_eff = np.convolve(IP_k, S_star(xj+v/c) * iod_j, mode='valid')
+    Sj_eff = np.convolve(IP(s), S_star(xj+v/c) * iod_j, mode='valid')
     # sampling to pixel
     Si_eff = interpolate.interp1d(xj_eff, Sj_eff)(xi)
     # flux normalisation
@@ -181,33 +186,49 @@ def show_model(x, y, ymod, res=True):
         gplot+(x, y-ymod, "w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res %.3g', 0 lc 3 axis x1y2" % rms)
 
 # a simple call to the forward model
-Si_mod = S_mod(i[s_obs], v=0, a=[1], b=b, IP_k=IP_k)
+Si_mod = S_mod(i[s_obs], v=0, a=[1], b=b, s=s)
 
 #gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
 
 # A wrapper to fit the continuum
-S_a = lambda x, a0: S_mod(x, v, [a0], b, IP_k)
+S_a = lambda x, a0: S_mod(x, v, [a0], b, s)
 
 a, e_a = curve_fit(S_a, i[s_obs], f_i[s_obs])
 
 show_model(i[s_obs], f_i[s_obs], S_a(i[s_obs],*a), res=False)
 
 # A wrapper to fit the wavelength solution
-S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], IP_k)
+S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], s)
 
 n = 1/1.00027
 v = -2.+(n-1)*c   # a good guess for the stellar RV is needed
 bg = np.polyfit(i[s_obs], w_i[s_obs]/n, 3)[::-1]
 b, e_b = curve_fit(S_b, i[s_obs], f_i[s_obs], p0=bg)
+bg1 = b*1
 
 #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
 show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *b))
-#gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v+8)/c), 'w lp ps 0.5')
+gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
 
 # compare the wavelength solutions
 show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
 
+# fit a and b simulatenously
+
+S_vab = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
+p, e_p = curve_fit(S_vab, i[s_obs], f_i[s_obs], p0=[v, 1, *bg])
+show_model(i[s_obs], f_i[s_obs], S_vab(i[s_obs], *p))
+p1 = 1*p
+
+S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
+p, e_p = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p1, 2.2])
+show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
+
+
+#show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
+show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
+gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
 
 
  
