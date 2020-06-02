@@ -146,26 +146,29 @@ def show_model(x, y, ymod, res=True):
         gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
         gplot+(x, y-ymod, "w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res', 0 lc 3axis x1y2")
 
-
+# a simple call to the forward model
 Si_mod = S_mod(i, v=0, a=[1], b=b, IP_k=IP_k)
 
 gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 show_model(i, f_i, Si_mod, res=False)
 
+# A wrapper to fit the continuum
 S_a = lambda x, a0: S_mod(x, v, [a0], b, IP_k)
 
 a, e_a = curve_fit(S_a, i, f_i)
  
 show_model(i, f_i, S_a(i,*a), res=False)
 
+# A wrapper to fit the wavelength solution
 S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], IP_k)
 
-v = -12
-bg = np.polyfit(i,w_i,3)[::-1]
+v = -12   # a good guess for the stellar RV is needed
+bg = np.polyfit(i, w_i, 3)[::-1]
 b, e_b = curve_fit(S_b, i, f_i, p0=bg)
 
 show_model(i, f_i, S_b(i,*bg))
 
+# compare the wavelength solutions
 show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
 
 
