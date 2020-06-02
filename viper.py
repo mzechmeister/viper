@@ -2,6 +2,7 @@
 
 import numpy as np
 from scipy import interpolate
+from scipy.optimize import curve_fit
 from astropy.io import fits
 
 from gplot import *
@@ -119,8 +120,9 @@ gplot(i, S_eff(np.log(lam(i))), 'w l,', i, f_i, 'w lp pt 7 ps 0.5 lc 3')
 
 gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3')
 
+v=0
+a = [0.96]
 b = [6128.8833940969, 0.05453566108124]
-a = [1.04]
 
 def S_mod(i, v, a, b, IP_k):
     # A forward model
@@ -130,7 +132,7 @@ def S_mod(i, v, a, b, IP_k):
     Sj_eff = np.convolve(IP_k, S_star(xj+v/c) * iod_j, mode='valid')
     # sampling to pixel
     Si_eff = interpolate.interp1d(xj_eff, Sj_eff)(xi)
-    # normalisation
+    # flux normalisation
     Si_mod = np.poly1d(a[::-1])(xi) * Si_eff
     return Si_mod
 
@@ -139,4 +141,11 @@ Si_mod = S_mod(i, v=0, a=[1], b=b, IP_k=IP_k)
 gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 
 
+S_a = lambda x, a0: S_mod(x, v, [a0], b, IP_k)
 
+a, e_a = curve_fit(S_a, i, f_i)
+ 
+gplot(i, S_a(i,*a), 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+
+ 
+ 
