@@ -10,13 +10,13 @@ gplot.tmp = '$'
 lmin = 6120
 lmax = 6250
 
-root_FTS = r'lib/TLS/other/'
+root_FTS = r'lib/TLS/'
 
 c = 3e5   # [km/s] speed of light
 
 #########################  FTS  ########################################
 
-hdu_I2 = fits.open(root_FTS+'/../FTS/TLS_I2_FTS.fits')[0]
+hdu_I2 = fits.open(root_FTS+'/FTS/TLS_I2_FTS.fits')[0]
 
 f_I2 = hdu_I2.data[::-1]
 h = hdu_I2.header
@@ -30,7 +30,7 @@ gplot(w_I2[s], f_I2[s], 'w l lc 9')
 
 #####  stellar template   ####
 
-hdu = fits.open(root_FTS+'pepsib.20150409.000.sxt.awl.all6')
+hdu = fits.open('data/TLS/other/pepsib.20150409.000.sxt.awl.all6')
 
 w_tpl = hdu[1].data.field('Arg')
 f_tpl = hdu[1].data.field('Fun')
@@ -41,14 +41,15 @@ gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3')
 
 
 #### data TLS
-#34 92 2 6128.8833940969 0.05453566108124 2048 0.'
-#WAT2_102= ' 1165.31 1187.31 1. 0. 2 6 1. 2048. 6185.83841636954 55.972580248164'
-
-hdu = fits.open(root_FTS+'BETA_GEM.fits')[0]
+from inst.inst_TLS import Spectrum
+w, f = Spectrum('data/TLS/other/BETA_GEM.fits')
+#hdu = fits.open(root_FTS+'BETA_GEM.fits')[0]
 #hdu = fits.open('lib/TLS/observations/SPECTRA/TV00007.fits')[0]
-f_i = hdu.data[33]
+#f_i = hdu.data[33]
+w_i = w[33]
+f_i = f[33]
 i = np.arange(f_i.size)
-w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
+#w_i = 6128.8833940969 + 0.05453566108124*np.arange(f_i.size)  # guess
 
 
 # pre-look data
@@ -117,4 +118,25 @@ gplot(i, S_eff(np.log(lam(i))), 'w l,', i, f_i, 'w lp pt 7 ps 0.5 lc 3')
 # and let's plot the observation against wavelength
 
 gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3')
+
+b = [6128.8833940969, 0.05453566108124]
+a = [1.04]
+
+def S_mod(i, v, a, b, IP_k):
+    # A forward model
+    # wavelength solution
+    xi = np.log(np.poly1d(b[::-1])(i))
+    # IP convolution
+    Sj_eff = np.convolve(IP_k, S_star(xj+v/c) * iod_j, mode='valid')
+    # sampling to pixel
+    Si_eff = interpolate.interp1d(xj_eff, Sj_eff)(xi)
+    # normalisation
+    Si_mod = np.poly1d(a[::-1])(xi) * Si_eff
+    return Si_mod
+
+Si_mod = S_mod(i, v=0, a=[1], b=b, IP_k=IP_k)
+
+gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+
+
 
