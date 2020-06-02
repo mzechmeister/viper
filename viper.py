@@ -147,5 +147,14 @@ a, e_a = curve_fit(S_a, i, f_i)
  
 gplot(i, S_a(i,*a), 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
 
- 
+S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], IP_k)
+
+v=-12
+bg = np.polyfit(i,w_i,3)[::-1]
+b, e_b = curve_fit(S_b, i, f_i, p0=bg)
+gplot(i, S_b(i,*bg), 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+
+
+
+
  
