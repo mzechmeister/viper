@@ -1,3 +1,5 @@
+import numpy as np
+
 def airtovac(wave_air):
    """
 taken from idl astrolib
