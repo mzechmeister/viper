@@ -13,7 +13,7 @@ from astropy.io import fits
 from gplot import *
 gplot.tmp = '$'
 
-from inst.inst_TLS import Spectrum
+from inst.inst_TLS import Spectrum, Tpl
 from model import model, IP, show_model
 
 c = 3e5   # [km/s] speed of light
@@ -52,23 +52,13 @@ w_I2 = 1e8 / w_I2[::-1]   # convert wavenumbers to wavelength [angstrom]
 s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
 gplot(w_I2[s], f_I2[s], 'w l lc 9')
 
-#### data TLS
-w, f = Spectrum(obsname)
-w_i = w[o]
-f_i = f[o]
+#### data TLS ####
+w_i, f_i = Spectrum(obsname, o=o)
 i = np.arange(f_i.size)
 
+##### stellar template ####
+w_tpl, f_tpl = Tpl(tplname, o=o)
 
-#####  stellar template   ####
-
-if tplname.endswith('.model'):
-    from inst.inst_TLS import Spectrum
-    w_tpl, f_tpl = Spectrum(tplname)
-    w_tpl, f_tpl = w_tpl[o], f_tpl[o]
-else:
-    hdu = fits.open(tplname)
-    w_tpl = hdu[1].data.field('Arg')
-    f_tpl = hdu[1].data.field('Fun')
 
 lmin = max(w_tpl[0], w_i[0], w_I2[0])
 lmax = min(w_tpl[-1], w_i[-1], w_I2[-1])
@@ -175,4 +165,4 @@ show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
 gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
 
 
- 
+print('Done.') 
