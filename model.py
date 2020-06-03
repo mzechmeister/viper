@@ -9,8 +9,8 @@ c = 3e5   # [km/s] speed of light
 # IP sampling in velocity space
 # index k for IP space
 def IP(vk, s=2.2):
-    IP_k = np.exp(-(vk/s)**2)  # Gauss IP
-    IP_k /= IP_k.sum()           # normalise IP
+    IP_k = np.exp(-(vk/s)**2)   # Gauss IP
+    IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
 
@@ -19,7 +19,6 @@ class model:
     The forward model
     
     '''
-     
     def __init__(self, *args, IP_hw=50):
         self.S_star, self.xj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range

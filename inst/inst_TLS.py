@@ -4,14 +4,14 @@ from .airtovac import airtovac
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
 def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None):
-   hdu = fits.open(filename)[0]
-   f = hdu.data
-   gg = readmultispec(filename, reform=True, quiet=True)
-   w = gg['wavelen'] #[orders] # [air]
-   w = airtovac(w)
-   if o is not None:
-        return w[o], f[o]
-   return w, f
+    hdu = fits.open(filename)[0]
+    f = hdu.data
+    gg = readmultispec(filename, reform=True, quiet=True)
+    w = gg['wavelen']
+    w = airtovac(w)
+    if o is not None:
+         return w[o], f[o]
+    return w, f
 
 def Tpl(tplname, o=None):
     if tplname.endswith('.model'):
