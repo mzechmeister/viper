@@ -13,7 +13,7 @@ from astropy.io import fits
 from gplot import *
 gplot.tmp = '$'
 
-from inst.inst_TLS import Spectrum, Tpl
+from inst.inst_TLS import Spectrum, Tpl, FTS
 from model import model, IP, show_model
 
 c = 3e5   # [km/s] speed of light
@@ -23,7 +23,7 @@ o = 33; lmin = 6120; lmax = 6250
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
-ftsname = dirname + 'lib/TLS//FTS/TLS_I2_FTS.fits'
+ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
 obsname = dirname + 'data/TLS/hd189733/TV00001.fits'
@@ -39,24 +39,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
     globals().update(vars(args))
 
-#########################  FTS  ########################################
-
-hdu_I2 = fits.open(ftsname)[0]
-
-f_I2 = hdu_I2.data[::-1]
-h = hdu_I2.header
-w_I2 = h['CRVAL1'] + h['CDELT1'] * (np.arange(f_I2.size) + 1. - h['CRPIX1'])
-w_I2 = 1e8 / w_I2[::-1]   # convert wavenumbers to wavelength [angstrom]
+####  FTS  ####
+w_I2, f_I2 = FTS()
 
 # display
 s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
 gplot(w_I2[s], f_I2[s], 'w l lc 9')
 
-#### data TLS ####
+####  data TLS  ####
 w_i, f_i = Spectrum(obsname, o=o)
 i = np.arange(f_i.size)
 
-##### stellar template ####
+####  stellar template  ####
 w_tpl, f_tpl = Tpl(tplname, o=o)
 
 
@@ -66,9 +60,6 @@ lmax = min(w_tpl[-1], w_i[-1], w_I2[-1])
 s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
 s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
 gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3')
-
-
-
 
 
 # pre-look data
