@@ -12,6 +12,7 @@ from astropy.io import fits
 
 from gplot import *
 gplot.tmp = '$'
+from pause import pause
 
 from inst.inst_TLS import Spectrum, Tpl, FTS
 from model import model, IP, show_model
@@ -35,133 +36,144 @@ if __name__ == "__main__":
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
     argopt('-o', help='index for order', default=18, type=int)
-    
+
     args = parser.parse_args()
     globals().update(vars(args))
 
 ####  FTS  ####
 w_I2, f_I2 = FTS()
 
-####  data TLS  ####
-w_i, f_i = Spectrum(obsname, o=o)
-i = np.arange(f_i.size)
-
-####  stellar template  ####
-w_tpl, f_tpl = Tpl(tplname, o=o)
+orders = np.arange(18,30)
+rv = np.empty_like(orders*1.)
+e_rv = np.empty_like(orders*1.)
 
 
-lmin = max(w_tpl[0], w_i[0], w_I2[0])
-lmax = min(w_tpl[-1], w_i[-1], w_I2[-1])
+def fit_chunk(o):
+    ####  data TLS  ####
+    w_i, f_i = Spectrum(obsname, o=o)
+    i = np.arange(f_i.size)
+
+    ####  stellar template  ####
+    w_tpl, f_tpl = Tpl(tplname, o=o)
+
+    lmin = max(w_tpl[0], w_i[0], w_I2[0])
+    lmax = min(w_tpl[-1], w_i[-1], w_I2[-1])
+
+    # display
+    # pre-look raw input
+    s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
+    s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
+
+    gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
+    #gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w_i, f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
+
+    # prepare input; convert discrete data to model
+
+    # define a supersampled log(wavelength) space with knot index j
+    xj = np.linspace(np.log(lmin)+100/c, np.log(lmax)-100/c, w_I2[s].size)  # reduce range by 100 km/s
+    iod_j = interpolate.interp1d(np.log(w_I2), f_I2)(xj)
 
 
-# display
-# pre-look raw input
-s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
-s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-
-gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
-#gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w_i, f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
+    # convert discrete template into a function
+    S_star = interpolate.interp1d(np.log(w_tpl), f_tpl)
 
 
-# prepare input; convert discrete data to model
+    # setup the model
+    S_mod = model(S_star, xj, iod_j, IP)
 
-# define a supersampled log(wavelength) space with knot index j
-xj = np.linspace(np.log(lmin)+100/c, np.log(lmax)-100/c, w_I2[s].size)  # reduce range by 100 km/s
-iod_j = interpolate.interp1d(np.log(w_I2), f_I2)(xj)
+    # plot the IP
+    gplot(S_mod.vk, S_mod.IP(S_mod.vk))
 
+    if 0:
+       # plot again, now the stellar template can be interpolated
+       gplot(np.exp(xj), iod_j, S_star(xj), 'w l lc 9, "" us 1:3 w l lc 3')
 
-# convert discrete template into a function
-S_star = interpolate.interp1d(np.log(w_tpl), f_tpl)
+    #gplot(np.exp(xj), iod_j, S_star(xj+3/c), 'w l lc 9 t "iodine", "" us 1:3 w l lc 3 t "template + 3 km/s",', np.exp(xj_eff), S_eff(xj_eff), 'w l lc 1 t "IP x (tpl*I2)"')
 
+    # Now wavelength solution
 
-# setup the model
-S_mod = model(S_star, xj, iod_j, IP)
+    # mapping between pixel and wavelength
 
-# plot the IP
-gplot(S_mod.vk, S_mod.IP(S_mod.vk))
+    #lam(x) = b0 + b_1 * x + b_2 * x**2
+    lam = np.poly1d([w_i[0], (w_i[-1]-w_i[0])/w_i.size][::-1])
 
-if 0:
-   # plot again, now the stellar template can be interpolated
-   gplot(np.exp(xj), iod_j, S_star(xj), 'w l lc 9, "" us 1:3 w l lc 3')
+    # trim the observation to a range valid for the model
+    s_obs = slice(*np.searchsorted(np.log(w_i), [xj[0]+100/c, xj[-1]-100/c]))
 
-#gplot(np.exp(xj), iod_j, S_star(xj+3/c), 'w l lc 9 t "iodine", "" us 1:3 w l lc 3 t "template + 3 km/s",', np.exp(xj_eff), S_eff(xj_eff), 'w l lc 1 t "IP x (tpl*I2)"')
+    # well, we see the wavelength solution can be improved
+    #gplot(i[s_obs], S_eff(np.log(lam(i[s_obs]))), 'w l,', i, f_i, 'w lp pt 7 ps 0.5 lc 3')
 
-# Now wavelength solution
+    # and let's plot the observation against wavelength
 
-# mapping between pixel and wavelength
+    #gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3')
 
-#lam(x) = b0 + b_1 * x + b_2 * x**2
+    # a parameter set
+    v = 0
+    a = [0.96]
+    b = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
+    s = 2.5
 
-lam = np.poly1d([w_i[0], (w_i[-1]-w_i[0])/w_i.size][::-1])
+    # a simple call to the forward model
+    Si_mod = S_mod(i[s_obs], v=0, a=[1], b=b, s=s)
 
-# trim the observation to a range valid for the model
-s_obs = slice(*np.searchsorted(np.log(w_i), [xj[0]+100/c, xj[-1]-100/c]))
+    #gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
+    show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
 
+    # A wrapper to fit the continuum
+    S_a = lambda x, a0: S_mod(x, v, [a0], b, s)
+    a, e_a = curve_fit(S_a, i[s_obs], f_i[s_obs])
+    show_model(i[s_obs], f_i[s_obs], S_a(i[s_obs],*a), res=False)
 
-# well, we see the wavelength solution can be improved
-#gplot(i[s_obs], S_eff(np.log(lam(i[s_obs]))), 'w l,', i, f_i, 'w lp pt 7 ps 0.5 lc 3')
+    # A wrapper to fit the wavelength solution
+    S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], s)
 
-# and let's plot the observation against wavelength
+    v = -2.   # a good guess for the stellar RV is needed
+    bg = np.polyfit(i[s_obs], w_i[s_obs], 3)[::-1]
+    b, e_b = curve_fit(S_b, i[s_obs], f_i[s_obs], p0=bg)
+    bg1 = b*1
 
-#gplot(np.exp(xj_eff), S_eff(xj_eff), 'w l,', lam(i), f_i, 'w lp pt 7 ps 0.5 lc 3')
+    #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
+    show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *b))
+    gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
 
-# a parameter set
-v = 0
-a = [0.96]
-b = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
-s = 2.5
+    # compare the wavelength solutions
+    show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
 
-# a simple call to the forward model
-Si_mod = S_mod(i[s_obs], v=0, a=[1], b=b, s=s)
+    # fit v, a and b simulatenously
 
-#gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
-show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
+    S_vab = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
+    p_vab, e_p = curve_fit(S_vab, i[s_obs], f_i[s_obs], p0=[v, 1, *bg])
+    show_model(i[s_obs], f_i[s_obs], S_vab(i[s_obs], *p_vab))
 
-# A wrapper to fit the continuum
-S_a = lambda x, a0: S_mod(x, v, [a0], b, s)
-a, e_a = curve_fit(S_a, i[s_obs], f_i[s_obs])
-show_model(i[s_obs], f_i[s_obs], S_a(i[s_obs],*a), res=False)
+    s_obs = slice(400,1800) # probbably the wavelength solution of the template is bad
 
-# A wrapper to fit the wavelength solution
-S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], s)
+    S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
+    p_va, e_p = curve_fit(S_va, i[s_obs], f_i[s_obs], p0=[v, 1,*p_vab[2:6]])
+    p_va[0], np.diag(e_p)[0]**0.5
+    show_model(i[s_obs], f_i[s_obs], S_va(i[s_obs], *p_va))
 
-v = -2.   # a good guess for the stellar RV is needed
-bg = np.polyfit(i[s_obs], w_i[s_obs], 3)[::-1]
-b, e_b = curve_fit(S_b, i[s_obs], f_i[s_obs], p0=bg)
-bg1 = b*1
+    S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
+    p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2])
+    rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
+    print(o, rvo, e_rvo)
+    show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
 
-#show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
-show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *b))
-gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
+    #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
+    #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
+    #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
+    pause()  # globals().update(locals())
+    return rvo, e_rvo
 
-# compare the wavelength solutions
-show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
+for i_o, o in enumerate(orders):
+    rv[i_o], e_rv[i_o] = fit_chunk(o)
 
-# fit v, a and b simulatenously
-
-S_vab = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
-p_vab, e_p = curve_fit(S_vab, i[s_obs], f_i[s_obs], p0=[v, 1, *bg])
-show_model(i[s_obs], f_i[s_obs], S_vab(i[s_obs], *p))
-p1 = 1*p
-
-s_obs = slice(400,1800) # probbably the wavelength solution of the template is bad
-
-S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
-p_va, e_p = curve_fit(S_va, i[s_obs], f_i[s_obs], p0=[v, 1,*p_vab[2:6]])
-p_va[0], np.diag(e_p)[0]**0.5
-show_model(i[s_obs], f_i[s_obs], S_va(i[s_obs], *p_va))
-
-
-
-S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
-p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2])
-p_vabs[0], np.diag(e_p_vabs)[0]**0.5
-show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
-
-
-#show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
-show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
-gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
+rv,e_rv
+ii = np.isfinite(e_rv)
+print(np.std(rv[ii])/(ii.sum()-1)**0.5)
+gplot(orders, rv,e_rv, 'w e pt 7')
 
 
-print('Done.') 
+pause()
+
+
+print('Done.')
