@@ -64,8 +64,9 @@ def fit_chunk(o):
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
 
-    gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
-    #gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w_i, f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
+    if 0:
+        gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
+        #gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w_i, f_i/1.04, 'w lp lc 1 pt 7 ps 0.5')
 
     # prepare input; convert discrete data to model
 
@@ -153,7 +154,7 @@ def fit_chunk(o):
     show_model(i[s_obs], f_i[s_obs], S_va(i[s_obs], *p_va))
 
     S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
-    p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2])
+    p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2], epsfcn=1e-12)
     rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
     print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
@@ -170,7 +171,7 @@ for i_o, o in enumerate(orders):
 rv,e_rv
 ii = np.isfinite(e_rv)
 print(np.std(rv[ii])/(ii.sum()-1)**0.5)
-gplot(orders, rv,e_rv, 'w e pt 7')
+gplot(orders, rv*1000, e_rv*1000, 'w e pt 7')
 
 
 pause()
