@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.io import fits
+from scipy import interpolate
 
 
 c = 3e5   # [km/s] speed of light
@@ -17,6 +18,7 @@ def FTS(ftsname='lib/TLS/FTS/TLS_I2_FTS.fits'):
     
     dx = xj[1] - xj[0]  
     print("sampling [km/s]:", dx*c)
-    return xj, iod_j
+    return w,f,xj, iod_j
+
 
 
