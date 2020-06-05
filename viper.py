@@ -14,7 +14,8 @@ from gplot import *
 gplot.tmp = '$'
 from pause import pause
 
-from inst.inst_TLS import Spectrum, Tpl, FTS
+from inst.inst_TLS import Spectrum, Tpl
+from inst.FTS_resample import FTS
 from model import model, IP, show_model
 
 c = 3e5   # [km/s] speed of light
@@ -41,7 +42,10 @@ if __name__ == "__main__":
     globals().update(vars(args))
 
 ####  FTS  ####
-w_I2, f_I2 = FTS()
+
+# using the supersampled log(wavelength) space with knot index j
+
+w_I2, f_I2,xj_full, iod_j_full = FTS()
 
 orders = np.arange(18,30)
 rv = np.empty_like(orders*1.)
@@ -70,9 +74,12 @@ def fit_chunk(o):
 
     # prepare input; convert discrete data to model
 
-    # define a supersampled log(wavelength) space with knot index j
-    xj = np.linspace(np.log(lmin)+100/c, np.log(lmax)-100/c, w_I2[s].size)  # reduce range by 100 km/s
-    iod_j = interpolate.interp1d(np.log(w_I2), f_I2)(xj)
+    # using the supersampled log(wavelength) space with knot index j
+
+    sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+100/c, np.log(lmax)-100/c])) # reduce range by 100 km/s
+	
+    xj = xj_full[sj]  
+    iod_j = iod_j_full[sj]
 
 
     # convert discrete template into a function
