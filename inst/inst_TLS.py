@@ -24,6 +24,12 @@ def Tpl(tplname, o=None):
         w, f = Spectrum(tplname)
         if o is not None:
             w, f = w[o], f[o]
+    if tplname.endswith('_s1d_A.fits'):
+        hdu = fits.open(tplname)[0]
+        f = hdu.data
+        h = hdu.header
+        w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
+        w = airtovac(w)
     else:
         # long 1d template
         hdu = fits.open(tplname)

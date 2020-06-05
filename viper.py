@@ -24,11 +24,13 @@ o = 33; lmin = 6120; lmax = 6250
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
+v0 = -2
 ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
 obsname = dirname + 'data/TLS/hd189733/TV00001.fits'
 tplname = dirname + 'data/TLS/Deconv/HD189733.model'
+tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'; v = -16.
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
@@ -134,7 +136,7 @@ def fit_chunk(o):
     # A wrapper to fit the wavelength solution
     S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], s)
 
-    v = -2.   # a good guess for the stellar RV is needed
+    v = v0   # a good guess for the stellar RV is needed
     bg = np.polyfit(i[s_obs], w_i[s_obs], 3)[::-1]
     b, e_b = curve_fit(S_b, i[s_obs], f_i[s_obs], p0=bg)
     bg1 = b*1
