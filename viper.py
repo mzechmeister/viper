@@ -14,8 +14,7 @@ from gplot import *
 gplot.tmp = '$'
 from pause import pause
 
-from inst.inst_TLS import Spectrum, Tpl
-from inst.FTS_resample import FTS
+from inst.inst_TLS import Spectrum, Tpl, FTS
 from model import model, IP, show_model
 
 c = 3e5   # [km/s] speed of light
@@ -45,7 +44,7 @@ if __name__ == "__main__":
 
 # using the supersampled log(wavelength) space with knot index j
 
-w_I2, f_I2,xj_full, iod_j_full = FTS()
+w_I2, f_I2, xj_full, iod_j_full = FTS()
 
 orders = np.arange(18,30)
 rv = np.empty_like(orders*1.)
