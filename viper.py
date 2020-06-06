@@ -142,11 +142,11 @@ def fit_chunk(o):
     bg1 = b*1
 
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
-    show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *b))
-    gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
+    #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *b))
+    #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
 
     # compare the wavelength solutions
-    show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
+    #show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
 
     # fit v, a and b simulatenously
 
@@ -154,7 +154,8 @@ def fit_chunk(o):
     p_vab, e_p = curve_fit(S_vab, i[s_obs], f_i[s_obs], p0=[v, 1, *bg])
     show_model(i[s_obs], f_i[s_obs], S_vab(i[s_obs], *p_vab))
 
-    s_obs = slice(400,1800) # probbably the wavelength solution of the template is bad
+    s_obs = slice(400,1700) # probbably the wavelength solution of the template is bad
+    # TLS spectra have a kink in continuum  at about 1700
 
     S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
     p_va, e_p = curve_fit(S_va, i[s_obs], f_i[s_obs], p0=[v, 1,*p_vab[2:6]])
@@ -167,6 +168,12 @@ def fit_chunk(o):
     print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
 
+    S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
+    p_vabs, e_p_vabs = curve_fit(S, i[s_obs], f_i[s_obs], p0=[*p_vabs[:2]]+[0]*3+[*p_vabs[2:]], epsfcn=1e-12)
+    rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
+    print(o, rvo, e_rvo)
+    show_model(i[s_obs], f_i[s_obs], S(i[s_obs], *p_vabs))
+
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
     #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
     #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
@@ -178,11 +185,12 @@ for i_o, o in enumerate(orders):
 
 rv,e_rv
 ii = np.isfinite(e_rv)
-print(np.std(rv[ii])/(ii.sum()-1)**0.5)
+RV = np.mean(rv[ii]) 
+e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
+print('RV:', RV,e_RV)
 gplot(orders, rv*1000, e_rv*1000, 'w e pt 7')
 
 
 pause()
-
 
 print('Done.')
