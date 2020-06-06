@@ -14,8 +14,8 @@ def plot_rvo(rv=None, e_rv=None, file=None):
         mat = np.genfromtxt(file)
         bjd, RV, e_RV = mat[:3]
         rv, e_rv = mat[3::2], mat[4::2]
+
     ii = np.isfinite(e_rv)
-    print(ii)
     RV = np.mean(rv[ii]) 
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
 

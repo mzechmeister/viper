@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+#! /usr/bin/env python3
 
 # ./viper.py data/TLS/betgem/BETA_GEM.fits data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6
 # ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HD189733.model
+# ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits
 
 import argparse
 
@@ -9,6 +10,7 @@ import numpy as np
 from scipy import interpolate
 from scipy.optimize import curve_fit
 from astropy.io import fits
+import vpr
 
 from gplot import *
 gplot.tmp = '$'
@@ -20,7 +22,6 @@ from model import model, IP, show_model
 c = 3e5   # [km/s] speed of light
 
 
-o = 33; lmin = 6120; lmax = 6250
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
@@ -183,14 +184,18 @@ def fit_chunk(o):
 for i_o, o in enumerate(orders):
     rv[i_o], e_rv[i_o] = fit_chunk(o)
 
-rv,e_rv
 ii = np.isfinite(e_rv)
 RV = np.mean(rv[ii]) 
 e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
 print('RV:', RV,e_RV)
-gplot(orders, rv*1000, e_rv*1000, 'w e pt 7')
+
+rvounit = open('tmp.rvo.dat', 'w')
+bjd = 0. 
+print (bjd, RV, e_RV, *sum(zip(rv, e_rv),()), file=rvounit)
+rvounit.close()
 
 
+vpr.plot_rvo(rv, e_rv)
 pause()
 
 print('Done.')
