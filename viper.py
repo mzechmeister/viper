@@ -159,6 +159,7 @@ def fit_chunk(o):
     # TLS spectra have a kink in continuum  at about 1700
     bp[:400] |= 8
     bp[1700:] |= 8
+    mskatm = interpolate.interp1d(*np.genfromtxt('lib/mask_vis1.0.dat').T)
     s_obs, = np.where(bp==0)
 
     S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
@@ -172,6 +173,9 @@ def fit_chunk(o):
     print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
 
+    bp[mskatm(w_i) > 0.1] |= 16
+    s_obs, = np.where(bp==0)
+
     S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
     p_vabs, e_p_vabs = curve_fit(S, i[s_obs], f_i[s_obs], p0=[*p_vabs[:2]]+[0]*3+[*p_vabs[2:]], epsfcn=1e-12)
     rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
@@ -182,6 +186,7 @@ def fit_chunk(o):
     #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
     #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
     pause()  # globals().update(locals())
+
     return rvo, e_rvo
 
 for i_o, o in enumerate(orders):
