@@ -14,14 +14,18 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None):
     w = gg['wavelen']
     w = airtovac(w)
     if o is not None:
-         return w[o], f[o]
-    return w, f
+         w, f = w[o], f[o]
+
+    b = 1 * np.isnan(f) # bad pixel map
+    b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
+
+    return w, f, b
 
 def Tpl(tplname, o=None):
     if tplname.endswith('.model'):
         # echelle template
         from inst.inst_TLS import Spectrum
-        w, f = Spectrum(tplname)
+        w, f, b = Spectrum(tplname)
         if o is not None:
             w, f = w[o], f[o]
     if tplname.endswith('_s1d_A.fits'):

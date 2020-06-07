@@ -56,7 +56,7 @@ e_rv = np.empty_like(orders*1.)
 
 def fit_chunk(o):
     ####  data TLS  ####
-    w_i, f_i = Spectrum(obsname, o=o)
+    w_i, f_i, bp = Spectrum(obsname, o=o)
     i = np.arange(f_i.size)
 
     ####  stellar template  ####
@@ -157,6 +157,9 @@ def fit_chunk(o):
 
     s_obs = slice(400,1700) # probbably the wavelength solution of the template is bad
     # TLS spectra have a kink in continuum  at about 1700
+    bp[:400] |= 8
+    bp[1700:] |= 8
+    s_obs, = np.where(bp==0)
 
     S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
     p_va, e_p = curve_fit(S_va, i[s_obs], f_i[s_obs], p0=[v, 1,*p_vab[2:6]])
