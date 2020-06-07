@@ -11,6 +11,7 @@ from scipy import interpolate
 from scipy.optimize import curve_fit
 from astropy.io import fits
 import vpr
+import glob
 
 from gplot import *
 gplot.tmp = '$'
@@ -32,13 +33,23 @@ tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
 obsname = dirname + 'data/TLS/hd189733/TV00001.fits'
 tplname = dirname + 'data/TLS/Deconv/HD189733.model'
 tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'; v = -16.
+nset = None
+
+def arg2slice(arg):
+   """Convert string argument to a slice."""
+   # We want four cases for indexing: None, int, list of ints, slices.
+   # Use [] as default, so 'in' can be used.
+   if isinstance(arg, str):
+      arg = eval('np.s_['+arg+']')
+   return [arg] if isinstance(arg, int) else arg
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
-    argopt('-o', help='index for order', default=18, type=int)
+    argopt('-oset', help='index for order', default='18:30', type=arg2slice)
+    argopt('-nset', help='index for spectrum', default=18, type=arg2slice)
 
     args = parser.parse_args()
     globals().update(vars(args))
@@ -48,13 +59,13 @@ if __name__ == "__main__":
 # using the supersampled log(wavelength) space with knot index j
 
 w_I2, f_I2, xj_full, iod_j_full = FTS()
-
-orders = np.arange(18,30)
+orders = np.r_[oset] # np.arange(18,30)
+print(orders)
 rv = np.empty_like(orders*1.)
 e_rv = np.empty_like(orders*1.)
 
 
-def fit_chunk(o):
+def fit_chunk(o, obsname):
     ####  data TLS  ####
     w_i, f_i, bp = Spectrum(obsname, o=o)
     i = np.arange(f_i.size)
@@ -109,6 +120,7 @@ def fit_chunk(o):
 
     # trim the observation to a range valid for the model
     s_obs = slice(*np.searchsorted(np.log(w_i), [xj[0]+100/c, xj[-1]-100/c]))
+    s_obs = np.r_[s_obs][np.where(bp[s_obs]==0)]
 
     # well, we see the wavelength solution can be improved
     #gplot(i[s_obs], S_eff(np.log(lam(i[s_obs]))), 'w l,', i, f_i, 'w lp pt 7 ps 0.5 lc 3')
@@ -170,7 +182,7 @@ def fit_chunk(o):
     S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
     p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2], epsfcn=1e-12)
     rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
-    print(o, rvo, e_rvo)
+    #print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
 
     bp[mskatm(w_i) > 0.1] |= 16
@@ -185,21 +197,25 @@ def fit_chunk(o):
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
     #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
     #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
-    pause()  # globals().update(locals())
+    #pause()  # globals().update(locals())
 
     return rvo, e_rvo
 
-for i_o, o in enumerate(orders):
-    rv[i_o], e_rv[i_o] = fit_chunk(o)
-
-ii = np.isfinite(e_rv)
-RV = np.mean(rv[ii]) 
-e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
-print('RV:', RV,e_RV)
 
 rvounit = open('tmp.rvo.dat', 'w')
-bjd = 0. 
-print (bjd, RV, e_RV, *sum(zip(rv, e_rv),()), file=rvounit)
+for obsname_n in glob.glob(obsname+'/*')[nset]:
+    print(obsname_n)
+    for i_o, o in enumerate(orders):
+        rv[i_o], e_rv[i_o] = fit_chunk(o, obsname=obsname_n)
+
+    ii = np.isfinite(e_rv)
+    RV = np.mean(rv[ii]) 
+    e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
+    print('RV:', RV,e_RV)
+
+    bjd = 0. 
+    print (bjd, RV, e_RV, *sum(zip(rv, e_rv),()), file=rvounit)
+
 rvounit.close()
 
 
