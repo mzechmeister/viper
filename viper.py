@@ -2,7 +2,7 @@
 
 # ./viper.py data/TLS/betgem/BETA_GEM.fits data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6
 # ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HD189733.model
-# ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits
+# ./viper.py "data/TLS/hd189733/*" data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits
 
 import argparse
 
@@ -26,7 +26,7 @@ c = 3e5   # [km/s] speed of light
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
-v0 = -2
+v0 = -12
 ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
@@ -67,7 +67,7 @@ e_rv = np.empty_like(orders*1.)
 
 def fit_chunk(o, obsname):
     ####  data TLS  ####
-    w_i, f_i, bp = Spectrum(obsname, o=o)
+    w_i, f_i, bp, bjd, berv = Spectrum(obsname, o=o)
     i = np.arange(f_i.size)
 
     ####  stellar template  ####
@@ -96,7 +96,7 @@ def fit_chunk(o, obsname):
 
 
     # convert discrete template into a function
-    S_star = interpolate.interp1d(np.log(w_tpl), f_tpl)
+    S_star = interpolate.interp1d(np.log(w_tpl)-berv/c, f_tpl)
 
 
     # setup the model
@@ -140,6 +140,7 @@ def fit_chunk(o, obsname):
 
     #gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
     show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
+    #pause()
 
     # A wrapper to fit the continuum
     S_a = lambda x, a0: S_mod(x, v, [a0], b, s)
@@ -151,6 +152,7 @@ def fit_chunk(o, obsname):
 
     v = v0   # a good guess for the stellar RV is needed
     bg = np.polyfit(i[s_obs], w_i[s_obs], 3)[::-1]
+    #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs],*bg), res=False)
     b, e_b = curve_fit(S_b, i[s_obs], f_i[s_obs], p0=bg)
     bg1 = b*1
 
@@ -199,27 +201,26 @@ def fit_chunk(o, obsname):
     #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
     #pause()  # globals().update(locals())
 
-    return rvo, e_rvo
+    return rvo, e_rvo, bjd, berv
 
 
 rvounit = open('tmp.rvo.dat', 'w')
-for obsname_n in glob.glob(obsname+'/*')[nset]:
+for obsname_n in glob.glob(obsname)[nset]:
     print(obsname_n)
     for i_o, o in enumerate(orders):
-        rv[i_o], e_rv[i_o] = fit_chunk(o, obsname=obsname_n)
+        rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
 
     ii = np.isfinite(e_rv)
     RV = np.mean(rv[ii]) 
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
-    print('RV:', RV,e_RV)
+    print('RV:', RV,e_RV, bjd, berv)
 
-    bjd = 0. 
-    print (bjd, RV, e_RV, *sum(zip(rv, e_rv),()), file=rvounit)
+    print(bjd, RV, e_RV, berv, berv, *sum(zip(rv, e_rv),()), file=rvounit)
+    #vpr.plot_rvo(rv, e_rv)
 
 rvounit.close()
 
-
-vpr.plot_rvo(rv, e_rv)
+vpr.plot_rv('tmp.rvo.dat')
 pause()
 
 print('Done.')

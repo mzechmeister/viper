@@ -24,6 +24,11 @@ def plot_rvo(rv=None, e_rv=None, file=None):
     gplot(rv, e_rv, 'us 0:1:2 w e pt 7 t "%s", RV=%s, e_RV=%s, RV lc 3 t "RV = %.5f +/- %.5f km/s", RV+e_RV lc 3 dt 2 t "", RV-e_RV lc 3 dt 2 t ""' % (file, RV,e_RV,RV,e_RV))
     pause()
 
+def plot_rv(rv=None, e_rv=None, file=None):
+    gplot('"%s" us 1:2:3 w e pt 7' % file)
+    pause()
+
 if __name__ == "__main__":
+    plot_rv(file="tmp.rvo.dat")
     plot_rvo(file="tmp.rvo.dat")
 

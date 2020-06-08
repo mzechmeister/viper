@@ -7,7 +7,7 @@ c = 3e8   # [m/s] speed of light
 
 
 def FTSfits(ftsname):
-    hdu = fits.open(ftsname)[0]
+    hdu = fits.open(ftsname, ignore_blank=True)[0]
 
     f = hdu.data[::-1]
     h = hdu.header
