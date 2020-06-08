@@ -139,7 +139,7 @@ def readmultispec(fitsfile, reform=True, quiet=False):
     a 3-D array.
     """
 
-    fh = pyfits.open(fitsfile)
+    fh = pyfits.open(fitsfile, ignore_blank=True))
     try:
         header = fh[0].header
         flux = fh[0].data

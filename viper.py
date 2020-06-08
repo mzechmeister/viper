@@ -2,16 +2,15 @@
 
 # ./viper.py data/TLS/betgem/BETA_GEM.fits data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6
 # ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HD189733.model
-# ./viper.py "data/TLS/hd189733/*" data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits
+# ./viper.py "data/TLS/hd189733/*" data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits -oset 18:30
 
 import argparse
+import glob
 
 import numpy as np
-from scipy import interpolate
+from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from astropy.io import fits
-import vpr
-import glob
 
 from gplot import *
 gplot.tmp = '$'
@@ -19,9 +18,9 @@ from pause import pause
 
 from inst.inst_TLS import Spectrum, Tpl, FTS
 from model import model, IP, show_model
+import vpr
 
 c = 3e5   # [km/s] speed of light
-
 
 o = 18; lmin = 5240; lmax = 5390
 
@@ -32,7 +31,8 @@ obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
 obsname = dirname + 'data/TLS/hd189733/TV00001.fits'
 tplname = dirname + 'data/TLS/Deconv/HD189733.model'
-tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'; v = -16.
+tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'
+
 nset = None
 
 def arg2slice(arg):
@@ -40,7 +40,7 @@ def arg2slice(arg):
    # We want four cases for indexing: None, int, list of ints, slices.
    # Use [] as default, so 'in' can be used.
    if isinstance(arg, str):
-      arg = eval('np.s_['+arg+']')
+       arg = eval('np.s_['+arg+']')
    return [arg] if isinstance(arg, int) else arg
 
 if __name__ == "__main__":
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     argopt = parser.add_argument   # function short cut
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
+    argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
-    argopt('-nset', help='index for spectrum', default=18, type=arg2slice)
 
     args = parser.parse_args()
     globals().update(vars(args))
@@ -59,10 +59,12 @@ if __name__ == "__main__":
 # using the supersampled log(wavelength) space with knot index j
 
 w_I2, f_I2, xj_full, iod_j_full = FTS()
+
 orders = np.r_[oset] # np.arange(18,30)
 print(orders)
-rv = np.empty_like(orders*1.)
-e_rv = np.empty_like(orders*1.)
+
+rv = np.empty_like(orders*1.) * np.nan
+e_rv = np.empty_like(orders*1.) * np.nan
 
 
 def fit_chunk(o, obsname):
@@ -96,7 +98,7 @@ def fit_chunk(o, obsname):
 
 
     # convert discrete template into a function
-    S_star = interpolate.interp1d(np.log(w_tpl)-berv/c, f_tpl)
+    S_star = interp1d(np.log(w_tpl)-berv/c, f_tpl)
 
 
     # setup the model
@@ -139,13 +141,13 @@ def fit_chunk(o, obsname):
     Si_mod = S_mod(i[s_obs], v=0, a=[1], b=b, s=s)
 
     #gplot(i, Si_mod, 'w l t "S(i)",', i, f_i, 'w lp pt 7 ps 0.5 lc 3 t "S_i"')
-    show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
+    #show_model(i[s_obs], f_i[s_obs], Si_mod, res=False)
     #pause()
 
     # A wrapper to fit the continuum
     S_a = lambda x, a0: S_mod(x, v, [a0], b, s)
     a, e_a = curve_fit(S_a, i[s_obs], f_i[s_obs])
-    show_model(i[s_obs], f_i[s_obs], S_a(i[s_obs],*a), res=False)
+    #show_model(i[s_obs], f_i[s_obs], S_a(i[s_obs],*a), res=False)
 
     # A wrapper to fit the wavelength solution
     S_b = lambda x, b0,b1,b2,b3: S_mod(x, v, a, [b0,b1,b2,b3], s)
@@ -169,17 +171,15 @@ def fit_chunk(o, obsname):
     p_vab, e_p = curve_fit(S_vab, i[s_obs], f_i[s_obs], p0=[v, 1, *bg])
     show_model(i[s_obs], f_i[s_obs], S_vab(i[s_obs], *p_vab))
 
-    s_obs = slice(400,1700) # probbably the wavelength solution of the template is bad
-    # TLS spectra have a kink in continuum  at about 1700
-    bp[:400] |= 8
-    bp[1700:] |= 8
-    mskatm = interpolate.interp1d(*np.genfromtxt('lib/mask_vis1.0.dat').T)
+    #s_obs = slice(400,1700) # probably the wavelength solution of the template is bad
+    mskatm = interp1d(*np.genfromtxt('lib/mask_vis1.0.dat').T)
+    bp[mskatm(w_i) > 0.1] |= 16
     s_obs, = np.where(bp==0)
 
     S_va = lambda x, v, a, b0,b1,b2,b3: S_mod(x, v, [a], [b0,b1,b2,b3], 2.2)
     p_va, e_p = curve_fit(S_va, i[s_obs], f_i[s_obs], p0=[v, 1,*p_vab[2:6]])
     p_va[0], np.diag(e_p)[0]**0.5
-    show_model(i[s_obs], f_i[s_obs], S_va(i[s_obs], *p_va))
+    #show_model(i[s_obs], f_i[s_obs], S_va(i[s_obs], *p_va))
 
     S_vabs = lambda x, v, a, b0,b1,b2,b3, s: S_mod(x, v, [a], [b0,b1,b2,b3], s)
     p_vabs, e_p_vabs = curve_fit(S_vabs, i[s_obs], f_i[s_obs], p0=[*p_va, 2.2], epsfcn=1e-12)
@@ -187,13 +187,9 @@ def fit_chunk(o, obsname):
     #print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p_vabs))
 
-    bp[mskatm(w_i) > 0.1] |= 16
-    s_obs, = np.where(bp==0)
-
     S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
     p_vabs, e_p_vabs = curve_fit(S, i[s_obs], f_i[s_obs], p0=[*p_vabs[:2]]+[0]*3+[*p_vabs[2:]], epsfcn=1e-12)
     rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
-    print(o, rvo, e_rvo)
     show_model(i[s_obs], f_i[s_obs], S(i[s_obs], *p_vabs))
 
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
@@ -205,10 +201,15 @@ def fit_chunk(o, obsname):
 
 
 rvounit = open('tmp.rvo.dat', 'w')
-for obsname_n in glob.glob(obsname)[nset]:
+for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
     print(obsname_n)
     for i_o, o in enumerate(orders):
-        rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
+        try:
+            rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
+        except:
+            pass
+
+        print(n, o, rv[i_o], e_rv[i_o])
 
     ii = np.isfinite(e_rv)
     RV = np.mean(rv[ii]) 
