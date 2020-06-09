@@ -2,14 +2,19 @@
 
 # ./vpr.py
 
+import argparse
+
 import numpy as np
 
 from pause import pause
 from gplot import gplot
 gplot.tmp = '$'
 
-def plot_RV(rv=None, e_rv=None, file=None):
-    gplot('"%s" us 1:2:3 w e pt 7' % file)
+def plot_RV(file=None):
+    gplot.mxtics().mytics()
+    gplot.xlabel("'BJD - 2 450 000'")
+    gplot.ylabel("'RV [km/s]'")
+    gplot('"%s" us ($1-2450000):2:3 w e pt 7' % file)
     pause()
 
 def plot_rvo(rv=None, e_rv=None, file=None):
@@ -30,22 +35,37 @@ def plot_rvo(rv=None, e_rv=None, file=None):
 
 
 class VPR():
-    def __init__(self, file):
+    def __init__(self, tag):
+        self.tag = tag
+        self.file = file = tag + '.rvo.dat'
         self.A = np.genfromtxt(file, usecols=(0, 1, 2), dtype=[('bjd','float'), ('RV',float), ('e_RV',float)]).view(np.recarray)
         mat = np.genfromtxt(file)
         self.rv, self.e_rv = mat.T[5::2], mat.T[6::2]
+
+    def plot_RV(self):
+        plot_RV(self.file)
+
     def plot_rv(self, o=None, n=None):
         A = self.A
         gplot.var(n=1, N=len(self.rv.T))
+        gplot.key('title "%s"'%self.tag)
         gplot.bind('")" "n = n>=N? N : n+1; repl"')
         gplot.bind('"(" "n = n<=1? 1 : n-1; repl"')
         gplot.xlabel("'order o'")
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
-        gplot('for [n=1:N]', (self.rv-A.RV).T*1000, self.e_rv.T*1000, 'us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 6 lc "light-grey" t "", "" us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 7 lc 1 t "n = ".n')
+        gplot.mxtics().mytics()
+        gplot('for [n=1:N]', (self.rv-A.RV).T*1000, self.e_rv.T*1000, 'us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 6 lc "light-grey" t "", "" us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_".n,', A.bjd, A.RV*1000+400, A.e_RV*1000, 'w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_".n')
         pause()
-        
-if __name__ == "__main__":
-    VPR("tmp.rvo.dat").plot_rv(o=1)
-    plot_RV(file="tmp.rvo.dat")
-    plot_rvo(file="tmp.rvo.dat")
 
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Analyse viper RVs', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
+    argopt = parser.add_argument   # function short cut
+    argopt('tag', nargs='?', help='tag', default='tmp', type=str)
+
+    args = parser.parse_args()
+
+    vpr = VPR(args.tag)
+    vpr.plot_RV()
+    vpr.plot_rv(o=1)

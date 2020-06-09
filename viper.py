@@ -2,7 +2,7 @@
 
 # ./viper.py data/TLS/betgem/BETA_GEM.fits data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6
 # ./viper.py data/TLS/hd189733/TV00001.fits data/TLS/Deconv/HD189733.model
-# ./viper.py "data/TLS/hd189733/*" data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits -oset 18:30
+# ./viper.py "data/TLS/hd189733/*" data/TLS/Deconv/HARPS.2006-09-08T02\:12\:38.604_s1d_A.fits
 
 import argparse
 import glob
@@ -43,11 +43,15 @@ def arg2slice(arg):
        arg = eval('np.s_['+arg+']')
    return [arg] if isinstance(arg, int) else arg
 
+def arg2range(arg):
+    return  eval('np.r_['+arg+']')
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
+    argopt('-look', nargs='?', help='See final fit of chunk', default=':0', const=':', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
 
@@ -92,7 +96,7 @@ def fit_chunk(o, obsname):
     # using the supersampled log(wavelength) space with knot index j
 
     sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+100/c, np.log(lmax)-100/c])) # reduce range by 100 km/s
-	
+        
     xj = xj_full[sj]  
     iod_j = iod_j_full[sj]
 
@@ -195,7 +199,8 @@ def fit_chunk(o, obsname):
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
     #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
     #gplot+(i[s_obs], S_star(np.log(np.poly1d(b[::-1])(i[s_obs]))+(v)/c), 'w lp ps 0.5')
-    #pause()  # globals().update(locals())
+    if o in look:
+        pause()  # globals().update(locals())
 
     return rvo, e_rvo, bjd, berv
 
@@ -221,7 +226,7 @@ for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
 
 rvounit.close()
 
-vpr.plot_rv('tmp.rvo.dat')
+vpr.plot_RV('tmp.rvo.dat')
 pause()
 
 print('Done.')
