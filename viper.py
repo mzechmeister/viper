@@ -51,7 +51,7 @@ if __name__ == "__main__":
     argopt = parser.add_argument   # function short cut
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
-    argopt('-look', nargs='?', help='See final fit of chunk', default=':0', const=':', type=arg2range)
+    argopt('-look', nargs='?', help='See final fit of chunk', default=':0', const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
 
