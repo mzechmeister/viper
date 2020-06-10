@@ -211,13 +211,14 @@ for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
     for i_o, o in enumerate(orders):
         try:
             rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
-        except:
-            pass
+        except Exception as e:
+            if repr(e) == 'BdbQuit()':
+               exit()
 
         print(n, o, rv[i_o], e_rv[i_o])
 
     ii = np.isfinite(e_rv)
-    RV = np.mean(rv[ii]) 
+    RV = np.mean(rv[ii])
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
     print('RV:', RV,e_RV, bjd, berv)
 
