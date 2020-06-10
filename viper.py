@@ -51,7 +51,7 @@ if __name__ == "__main__":
     argopt = parser.add_argument   # function short cut
     argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
-    argopt('-look', nargs='?', help='See final fit of chunk', default=':0', const=':100', type=arg2range)
+    argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
 
@@ -96,8 +96,8 @@ def fit_chunk(o, obsname):
     # using the supersampled log(wavelength) space with knot index j
 
     sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+100/c, np.log(lmax)-100/c])) # reduce range by 100 km/s
-        
-    xj = xj_full[sj]  
+
+    xj = xj_full[sj]
     iod_j = iod_j_full[sj]
 
 
@@ -206,6 +206,9 @@ def fit_chunk(o, obsname):
 
 
 rvounit = open('tmp.rvo.dat', 'w')
+# file header
+print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), file=rvounit)
+
 for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
     print(obsname_n)
     for i_o, o in enumerate(orders):
@@ -222,7 +225,7 @@ for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
     print('RV:', RV,e_RV, bjd, berv)
 
-    print(bjd, RV, e_RV, berv, berv, *sum(zip(rv, e_rv),()), file=rvounit)
+    print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), file=rvounit)
     #vpr.plot_rvo(rv, e_rv)
 
 rvounit.close()

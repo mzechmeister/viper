@@ -10,11 +10,12 @@ from pause import pause
 from gplot import gplot
 gplot.tmp = '$'
 
-def plot_RV(file=None):
+def plot_RV(file):
     gplot.mxtics().mytics()
     gplot.xlabel("'BJD - 2 450 000'")
     gplot.ylabel("'RV [km/s]'")
-    gplot('"%s" us ($1-2450000):2:3 w e pt 7' % file)
+    gplot.key("title '%s'" % file)
+    gplot('"%s" us ($1-2450000):"RV":"e_RV" w e pt 7  ' % file)
     pause()
 
 def plot_rvo(rv=None, e_rv=None, file=None):
@@ -38,9 +39,11 @@ class VPR():
     def __init__(self, tag):
         self.tag = tag
         self.file = file = tag + '.rvo.dat'
-        self.A = np.genfromtxt(file, usecols=(0, 1, 2), dtype=[('bjd','float'), ('RV',float), ('e_RV',float)]).view(np.recarray)
-        mat = np.genfromtxt(file)
-        self.rv, self.e_rv = mat.T[5::2], mat.T[6::2]
+        self.A = np.genfromtxt(file, usecols=range(4), names=True).view(np.recarray)
+        mat = np.genfromtxt(file, skip_header=1)
+        self.rv, self.e_rv = mat.T[4::2], mat.T[5::2]
+        orders = np.genfromtxt(self.file, names=True).dtype.names[4::2]
+        self.orders = [int(o[2:]) for o in orders]
 
     def plot_RV(self):
         plot_RV(self.file)
@@ -54,7 +57,8 @@ class VPR():
         gplot.xlabel("'order o'")
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
-        gplot('for [n=1:N]', (self.rv-A.RV).T*1000, self.e_rv.T*1000, 'us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 6 lc "light-grey" t "", "" us ($0-0.25+0.5*n/N):(column(n)):(column(n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_".n,', A.bjd, A.RV*1000+400, A.e_RV*1000, 'w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_".n')
+
+        gplot('for [n=1:N]', self.orders, (self.rv-A.RV).T*1000, self.e_rv.T*1000, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV*1000+400, A.e_RV*1000, 'w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
         pause()
 
 
