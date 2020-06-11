@@ -40,7 +40,7 @@ class model:
         # wavelength solution
         xi = np.log(np.poly1d(b[::-1])(i))
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, s), self.S_star(self.xj+v/c) * self.iod_j, mode='valid')
+        Sj_eff = np.convolve(self.IP(self.vk, s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
         # sampling to pixel
         Si_eff = interpolate.interp1d(self.xj_eff, Sj_eff)(xi)
         # flux normalisation
