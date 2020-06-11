@@ -13,7 +13,7 @@ gplot.tmp = '$'
 def plot_RV(file):
     gplot.mxtics().mytics()
     gplot.xlabel("'BJD - 2 450 000'")
-    gplot.ylabel("'RV [km/s]'")
+    gplot.ylabel("'RV [m/s]'")
     gplot.key("title '%s'" % file)
     gplot('"%s" us ($1-2450000):"RV":(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", strcol("filename"),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):"RV":"e_RV" w e pt 7 lc 7' % file)
     pause()
@@ -30,8 +30,8 @@ def plot_rvo(rv=None, e_rv=None, file=None):
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
 
     gplot.xlabel('"Order index"')
-    gplot.ylabel('"RV [km/s]"')
-    gplot(rv, e_rv, 'us 0:1:2 w e pt 7 t "%s", RV=%s, e_RV=%s, RV lc 3 t "RV = %.5f +/- %.5f km/s", RV+e_RV lc 3 dt 2 t "", RV-e_RV lc 3 dt 2 t ""' % (file, RV,e_RV,RV,e_RV))
+    gplot.ylabel('"RV [m/s]"')
+    gplot(rv, e_rv, 'us 0:1:2 w e pt 7 t "%s", RV=%s, e_RV=%s, RV lc 3 t "RV = %.5f +/- %.5f m/s", RV+e_RV lc 3 dt 2 t "", RV-e_RV lc 3 dt 2 t ""' % (file, RV,e_RV,RV,e_RV))
     pause()
 
 
@@ -58,7 +58,7 @@ class VPR():
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
 
-        gplot('for [n=1:N]', self.orders, (self.rv-A.RV).T*1000, self.e_rv.T*1000, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV*1000+400, A.e_RV*1000, A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "", "" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
+        gplot('for [n=1:N]', self.orders, (self.rv-A.RV).T, self.e_rv.T, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV+400, A.e_RV, A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "", "" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
         pause()
 
 
