@@ -6,6 +6,7 @@
 
 import argparse
 import glob
+import os
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -207,10 +208,13 @@ def fit_chunk(o, obsname):
 
 rvounit = open('tmp.rvo.dat', 'w')
 # file header
-print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), file=rvounit)
+print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
+
 
 for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
-    print(obsname_n)
+    filename = os.path.basename(obsname_n)
+    print(n+1, obsname_n)
+    gplot.key('title "%s (n=%s)"'% (filename, n) )
     for i_o, o in enumerate(orders):
         try:
             rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
@@ -225,7 +229,7 @@ for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
     print('RV:', RV,e_RV, bjd, berv)
 
-    print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), file=rvounit)
+    print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), filename, file=rvounit)
     #vpr.plot_rvo(rv, e_rv)
 
 rvounit.close()
