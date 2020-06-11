@@ -13,11 +13,20 @@ def IP(vk, s=2.2):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+def IP2(vk, s):
+    ''' IP for multiple, zero-centered Gaussians '''
+    print(s)
+    s0, a1, s1 = s
+    IP_k = np.exp(-(vk/s0)**2)   # Gauss IP
+    IP_k += a1*np.exp(-(vk/s1)**2)   # Gauss IP
+    IP_k /= IP_k.sum()          # normalise IP
+    return IP_k
+
 
 class model:
     '''
     The forward model
-    
+
     '''
     def __init__(self, *args, IP_hw=50):
         self.S_star, self.xj, self.iod_j, self.IP = args
@@ -38,10 +47,32 @@ class model:
         Si_mod = np.poly1d(a[::-1])(xi) * Si_eff
         return Si_mod
 
+    def show(self, p, x, y, res=True, x2=None, dx=None):
+        '''
+        res: Show residuals.
+        x2: Values for second x axis.
+        dx: Step size for the model.
+
+        '''
+        ymod = self(x, *p)
+        args = (x, y, ymod, 'w lp pt 7 ps 0.5 t "S_i",',
+          '"" us 1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
+        if res:
+            rms = np.std(y-ymod)
+            gplot.mxtics().mytics().my2tics()
+            # overplot residuals
+            gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
+            args += (",", x, y-ymod, "w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res %.3g', 0 lc 3 axis x1y2" % rms)
+        if dx:
+            xx = np.arange(x.min(), x.max(), dx)
+            yymod = self(xx, *p)
+            args += (",", xx, yymod, 'w l lc 3 t ""')
+        gplot(*args)
+
 
 def show_model(x, y, ymod, res=True):
     gplot(x, y, ymod, 'w lp pt 7 ps 0.5 t "S_i",',
-          '"" us 1:3w lp pt 6 ps 0.5 lc 3 t "S(i)"')
+          '"" us 1:3 w lp pt 6 ps 0.5 lc 3 t "S(i)"')
     if res:
         rms = np.std(y-ymod)
         gplot.mxtics().mytics().my2tics()

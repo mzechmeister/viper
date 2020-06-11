@@ -195,7 +195,8 @@ def fit_chunk(o, obsname):
     S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
     p_vabs, e_p_vabs = curve_fit(S, i[s_obs], f_i[s_obs], p0=[*p_vabs[:2]]+[0]*3+[*p_vabs[2:]], epsfcn=1e-12)
     rvo, e_rvo = p_vabs[0], np.diag(e_p_vabs)[0]**0.5
-    show_model(i[s_obs], f_i[s_obs], S(i[s_obs], *p_vabs))
+    #show_model(i[s_obs], f_i[s_obs], S(i[s_obs], *p_vabs))
+    S_mod.show([*p_vabs[:1],p_vabs[1:5],p_vabs[5:9], p_vabs[9]], i[s_obs], f_i[s_obs], dx=0.1)
 
     #show_model(i[s_obs], f_i[s_obs], S_b(i[s_obs], *bg))
     #show_model(i[s_obs], f_i[s_obs], S_vabs(i[s_obs], *p))
