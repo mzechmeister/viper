@@ -50,7 +50,7 @@ def arg2range(arg):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
-    argopt('obsname', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
+    argopt('obspath', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
@@ -211,19 +211,22 @@ rvounit = open('tmp.rvo.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
 
+obsnames = glob.glob(obspath)[nset]
+N = len(obsnames)
 
-for n,obsname_n in enumerate(glob.glob(obsname)[nset]):
-    filename = os.path.basename(obsname_n)
-    print(n+1, obsname_n)
+for n,obsname in enumerate(obsnames):
+    filename = os.path.basename(obsname)
+    print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
-        gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o) )
+        gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o))
         try:
-            rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname_n)
+            rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname)
         except Exception as e:
             if repr(e) == 'BdbQuit()':
                exit()
+            print(repr(e))
 
-        print(n, o, rv[i_o], e_rv[i_o])
+        print(n+1, o, rv[i_o], e_rv[i_o])
 
     ii = np.isfinite(e_rv)
     RV = np.mean(rv[ii])
