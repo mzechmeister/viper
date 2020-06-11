@@ -55,18 +55,23 @@ class model:
 
         '''
         ymod = self(x, *p)
-        args = (x, y, ymod, 'w lp pt 7 ps 0.5 t "S_i",',
-          '"" us 1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
+        x2 = np.poly1d(p[2][::-1])(x)
+        gplot.var(lam=0)
+        # toggle between pixel and wavelength with shortcut "$"
+        gplot.bind('"$" "lam=!lam; set xlabel (lam?\\"Vaccum wavelength [A]\\":\\"Pixel x\\" ); replot"')
+        args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "S_i",',
+          '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
         if res:
             rms = np.std(y-ymod)
             gplot.mxtics().mytics().my2tics()
             # overplot residuals
             gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
-            args += (",", x, y-ymod, "w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res %.3g', 0 lc 3 axis x1y2" % rms)
+            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res %.3g', 0 lc 3 axis x1y2" % rms)
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
+            xx2 = np.poly1d(p[2][::-1])(xx)
             yymod = self(xx, *p)
-            args += (",", xx, yymod, 'w l lc 3 t ""')
+            args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         gplot(*args)
 
 
