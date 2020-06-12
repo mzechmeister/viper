@@ -7,6 +7,7 @@
 import argparse
 import glob
 import os
+import time
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -55,6 +56,7 @@ if __name__ == "__main__":
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
+    argopt('-tag', help='Output tag for filename', default='tmp', type=str)
 
     args = parser.parse_args()
     globals().update(vars(args))
@@ -207,12 +209,13 @@ def fit_chunk(o, obsname):
     return rvo, e_rvo, bjd, berv
 
 
-rvounit = open('tmp.rvo.dat', 'w')
+rvounit = open(tag+'.rvo.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
 
 obsnames = glob.glob(obspath)[nset]
 N = len(obsnames)
+T = time.time()
 
 for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
@@ -238,7 +241,13 @@ for n,obsname in enumerate(obsnames):
 
 rvounit.close()
 
-vpr.plot_RV('tmp.rvo.dat')
+T = time.time() - T
+Tfmt = lambda t: time.strftime("%Hh%Mm%Ss", time.gmtime(t))
+print("processing time total:       ", Tfmt(T))
+print("processing time per spectrum:", Tfmt(T/N))
+print("processing time per chunk:   ",    Tfmt(T/N/orders.size))
+
+vpr.plot_RV(tag+'.rvo.dat')
 pause()
 
 print('Done.')
