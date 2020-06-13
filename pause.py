@@ -83,7 +83,7 @@ def pause(*args, **kwargs):
          # a workaround for bad arrow keys and history behaviour
          print('mode d:  logging turned off, stdout reseted')
          sys.stdout = sys.__stdout__
-      x = pdb.Pdb(skip=['pause'])
+      x = pdb.Pdb()
       #x.prompt = 'Bla '
       # x.rcLines=["print 'aa'"]; x.setup(sys._getframe().f_back,None)
       # x.set_trace(sys._getframe().f_back)   # debug
