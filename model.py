@@ -51,27 +51,31 @@ class model:
         '''
         res: Show residuals.
         x2: Values for second x axis.
-        dx: Step size for the model.
+        dx: Subpixel step size for the model [pixel].
 
         '''
         ymod = self(x, *p)
         x2 = np.poly1d(p[2][::-1])(x)
-        gplot.var(lam=0)
+        gplot.put("if (!exists('lam')) {lam=1}")
+        
+        #gplot.key('horizontal')
+        gplot.xlabel('lam?"Vaccum wavelength [Å]":"Pixel x"')
+        gplot.ylabel('"flux"')
         # toggle between pixel and wavelength with shortcut "$"
-        gplot.bind('"$" "lam=!lam; set xlabel (lam?\\"Vaccum wavelength [A]\\":\\"Pixel x\\" ); replot"')
+        gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vaccum wavelength [Å]\\":\\"Pixel x\\"; replot"')
         args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "S_i",',
           '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
-        if res:
-            rms = np.std(y-ymod)
-            gplot.mxtics().mytics().my2tics()
-            # overplot residuals
-            gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
-            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res %.3g', 0 lc 3 axis x1y2" % rms)
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
             xx2 = np.poly1d(p[2][::-1])(xx)
             yymod = self(xx, *p)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
+        if res:
+            rms = np.std(y-ymod)
+            gplot.mxtics().mytics().my2tics()
+            # overplot residuals
+            gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
+            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res (%.3g \~ %.3g%%)', 0 lc 3 axis x1y2 t ''" % (rms, rms/np.mean(ymod)*100))
         gplot(*args)
 
 
