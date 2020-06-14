@@ -19,6 +19,11 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None):
     # PX#   WAVELENGTH          FLUX           ERROR         MASK (0/1/6)
     x, w, f, e_f, m = np.genfromtxt(filename, skip_header=21).T
     w = airtovac(w)
+    if o is not None:
+#        o = slice(*[(0,2000), (2000,None)][o])
+        o = slice(o*1000, (o+1)*1000)
+        x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
+        
 
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux

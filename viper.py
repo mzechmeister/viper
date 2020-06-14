@@ -6,6 +6,7 @@
 
 import argparse
 import glob
+import importlib
 import os
 import time
 
@@ -19,10 +20,12 @@ gplot.tmp = '$'
 gplot.colors('classic')
 from pause import pause
 
-from inst.inst_TLS import Spectrum, Tpl, FTS
+#from inst.inst_TLS import Spectrum, Tpl, FTS
 #from inst.inst_CES import Spectrum, Tpl, FTS
 from model import model, IP, show_model
 import vpr
+
+viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
 c = 3e5   # [km/s] speed of light
 
@@ -51,13 +54,28 @@ def arg2range(arg):
     return  eval('np.r_['+arg+']')
 
 if __name__ == "__main__":
+    # check first the instrument with preparsing
+    insts = ['TLS', 'CES']
+    preparser = argparse.ArgumentParser(add_help=False)
+    preparser.add_argument('args', nargs='*')
+    preparser.add_argument('-inst', help='Instrument', default='TLS', choices=insts)
+    preargs, _ =  preparser.parse_known_args()
+
+    inst = preargs.inst
+    inst = importlib.import_module('inst.inst_'+inst)
+    FTS = inst.FTS
+    Spectrum = inst.Spectrum
+    Tpl = inst.Tpl
+
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('obspath', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
-    argopt('-fts', help='Filename of template', default=FTS.__defaults__[0], dest='ftsname', type=str)
+    argopt('-inst', help='Instrument', default='TLS', choices=insts)
+    argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
+    argopt('-nexcl', help='Pattern ignore', default='', type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
@@ -84,7 +102,7 @@ def fit_chunk(o, obsname):
     w_i, f_i, bp, bjd, berv = Spectrum(obsname, o=o)
     i = np.arange(f_i.size)
     #i_ok = slice(400,1700) # probably the wavelength solution of the template is bad
-    mskatm = interp1d(*np.genfromtxt('lib/mask_vis1.0.dat').T)
+    mskatm = interp1d(*np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
     bp[mskatm(w_i) > 0.1] |= 16
     i_ok, = np.where(bp==0)
 
@@ -98,7 +116,8 @@ def fit_chunk(o, obsname):
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-    sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+100/c, np.log(lmax)-100/c])) # reduce range by 100 km/s
+    vcut = 30
+    sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+vcut/c, np.log(lmax)-vcut/c])) # reduce range by 100 km/s
 
     # prepare input; convert discrete data to model
 
@@ -191,7 +210,7 @@ def fit_chunk(o, obsname):
     p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg, s], epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #show_model(i[i_ok], f_i[i_ok], S(i[i_ok], *p_vabs))
-    S_mod.show([p[0], p[1:5], p[5:9], p[9]], i[i_ok], f_i[i_ok], dx=0.1)
+    prms = S_mod.show([p[0], p[1:5], p[5:9], p[9]], i[i_ok], f_i[i_ok], dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
 
     # error estimation
@@ -229,30 +248,37 @@ def fit_chunk(o, obsname):
         gplot.unset('multiplot')
         pause()
       
-    return rvo, e_rvo, bjd, berv
+    return rvo, e_rvo, bjd, berv, p, e_p, prms
 
 
 rvounit = open(tag+'.rvo.dat', 'w')
+parunit = open(tag+'.par.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
+print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, range(10))),()), 'prms', file=parunit)
 
 obsnames = sorted(glob.glob(obspath))[nset]
+obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
 N = len(obsnames)
 T = time.time()
+
 
 for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
         gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o))
-        try:
-            rv[i_o], e_rv[i_o], bjd,berv = fit_chunk(o, obsname=obsname)
-        except Exception as e:
-            if repr(e) == 'BdbQuit()':
-               exit()
-            print("Order failed due to:", repr(e))
+        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname)
+#        try:
+#            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
+#        except Exception as e:
+#            if repr(e) == 'BdbQuit()':
+#               exit()
+#            print("Order failed due to:", repr(e))
 
         print(n+1, o, rv[i_o], e_rv[i_o])
+        print(bjd, o, *sum(zip(p, np.diag(e_p)),()), prms, file=parunit)
+        #pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
@@ -264,6 +290,7 @@ for n,obsname in enumerate(obsnames):
     print('RV:', RV,e_RV, bjd, berv)
 
     print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), filename, file=rvounit)
+    print(file=parunit)
     #vpr.plot_rvo(rv, e_rv)
 
 rvounit.close()
