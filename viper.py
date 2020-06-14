@@ -20,6 +20,7 @@ gplot.colors('classic')
 from pause import pause
 
 from inst.inst_TLS import Spectrum, Tpl, FTS
+#from inst.inst_CES import Spectrum, Tpl, FTS
 from model import model, IP, show_model
 import vpr
 
@@ -28,7 +29,7 @@ c = 3e5   # [km/s] speed of light
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
-vg = 0
+# vg = 17
 ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
@@ -53,11 +54,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('obspath', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
-    argopt('tpl', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
+    argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
+    argopt('-fts', help='Filename of template', default=FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
+    argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
+    argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
     args = parser.parse_args()
     globals().update(vars(args))
@@ -66,7 +70,7 @@ if __name__ == "__main__":
 
 # using the supersampled log(wavelength) space with knot index j
 
-w_I2, f_I2, xj_full, iod_j_full = FTS()
+w_I2, f_I2, xj_full, iod_j_full = FTS(ftsname)
 
 orders = np.r_[oset] # np.arange(18,30)
 print(orders)
@@ -144,7 +148,7 @@ def fit_chunk(o, obsname):
     b = bg = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
     b = bg = np.polyfit(i[i_ok], w_i[i_ok], 3)[::-1]
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok],*bg), res=False)
-    s = sg = 2.5
+    s = sg = 1
 
     if 0:
         # a simple call to the forward model
@@ -188,6 +192,7 @@ def fit_chunk(o, obsname):
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #show_model(i[i_ok], f_i[i_ok], S(i[i_ok], *p_vabs))
     S_mod.show([p[0], p[1:5], p[5:9], p[9]], i[i_ok], f_i[i_ok], dx=0.1)
+    # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
 
     # error estimation
     # uncertainty in continuum
@@ -203,12 +208,12 @@ def fit_chunk(o, obsname):
     e_wavesol = np.sum((e_lam/lam_p*3e8)**-2)**-0.5
 
     if o in look:
-        pause()  # globals().update(locals())
+        pause('look ', o)  # globals().update(locals())
 
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok], *bg))
     #show_model(i[i_ok], f_i[i_ok], S_vabs(i[i_ok], *p))
     #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
-    if 1:
+    if 0:
         # compare the wavelength solutions
         #show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
         gplot.reset()
@@ -231,7 +236,7 @@ rvounit = open(tag+'.rvo.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
 
-obsnames = glob.glob(obspath)[nset]
+obsnames = sorted(glob.glob(obspath))[nset]
 N = len(obsnames)
 T = time.time()
 
@@ -250,8 +255,12 @@ for n,obsname in enumerate(obsnames):
         print(n+1, o, rv[i_o], e_rv[i_o])
 
     oo = np.isfinite(e_rv)
-    RV = np.mean(rv[oo])
-    e_RV = np.std(rv[oo])/(oo.sum()-1)**0.5
+    if oo.sum() == 1:
+        RV = rv[oo][0]
+        e_RV = e_rv[oo][0]
+    else:
+        RV = np.mean(rv[oo])
+        e_RV = np.std(rv[oo])/(oo.sum()-1)**0.5
     print('RV:', RV,e_RV, bjd, berv)
 
     print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), filename, file=rvounit)

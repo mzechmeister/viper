@@ -10,6 +10,7 @@ c = 3e5   # [km/s] speed of light
 # index k for IP space
 def IP(vk, s=2.2):
     IP_k = np.exp(-(vk/s)**2)   # Gauss IP
+    #IP_k += 0.07*np.exp(-((vk+1.)/s)**2)   # an asymmetry Gauss IP
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
@@ -58,7 +59,7 @@ class model:
         x2 = np.poly1d(p[2][::-1])(x)
         gplot.put("if (!exists('lam')) {lam=1}")
         
-        #gplot.key('horizontal')
+        gplot.key('horizontal')
         gplot.xlabel('lam?"Vaccum wavelength [Å]":"Pixel x"')
         gplot.ylabel('"flux"')
         # toggle between pixel and wavelength with shortcut "$"
@@ -74,8 +75,9 @@ class model:
             rms = np.std(y-ymod)
             gplot.mxtics().mytics().my2tics()
             # overplot residuals
-            gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
-            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res (%.3g \~ %.3g%%)', 0 lc 3 axis x1y2 t ''" % (rms, rms/np.mean(ymod)*100))
+            #gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
+            #args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res (%.3g \~ %.3g%%)', 0 lc 3 axis x1y2 t ''" % (rms, rms/np.mean(ymod)*100))
+            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
         gplot(*args)
 
 
