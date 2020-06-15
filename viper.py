@@ -251,7 +251,7 @@ def fit_chunk(o, obsname):
         gplot(i, (lam_p/lam_g-1)*c, ((lam_p-e_lam)/lam_g-1)*c, ((lam_p+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[9,9]**0.5
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]),  S_mod.IP(S_mod.vk,p[9]-e_s, p[10:]),  S_mod.IP(S_mod.vk,p[9]+e_s, p[10:]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]),  S_mod.IP(S_mod.vk,[[p[9]-e_s],*p[10:]]),  S_mod.IP(S_mod.vk, [p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause()
       
