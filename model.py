@@ -20,7 +20,7 @@ def IP_sg(vk, s=2.2, e=2.):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-def IP2(vk, s):
+def IP_mg(vk, s):
     ''' IP for multiple, zero-centered Gaussians '''
     print(s)
     s0, a1, s1 = s
@@ -29,7 +29,7 @@ def IP2(vk, s):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-IPs = {'g':IP, 'sg': IP_sg}
+IPs = {'g':IP, 'sg': IP_sg,'mg':IP_mg}
 
 
 class model:
