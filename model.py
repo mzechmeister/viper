@@ -14,6 +14,12 @@ def IP(vk, s=2.2):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+def IP_sg(vk, s=2.2, e=2.):
+    # super Gaussian
+    IP_k = np.exp(-abs(vk/s)**e)   # Gauss IP
+    IP_k /= IP_k.sum()          # normalise IP
+    return IP_k
+
 def IP2(vk, s):
     ''' IP for multiple, zero-centered Gaussians '''
     print(s)
@@ -22,6 +28,8 @@ def IP2(vk, s):
     IP_k += a1*np.exp(-(vk/s1)**2)   # Gauss IP
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
+
+IPs = {'g':IP, 'sg': IP_sg}
 
 
 class model:
@@ -41,7 +49,7 @@ class model:
         # wavelength solution
         xi = np.log(np.poly1d(b[::-1])(i))
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
+        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
         # sampling to pixel
         Si_eff = interpolate.interp1d(self.xj_eff, Sj_eff)(xi)
         # flux normalisation

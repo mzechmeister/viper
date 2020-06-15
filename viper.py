@@ -22,7 +22,7 @@ from pause import pause
 
 #from inst.inst_TLS import Spectrum, Tpl, FTS
 #from inst.inst_CES import Spectrum, Tpl, FTS
-from model import model, IP, show_model
+from model import model, IPs, show_model
 import vpr
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
@@ -73,7 +73,9 @@ if __name__ == "__main__":
     argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
+    argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian)', default='g', choices=['g', 'sg'], type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
+    argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default='', type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
@@ -81,6 +83,7 @@ if __name__ == "__main__":
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
+    pause()
     args = parser.parse_args()
     globals().update(vars(args))
 
@@ -138,6 +141,7 @@ def fit_chunk(o, obsname):
 
 
     # setup the model
+    IP = IPs[ip]
     S_mod = model(S_star, xj, iod_j, IP)
 
     if 0:
@@ -167,7 +171,7 @@ def fit_chunk(o, obsname):
     b = bg = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
     b = bg = np.polyfit(i[i_ok], w_i[i_ok], 3)[::-1]
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok],*bg), res=False)
-    s = sg = 1
+    s = sg = [1.] if ip=='g' else [1., 2.]
 
     if 0:
         # a simple call to the forward model
@@ -206,11 +210,11 @@ def fit_chunk(o, obsname):
         #print(o, rvo, e_rvo)
         show_model(i[i_ok], f_i[i_ok], S_vabs(i[i_ok], *p_vabs))
 
-    S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
-    p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg, s], epsfcn=1e-12)
+    S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s,e: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s,e])
+    p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #show_model(i[i_ok], f_i[i_ok], S(i[i_ok], *p_vabs))
-    prms = S_mod.show([p[0], p[1:5], p[5:9], p[9]], i[i_ok], f_i[i_ok], dx=0.1)
+    prms = S_mod.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f_i[i_ok], dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
 
     # error estimation
@@ -232,7 +236,7 @@ def fit_chunk(o, obsname):
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok], *bg))
     #show_model(i[i_ok], f_i[i_ok], S_vabs(i[i_ok], *p))
     #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
-    if 0:
+    if o in lookpar:
         # compare the wavelength solutions
         #show_model(i, np.poly1d(b[::-1])(i), np.poly1d(bg[::-1])(i), res=True)
         gplot.reset()
@@ -244,7 +248,7 @@ def fit_chunk(o, obsname):
         gplot(i, (lam_p/lam_g-1)*c, ((lam_p-e_lam)/lam_g-1)*c, ((lam_p+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[9,9]**0.5
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk,s ), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,p[9]),  S_mod.IP(S_mod.vk,p[9]-e_s),  S_mod.IP(S_mod.vk,p[9]+e_s), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]),  S_mod.IP(S_mod.vk,p[9]-e_s, p[10:]),  S_mod.IP(S_mod.vk,p[9]+e_s, p[10:]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause()
       
