@@ -83,7 +83,6 @@ if __name__ == "__main__":
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
-    pause()
     args = parser.parse_args()
     globals().update(vars(args))
 
@@ -210,7 +209,11 @@ def fit_chunk(o, obsname):
         #print(o, rvo, e_rvo)
         show_model(i[i_ok], f_i[i_ok], S_vabs(i[i_ok], *p_vabs))
 
-    S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s,e: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s,e])
+    if 'ip' == 'sg':
+        S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s,e: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s,e])
+    else:
+        S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s])
+
     p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #show_model(i[i_ok], f_i[i_ok], S(i[i_ok], *p_vabs))
@@ -264,6 +267,7 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 obsnames = sorted(glob.glob(obspath))[nset]
 obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
 N = len(obsnames)
+if not N: pause('no files: ', obspath)
 T = time.time()
 
 
