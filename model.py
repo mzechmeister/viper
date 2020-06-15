@@ -37,7 +37,8 @@ class model:
     The forward model
 
     '''
-    def __init__(self, *args, IP_hw=50):
+    def __init__(self, *args, IP_hs=50):
+        # IP_hs: Half size of the IP (number of sampling knots).
         self.S_star, self.xj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.xj[1] - self.xj[0]  # sampling in uniform resampled Iod
