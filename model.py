@@ -42,8 +42,8 @@ class model:
         self.S_star, self.xj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.xj[1] - self.xj[0]  # sampling in uniform resampled Iod
-        self.vk = np.arange(-IP_hw,IP_hw+1) * self.dx * c
-        self.xj_eff = self.xj[IP_hw:-IP_hw]
+        self.vk = np.arange(-IP_hs,IP_hs+1) * self.dx * c
+        self.xj_eff = self.xj[IP_hs:-IP_hs]
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, i, v, a, b, s):
