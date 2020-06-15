@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
-
+# Form implementation generated from reading ui file 'vip_stage8.ui'
+#
+# Created by: PyQt5 UI code generator 5.9.2
+#
+# WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -10,8 +14,6 @@ class Ui_MainWindow(object):
         MainWindow.resize(800, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
-
-        ##### Display of RV plots #####
         self.RV_fit = QtWidgets.QGroupBox(self.centralwidget)
         self.RV_fit.setGeometry(QtCore.QRect(10, 180, 491, 371))
         font = QtGui.QFont()
@@ -24,18 +26,24 @@ class Ui_MainWindow(object):
         self.tabWidget = QtWidgets.QTabWidget(self.RV_fit)
         self.tabWidget.setGeometry(QtCore.QRect(10, 30, 461, 331))
         self.tabWidget.setObjectName("tabWidget")
-
-        ### RV fit tab ######
         self.fit_tab = QtWidgets.QWidget()
         self.fit_tab.setObjectName("fit_tab")
+        self.fit_plotIMG = QtWidgets.QLabel(self.fit_tab)
+        self.fit_plotIMG.setGeometry(QtCore.QRect(10, 10, 431, 281))
+        self.fit_plotIMG.setText("")
+        self.fit_plotIMG.setPixmap(QtGui.QPixmap("../../fit.png"))
+        self.fit_plotIMG.setScaledContents(True)
+        self.fit_plotIMG.setObjectName("fit_plotIMG")
         self.tabWidget.addTab(self.fit_tab, "")
-
-        ### IP fit tab ######
         self.IP_tab = QtWidgets.QWidget()
         self.IP_tab.setObjectName("IP_tab")
+        self.IP_plotIMG = QtWidgets.QLabel(self.IP_tab)
+        self.IP_plotIMG.setGeometry(QtCore.QRect(10, 10, 431, 271))
+        self.IP_plotIMG.setText("")
+        self.IP_plotIMG.setPixmap(QtGui.QPixmap("../../IP_velspace.png"))
+        self.IP_plotIMG.setScaledContents(True)
+        self.IP_plotIMG.setObjectName("IP_plotIMG")
         self.tabWidget.addTab(self.IP_tab, "")
-
-        #### Data loading  ####
         self.load_data = QtWidgets.QGroupBox(self.centralwidget)
         self.load_data.setGeometry(QtCore.QRect(510, 10, 261, 131))
         font = QtGui.QFont()
@@ -45,8 +53,12 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.load_data.setFont(font)
         self.load_data.setObjectName("load_data")
-
-        #### Results of the FIT  ####     
+        self.obs_in = QtWidgets.QPushButton(self.load_data)
+        self.obs_in.setGeometry(QtCore.QRect(20, 30, 221, 31))
+        self.obs_in.setObjectName("obs_in")
+        self.template_in = QtWidgets.QPushButton(self.load_data)
+        self.template_in.setGeometry(QtCore.QRect(20, 80, 221, 31))
+        self.template_in.setObjectName("template_in")
         self.fit_details = QtWidgets.QGroupBox(self.centralwidget)
         self.fit_details.setGeometry(QtCore.QRect(510, 180, 261, 371))
         font = QtGui.QFont()
@@ -59,8 +71,6 @@ class Ui_MainWindow(object):
         self.textBrowser = QtWidgets.QTextBrowser(self.fit_details)
         self.textBrowser.setGeometry(QtCore.QRect(10, 30, 241, 331))
         self.textBrowser.setObjectName("textBrowser")
-
-        #### Input parameters of the FIT ####           
         self.fit_params = QtWidgets.QGroupBox(self.centralwidget)
         self.fit_params.setGeometry(QtCore.QRect(20, 10, 481, 131))
         font = QtGui.QFont()
@@ -70,8 +80,21 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.fit_params.setFont(font)
         self.fit_params.setObjectName("fit_params")
-
-        #### Compute RV push button #####
+        self.sampling_sizeLBL = QtWidgets.QLabel(self.fit_params)
+        self.sampling_sizeLBL.setGeometry(QtCore.QRect(10, 30, 161, 21))
+        self.sampling_sizeLBL.setObjectName("sampling_sizeLBL")
+        self.Sampling_val = QtWidgets.QComboBox(self.fit_params)
+        self.Sampling_val.setGeometry(QtCore.QRect(10, 50, 86, 25))
+        self.Sampling_val.setObjectName("Sampling_val")
+        self.Sampling_val.addItem("")
+        self.Sampling_val.addItem("")
+        self.Sampling_val.addItem("")
+        self.single_gauss = QtWidgets.QRadioButton(self.fit_params)
+        self.single_gauss.setGeometry(QtCore.QRect(270, 30, 171, 21))
+        self.single_gauss.setObjectName("single_gauss")
+        self.mult_gauss = QtWidgets.QRadioButton(self.fit_params)
+        self.mult_gauss.setGeometry(QtCore.QRect(270, 60, 181, 31))
+        self.mult_gauss.setObjectName("mult_gauss")
         self.compute_rv = QtWidgets.QPushButton(self.centralwidget)
         self.compute_rv.setGeometry(QtCore.QRect(260, 150, 131, 31))
         palette = QtGui.QPalette()
@@ -101,8 +124,6 @@ class Ui_MainWindow(object):
         font.setWeight(75)
         self.compute_rv.setFont(font)
         self.compute_rv.setObjectName("compute_rv")
-
-        #### Menu bar File ####
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
@@ -138,8 +159,16 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.fit_tab), _translate("MainWindow", "RV Fit"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.IP_tab), _translate("MainWindow", "IP Fit"))
         self.load_data.setTitle(_translate("MainWindow", "Load Data"))
+        self.obs_in.setText(_translate("MainWindow", "RV Observations with cell"))
+        self.template_in.setText(_translate("MainWindow", "Stellar template"))
         self.fit_details.setTitle(_translate("MainWindow", "Fit Details"))
         self.fit_params.setTitle(_translate("MainWindow", "Fit Parameters"))
+        self.sampling_sizeLBL.setText(_translate("MainWindow", "Sampling Size [km/s]"))
+        self.Sampling_val.setItemText(0, _translate("MainWindow", "100"))
+        self.Sampling_val.setItemText(1, _translate("MainWindow", "200"))
+        self.Sampling_val.setItemText(2, _translate("MainWindow", "50"))
+        self.single_gauss.setText(_translate("MainWindow", "Single Gaussian IP"))
+        self.mult_gauss.setText(_translate("MainWindow", "Multiple Gaussian IP"))
         self.compute_rv.setText(_translate("MainWindow", "Compute RV"))
         self.menuFile.setTitle(_translate("MainWindow", "File"))
         self.actionNew_Session.setText(_translate("MainWindow", "New Session"))
