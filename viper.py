@@ -73,7 +73,7 @@ if __name__ == "__main__":
     argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
-    argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian)', default='g', choices=['g', 'sg'], type=str)
+    argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian, mg: Multiplegaussian)', default='g', choices=['g', 'sg','mg'], type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
