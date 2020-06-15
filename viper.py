@@ -77,7 +77,7 @@ if __name__ == "__main__":
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
-    argopt('-nexcl', help='Pattern ignore', default='', type=arg2range)
+    argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
