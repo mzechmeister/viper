@@ -14,6 +14,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from astropy.io import fits
+from astropy.coordinates import SkyCoord
+import astropy.units as u
 
 from gplot import *
 gplot.tmp = '$'
@@ -23,6 +25,7 @@ from pause import pause
 #from inst.inst_TLS import Spectrum, Tpl, FTS
 #from inst.inst_CES import Spectrum, Tpl, FTS
 from model import model, IPs, show_model
+from targ import Targ
 import vpr
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
@@ -41,6 +44,7 @@ tplname = dirname + 'data/TLS/Deconv/HD189733.model'
 tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'
 
 nset = None
+targ = None
 
 def arg2slice(arg):
    """Convert string argument to a slice."""
@@ -62,10 +66,10 @@ if __name__ == "__main__":
     preargs, _ =  preparser.parse_known_args()
 
     inst = preargs.inst
-    inst = importlib.import_module('inst.inst_'+inst)
-    FTS = inst.FTS
-    Spectrum = inst.Spectrum
-    Tpl = inst.Tpl
+    Inst = importlib.import_module('inst.inst_'+inst)
+    FTS = Inst.FTS
+    Spectrum = Inst.Spectrum
+    Tpl = Inst.Tpl
 
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
@@ -81,6 +85,7 @@ if __name__ == "__main__":
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
+    argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.')
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
@@ -100,9 +105,9 @@ rv = np.nan * orders
 e_rv = np.nan * orders
 
 
-def fit_chunk(o, obsname):
+def fit_chunk(o, obsname, targ=None, tpltarg=None):
     ####  data TLS  ####
-    w_i, f_i, bp, bjd, berv = Spectrum(obsname, o=o)
+    w_i, f_i, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f_i.size)
     #i_ok = slice(400,1700) # probably the wavelength solution of the template is bad
     mskatm = interp1d(*np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
@@ -110,7 +115,7 @@ def fit_chunk(o, obsname):
     i_ok, = np.where(bp==0)
 
     ####  stellar template  ####
-    w_tpl, f_tpl = Tpl(tplname, o=o)
+    w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
 
     lmin = max(w_tpl[0], w_i[0], w_I2[0])
     lmax = min(w_tpl[-1], w_i[-1], w_I2[-1])
@@ -119,7 +124,7 @@ def fit_chunk(o, obsname):
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-    vcut = 30
+    vcut = 130
     sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+vcut/c, np.log(lmax)-vcut/c])) # reduce range by 100 km/s
 
     # prepare input; convert discrete data to model
@@ -218,7 +223,7 @@ def fit_chunk(o, obsname):
     if o in lookguess:
         pg = [v, a+[0]*3, bg, s]
         prms = S_mod.show(pg, i[i_ok], f_i[i_ok], dx=0.1)
-        pause()
+        pause('lookguess')
 
     p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
@@ -261,7 +266,7 @@ def fit_chunk(o, obsname):
         gplot.unset('multiplot')
         pause()
       
-    return rvo, e_rvo, bjd, berv, p, e_p, prms
+    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
 
 rvounit = open(tag+'.rvo.dat', 'w')
@@ -276,13 +281,19 @@ N = len(obsnames)
 if not N: pause('no files: ', obspath)
 T = time.time()
 
+if targ:
+    targ = Targ(targ, csv=tag+'.targ.csv')
+    ra = (targ.ra[0] + targ.ra[1]/60. + targ.ra[2]/3600.) * 15  # [deg]
+    de = (targ.de[0] + np.copysign(targ.de[1]/60. + targ.de[2]/3600., targ.de[0]))       # [deg]
+
+    sc = SkyCoord(ra=targ.ra, dec=targ.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=targ.pmra*u.mas/u.yr, pm_dec=targ.pmde*u.mas/u.yr)
 
 for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
         gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o))
-        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname)
+        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname, targ=sc, tpltarg=sc)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:

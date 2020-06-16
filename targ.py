@@ -33,7 +33,6 @@ def simbad_query(targ):
       'output console=off',
       'format object form1 "%OBJECT;%IDLIST(1);%COO(A D);%PM(A D [E]);%PLX;%RV"',
       'query '+targ]))
-   # urllib2.urlopen('http://simbad.u-strasbg.fr/simbad/sim-script', 'submit=submit+script&script=output+script%3Doff%0D%0Aoutput+console%3Doff%0D%0Aformat+object+form1+%22%25OBJECT+%3A+%25IDLIST%281%29+%3A+%25COO%28A+D%29+%25PM%28A+D+[E]%29+%25PLX\n%22%0D%0Aquery+gj699')
    # urllib2.urlopen('http://simbad.u-strasbg.fr/simbad/sim-script', b'submit=submit+script&script=output+script%3Doff%0D%0Aoutput+console%3Doff%0D%0Aformat+object+form1+%22%25OBJECT+%3A+%25IDLIST%281%29+%3A+%25COO%28A+D%29+%25PM%28A+D+[E]%29+%25PLX\n%22%0D%0Aquery+gj699')
 
    site = 'http://simbad.u-strasbg.fr/simbad/sim-script'
@@ -54,7 +53,7 @@ class Targ:
    (17.0, 57.0, 48.49803)
 
    '''
-   def __init__(self, name, rade=(None, None), pm=(None, None), plx=None, rv=None, sa=float('nan'), cvs=None):
+   def __init__(self, name, rade=(None, None), pm=(None, None), plx=None, rv=None, sa=float('nan'), csv=None):
       self.name = name
       self.sa = sa
       self.ra, self.de = rade
@@ -67,9 +66,9 @@ class Targ:
          self.de = tuple(map(float,self.de.split(':')))
       else:
          # look for name, try to read from file. If not found or different object then make a request to simbad
-         if not self.fromfile(cvs) or not self.line.startswith(self.name+";"):
+         if not self.fromfile(csv) or not self.line.startswith(self.name+";"):
             self.query()
-            self.tofile(cvs)
+            self.tofile(csv)
          self.assignAttr(self.line)
       if self.pmra and self.plx:
          self.sa = 22.98 * ((self.pmra/1000)**2+(self.pmde/1000)**2) / self.plx
@@ -77,7 +76,6 @@ class Targ:
    def fromfile(self, filename):
       '''Restore info from a file.'''
       self.line = None
-      from pause import pause; pause()
       if os.path.exists(filename):
          print("targ.py: restoring '%s' from %s" % (self.name, filename))
          with open(filename) as f:

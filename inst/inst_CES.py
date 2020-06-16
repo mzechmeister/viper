@@ -9,11 +9,12 @@ from .airtovac import airtovac
 from .FTS_resample import resample, FTSfits
 from pause import pause
 
+location = lasilla = EarthLocation.of_site('lasilla')
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 #/run/media/zechmeister/5748244b-c6d4-49bb-97d4-1ae0a8ba6aed/data/disk2/zechmeister/CES/reducedv4/ZET1RET/
 
-def Spectrum(filename, o=None, chksize=4000):
+def Spectrum(filename, o=None, targ=None, chksize=4000):
     with open(filename) as myfile:
         hdr = [next(myfile) for x in range(21)]
     # PX#   WAVELENGTH          FLUX           ERROR         MASK (0/1/6)
@@ -37,18 +38,18 @@ def Spectrum(filename, o=None, chksize=4000):
     pmde = 648.523
     #from pause import pause; pause()
     #SkyCoord.from_name('M31', frame='icrs')
-    lasilla = EarthLocation.of_site('lasilla')
-    sc = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg), pm_ra_cosdec=pmra*u.mas/u.yr, pm_dec=pmde*u.mas/u.yr)
+    # sc = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg), pm_ra_cosdec=pmra*u.mas/u.yr, pm_dec=pmde*u.mas/u.yr)
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = sc.radial_velocity_correction(obstime=midtime, location=lasilla)  
+    berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)  
     berv = berv.to(u.km/u.s).value  
-    bjd = midtime.tdb.jd
+    bjd = midtime.tdb
     return w, f, b, bjd, berv
 
-def Tpl(tplname, o=None):
+def Tpl(tplname, o=None, targ=None):
     if tplname.endswith('.dat'):
         # echelle template
-        w, f, *b = Spectrum(tplname)
+        w, f, b, bjd, berv = Spectrum(tplname, targ=targ)
+        w *= 1 + berv/3e5
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
         f = hdu.data

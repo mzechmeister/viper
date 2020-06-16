@@ -11,7 +11,9 @@ from .FTS_resample import resample, FTSfits
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None):
+location = tls = EarthLocation.from_geodetic(lat=50.980111*u.deg, lon=11.711167*u.deg, height=342*u.m)
+
+def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
     f = hdu.data
@@ -41,16 +43,16 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None):
     #bjd, berv = bary.bary(dateobs, '20:00:43.7130382888', '+22:42:39.071811263', 'TLS', epoch=2000, exptime=exptime, pma=0, pmd=0)
     #print(bjd, berv)
     #from pause import pause; pause(bjd, berv)
-    tls = EarthLocation.from_geodetic(lat=50.980111*u.deg, lon=11.711167*u.deg, height=342*u.m)
-    sc = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
+    targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
+    if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = sc.radial_velocity_correction(obstime=midtime, location=tls)  
+    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)  
     berv = berv.to(u.km/u.s).value  
-    bjd = midtime.tdb.jd
+    bjd = midtime.tdb
     #print(bjd, berv)
     return w, f, b, bjd, berv
 
-def Tpl(tplname, o=None):
+def Tpl(tplname, o=None, targ=None):
     if tplname.endswith('.model'):
         # echelle template
         from inst.inst_TLS import Spectrum
