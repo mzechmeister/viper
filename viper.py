@@ -32,7 +32,7 @@ c = 3e5   # [km/s] speed of light
 o = 18; lmin = 5240; lmax = 5390
 
 dirname = r''
-# vg = 17
+
 ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian, mg: Multiplegaussian)', default='g', choices=['g', 'sg','mg'], type=str)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
+    argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
@@ -164,9 +165,9 @@ def fit_chunk(o, obsname):
 
     i_ok = np.r_[i_ok][bp[i_ok]==0]
 
-    # a parameter set
+    # an initial parameter set
     v = vg   # a good guess for the stellar RV is needed
-    a = ag = [np.mean(f_i) / np.mean(S_star(np.log(w_i[i_ok])))] 
+    a = ag = [np.mean(f_i) / np.mean(S_star(np.log(w_i[i_ok]))) / np.mean(iod_j)] 
     b = bg = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
     b = bg = np.polyfit(i[i_ok], w_i[i_ok], 3)[::-1]
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok],*bg), res=False)
@@ -213,6 +214,11 @@ def fit_chunk(o, obsname):
         S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s,e: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s,e])
     else:
         S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s])
+
+    if o in lookguess:
+        pg = [v, a+[0]*3, bg, s]
+        prms = S_mod.show(pg, i[i_ok], f_i[i_ok], dx=0.1)
+        pause()
 
     p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
