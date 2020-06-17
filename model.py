@@ -38,7 +38,6 @@ class model:
 
     '''
     def __init__(self, *args, IP_hs=50, icen=0):
-        print(icen)
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reson).
         self.icen = icen
