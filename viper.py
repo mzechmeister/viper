@@ -32,8 +32,6 @@ viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
 c = 3e5   # [km/s] speed of light
 
-o = 18; lmin = 5240; lmax = 5390
-
 dirname = r''
 
 ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
@@ -104,6 +102,7 @@ print(orders)
 rv = np.nan * orders
 e_rv = np.nan * orders
 
+modset = {}   # model setting parameters
 
 def fit_chunk(o, obsname, targ=None, tpltarg=None):
     ####  data TLS  ####
@@ -113,6 +112,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     mskatm = interp1d(*np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
     bp[mskatm(w_i) > 0.1] |= 16
     i_ok, = np.where(bp==0)
+
+    modset['icen'] = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     ####  stellar template  ####
     w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
@@ -124,7 +125,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-    vcut = 130
+    vcut = 30
     sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+vcut/c, np.log(lmax)-vcut/c])) # reduce range by 100 km/s
 
     # prepare input; convert discrete data to model
@@ -133,7 +134,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     xj = xj_full[sj]
     iod_j = iod_j_full[sj]
 
-    #pause()
     if 0:
         # plot data, template, and iodine without any modifications
         gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w_i, f_i, 'w lp lc 1 pt 7 ps 0.5')
@@ -147,7 +147,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     # setup the model
     IP = IPs[ip]
-    S_mod = model(S_star, xj, iod_j, IP)
+    S_mod = model(S_star, xj, iod_j, IP, **modset)
 
     if 0:
         # plot the IP
@@ -174,9 +174,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a = ag = [np.mean(f_i) / np.mean(S_star(np.log(w_i[i_ok]))) / np.mean(iod_j)] 
     b = bg = [w_i[0], (w_i[-1]-w_i[0])/w_i.size] # [6128.8833940969, 0.05453566108124]
-    b = bg = np.polyfit(i[i_ok], w_i[i_ok], 3)[::-1]
+    b = bg = np.polyfit(i[i_ok]-2000, w_i[i_ok], 3)[::-1]
     #show_model(i[i_ok], f_i[i_ok], S_b(i[i_ok],*bg), res=False)
-    s = sg = [1.] if ip=='g' else [1., 2.]
+    s = sg = [1.] if ip=='g' else [0.7, 2.]
 
     if 0:
         # a simple call to the forward model
@@ -215,10 +215,16 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         #print(o, rvo, e_rvo)
         show_model(i[i_ok], f_i[i_ok], S_vabs(i[i_ok], *p_vabs))
 
-    if 'ip' == 'sg':
-        S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s,e: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s,e])
-    else:
-        S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], [s])
+    if ip == 'sg':
+       # prefit with Gaussian IP
+       S_modg = model(S_star, xj, iod_j, IPs['g'], **modset)
+       S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
+       p, e_p = curve_fit(S_g, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s[0:1], epsfcn=1e-12)
+       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f_i[i_ok], dx=0.1); pause()
+       print(np.diag(e_p)[5:9])
+       bg = p[5:9]+ np.diag(e_p)[5:9]**0.5
+
+    S = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s)
 
     if o in lookguess:
         pg = [v, a+[0]*3, bg, s]
@@ -226,6 +232,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         pause('lookguess')
 
     p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
+    p, e_p = curve_fit(S, i[i_ok], f_i[i_ok], p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #show_model(i[i_ok], f_i[i_ok], S(i[i_ok], *p_vabs))
     prms = S_mod.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f_i[i_ok], dx=0.1)
@@ -262,7 +269,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         gplot(i, (lam_p/lam_g-1)*c, ((lam_p-e_lam)/lam_g-1)*c, ((lam_p+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[9,9]**0.5
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]),  S_mod.IP(S_mod.vk,[[p[9]-e_s],*p[10:]]),  S_mod.IP(S_mod.vk, [p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]), S_mod.IP(S_mod.vk,*[p[9]-e_s, *p[10:]]),  S_mod.IP(S_mod.vk, *[p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause()
       

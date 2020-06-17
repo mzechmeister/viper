@@ -37,8 +37,11 @@ class model:
     The forward model
 
     '''
-    def __init__(self, *args, IP_hs=50):
+    def __init__(self, *args, IP_hs=50, icen=0):
+        print(icen)
         # IP_hs: Half size of the IP (number of sampling knots).
+        # icen : Central pixel (to center polynomial for numeric reson).
+        self.icen = icen
         self.S_star, self.xj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.xj[1] - self.xj[0]  # sampling in uniform resampled Iod
@@ -48,13 +51,13 @@ class model:
 
     def __call__(self, i, v, a, b, s):
         # wavelength solution
-        xi = np.log(np.poly1d(b[::-1])(i))
+        xi = np.log(np.poly1d(b[::-1])(i-self.icen))
         # IP convolution
         Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
         # sampling to pixel
         Si_eff = interpolate.interp1d(self.xj_eff, Sj_eff)(xi)
         # flux normalisation
-        Si_mod = np.poly1d(a[::-1])(xi) * Si_eff
+        Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff
         return Si_mod
 
     def show(self, p, x, y, res=True, x2=None, dx=None):
