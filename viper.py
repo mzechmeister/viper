@@ -112,7 +112,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     bp[mskatm(w) > 0.1] |= 16
     i_ok, = np.where(bp==0)
 
-    modset['icen'] = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
+    modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     ####  stellar template  ####
     w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
@@ -173,7 +173,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a = ag = [np.mean(f[i_ok]) / np.mean(S_star(np.log(w[i_ok]))) / np.mean(iod_j)] 
     b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
-    b = bg = np.polyfit(i[i_ok]-modset['icen'], w[i_ok], 3)[::-1]
+    b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
     #show_model(i[i_ok], f[i_ok], S_b(i[i_ok],*bg), res=False)
     s = sg = [1.] if ip=='g' else [0.7, 2.]
 
@@ -237,8 +237,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     X = np.vander(xl,4)[:,::-1].T
     e_Cp = np.einsum('ji,jk,ki->i', X, e_p[1:5,1:5], X)**0.5
     # uncertainty in wavelength solution
-    lam_g = np.poly1d(bg[::-1])(i)
-    lam_p = np.poly1d(p[5:9][::-1])(i)
+    lam_g = np.poly1d(bg[::-1])(i-icen)
+    lam_p = np.poly1d(p[5:9][::-1])(i-icen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_p[5:9,5:9], X)**0.5
     e_wavesol = np.sum((e_lam/lam_p*3e8)**-2)**-0.5
 
