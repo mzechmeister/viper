@@ -3,6 +3,9 @@ import urllib.request as urllib2
 import os
 import sys
 
+from astropy.coordinates import SkyCoord
+import astropy.units as u
+
 # python version for the shell query
 # star=`sed 's/ /_/g; s/+/%2B/g' <<<$@`
 # echo %Info: encode name: $star >&2
@@ -72,6 +75,8 @@ class Targ:
          self.assignAttr(self.line)
       if self.pmra and self.plx:
          self.sa = 22.98 * ((self.pmra/1000)**2+(self.pmde/1000)**2) / self.plx
+
+      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr)
 
    def fromfile(self, filename):
       '''Restore info from a file.'''

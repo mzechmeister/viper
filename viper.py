@@ -14,7 +14,6 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from astropy.io import fits
-from astropy.coordinates import SkyCoord
 import astropy.units as u
 
 from gplot import *
@@ -83,7 +82,7 @@ if __name__ == "__main__":
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
-    argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.')
+    argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
@@ -265,31 +264,27 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
 
+obsnames = sorted(glob.glob(obspath))[nset]
+obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
+N = len(obsnames)
+if not N: pause('no files: ', obspath)
+
+if targname:
+    targ = Targ(targname, csv=tag+'.targ.csv').sc
+
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
 print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, range(10))),()), 'prms', file=parunit)
 
-obsnames = sorted(glob.glob(obspath))[nset]
-obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
-N = len(obsnames)
-if not N: pause('no files: ', obspath)
 T = time.time()
-
-if targ:
-    targ = Targ(targ, csv=tag+'.targ.csv')
-    ra = (targ.ra[0] + targ.ra[1]/60. + targ.ra[2]/3600.) * 15  # [deg]
-    de = (targ.de[0] + np.copysign(targ.de[1]/60. + targ.de[2]/3600., targ.de[0]))       # [deg]
-
-    sc = SkyCoord(ra=targ.ra, dec=targ.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=targ.pmra*u.mas/u.yr, pm_dec=targ.pmde*u.mas/u.yr)
-
 for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
         gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o))
-        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname, targ=sc, tpltarg=sc)
+        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname, targ=targ, tpltarg=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
