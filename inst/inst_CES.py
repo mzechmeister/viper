@@ -26,7 +26,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
 
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux
-    #b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
+    b[2175:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
 
     dateobs = hdr[2].split()[-1]
     exptime = float(hdr[4].split()[-1])

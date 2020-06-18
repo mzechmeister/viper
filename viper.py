@@ -21,8 +21,6 @@ gplot.tmp = '$'
 gplot.colors('classic')
 from pause import pause
 
-#from inst.inst_TLS import Spectrum, Tpl, FTS
-#from inst.inst_CES import Spectrum, Tpl, FTS
 from model import model, IPs, show_model
 from targ import Targ
 import vpr
@@ -42,6 +40,7 @@ tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'
 
 nset = None
 targ = None
+modset = {}   # model setting parameters
 
 def arg2slice(arg):
    """Convert string argument to a slice."""
@@ -62,8 +61,7 @@ if __name__ == "__main__":
     preparser.add_argument('-inst', help='Instrument', default='TLS', choices=insts)
     preargs, _ =  preparser.parse_known_args()
 
-    inst = preargs.inst
-    Inst = importlib.import_module('inst.inst_'+inst)
+    Inst = importlib.import_module('inst.inst_'+preargs.inst)
     FTS = Inst.FTS
     Spectrum = Inst.Spectrum
     Tpl = Inst.Tpl
@@ -89,19 +87,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     globals().update(vars(args))
 
-####  FTS  ####
-
-# using the supersampled log(wavelength) space with knot index j
-
-w_I2, f_I2, xj_full, iod_j_full = FTS(ftsname)
-
-orders = np.r_[oset] # np.arange(18,30)
-print(orders)
-
-rv = np.nan * orders
-e_rv = np.nan * orders
-
-modset = {}   # model setting parameters
 
 def fit_chunk(o, obsname, targ=None, tpltarg=None):
     ####  data TLS  ####
@@ -157,13 +142,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        gplot(np.exp(xj), iod_j, S_star(xj), 'w l lc 9, "" us 1:3 w l lc 3')
 
 
-    # Now wavelength solution
-
-    # mapping between pixel and wavelength
-
-    #lam(x) = b0 + b1 * x + b2 * x^2
-    lam = np.poly1d([w[0], (w[-1]-w[0])/w.size][::-1])
-
     # trim the observation to a range valid for the model
     bp[np.log(w) < xj[0]+100/c] |= 1
     bp[np.log(w) > xj[-1]-100/c] |= 1
@@ -200,7 +178,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     if 0:
-        # fit v, a and b simulatenously
+        # fit v, a and b simultaneously
         S_vab = lambda x, v, a, *b: S_mod(x, v, [a], b, sg)
         p_vab, e_p = curve_fit(S_vab, i[i_ok], f[i_ok], p0=[v, 1, *bg])
         show_model(i[i_ok], f[i_ok], S_vab(i[i_ok], *p_vab))
@@ -211,7 +189,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        S_modg = model(S_star, xj, iod_j, IPs['g'], **modset)
        S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
        p, e_p = curve_fit(S_g, i[i_ok], f[i_ok], p0=[v]+a+[0]*3+[*bg]+s[0:1], epsfcn=1e-12)
-       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f[i_ok], dx=0.1); pause()
+#       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f[i_ok], dx=0.1); pause()
        print(np.diag(e_p)[5:9])
        bg = p[5:9]+ np.diag(e_p)[5:9]**0.5
 
@@ -238,9 +216,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     e_Cp = np.einsum('ji,jk,ki->i', X, e_p[1:5,1:5], X)**0.5
     # uncertainty in wavelength solution
     lam_g = np.poly1d(bg[::-1])(i-icen)
-    lam_p = np.poly1d(p[5:9][::-1])(i-icen)
+    lam = np.poly1d(p[5:9][::-1])(i-icen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_p[5:9,5:9], X)**0.5
-    e_wavesol = np.sum((e_lam/lam_p*3e8)**-2)**-0.5
+    e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
     if o in look:
         pause('look ', o)  # globals().update(locals())
@@ -254,7 +232,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         gplot.mxtics().mytics()
         gplot('[][0:]', i, Cg, Cp, e_Cp, 'w l lc 9 t "guess",  "" us 1:3 w l lc 3, "" us 1:($3-$4):($3+$4) w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}" ')
         gplot.xlabel('"pixel"').ylabel('"deviation c * ({/Symbol l} / {/Symbol l}_{guess} - 1) [km/s]"')
-        gplot(i, (lam_p/lam_g-1)*c, ((lam_p-e_lam)/lam_g-1)*c, ((lam_p+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(i, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[9,9]**0.5
         gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]), S_mod.IP(S_mod.vk,*[p[9]-e_s, *p[10:]]),  S_mod.IP(S_mod.vk, *[p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
@@ -272,11 +250,24 @@ if not N: pause('no files: ', obspath)
 if targname:
     targ = Targ(targname, csv=tag+'.targ.csv').sc
 
+orders = np.r_[oset] # np.arange(18,30)
+print(orders)
+
+rv = np.nan * orders
+e_rv = np.nan * orders
+
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
 # file header
 print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
 print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, range(10))),()), 'prms', file=parunit)
+
+####  FTS  ####
+
+# using the supersampled log(wavelength) space with knot index j
+
+w_I2, f_I2, xj_full, iod_j_full = FTS(ftsname)
+
 
 T = time.time()
 for n,obsname in enumerate(obsnames):

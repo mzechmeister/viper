@@ -39,7 +39,7 @@ class model:
     '''
     def __init__(self, *args, IP_hs=50, icen=0):
         # IP_hs: Half size of the IP (number of sampling knots).
-        # icen : Central pixel (to center polynomial for numeric reson).
+        # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
         self.S_star, self.xj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
@@ -49,12 +49,16 @@ class model:
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, i, v, a, b, s):
-        # wavelength solution
+        # wavelength solution 
+        #    lam(x) = b0 + b1 * x + b2 * x^2
         xi = np.log(np.poly1d(b[::-1])(i-self.icen))
+
         # IP convolution
         Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
+
         # sampling to pixel
         Si_eff = interpolate.interp1d(self.xj_eff, Sj_eff)(xi)
+
         # flux normalisation
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff
         return Si_mod
