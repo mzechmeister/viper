@@ -206,12 +206,13 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     prms = S_mod.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f[i_ok], dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
     #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
+    # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')  
 
     # error estimation
     # uncertainty in continuum
-    xl = np.log(np.poly1d(p[5:9][::-1])(i))
-    Cg = np.poly1d(ag[::-1])(xl)        # continuum guess
-    Cp = np.poly1d(p[1:5][::-1])(xl)    # best continuum
+    xl = np.log(np.poly1d(p[5:9][::-1])(i-icen))
+    Cg = np.poly1d(ag[::-1])(i-icen)        # continuum guess
+    Cp = np.poly1d(p[1:5][::-1])(i-icen)    # best continuum
     X = np.vander(xl,4)[:,::-1].T
     e_Cp = np.einsum('ji,jk,ki->i', X, e_p[1:5,1:5], X)**0.5
     # uncertainty in wavelength solution

@@ -71,7 +71,7 @@ class model:
 
         '''
         ymod = self(x, *p)
-        x2 = np.poly1d(p[2][::-1])(x)
+        x2 = np.poly1d(p[2][::-1])(x-self.icen)
         gplot.put("if (!exists('lam')) {lam=1}")
         
         gplot.key('horizontal')
@@ -84,7 +84,7 @@ class model:
         prms = np.nan   # percentage prms
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
-            xx2 = np.poly1d(p[2][::-1])(xx)
+            xx2 = np.poly1d(p[2][::-1])(xx-self.icen)
             yymod = self(xx, *p)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         if res:
