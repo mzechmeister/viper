@@ -41,6 +41,7 @@ tplname = dirname + 'data/TLS/Deconv/HARPS.2006-09-08T02:12:38.604_s1d_A.fits'
 nset = None
 targ = None
 modset = {}   # model setting parameters
+insts = ['TLS', 'CES']
 
 def arg2slice(arg):
    """Convert string argument to a slice."""
@@ -55,7 +56,6 @@ def arg2range(arg):
 
 if __name__ == "__main__":
     # check first the instrument with preparsing
-    insts = ['TLS', 'CES']
     preparser = argparse.ArgumentParser(add_help=False)
     preparser.add_argument('args', nargs='*')
     preparser.add_argument('-inst', help='Instrument', default='TLS', choices=insts)
@@ -63,8 +63,8 @@ if __name__ == "__main__":
 
     Inst = importlib.import_module('inst.inst_'+preargs.inst)
     FTS = Inst.FTS
-    Spectrum = Inst.Spectrum
     Tpl = Inst.Tpl
+    Spectrum = Inst.Spectrum
 
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
@@ -95,7 +95,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     #i_ok = slice(400,1700) # probably the wavelength solution of the template is bad
     mskatm = interp1d(*np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
     bp[mskatm(w) > 0.1] |= 16
-    i_ok, = np.where(bp==0)
+    i_ok, = np.where(bp == 0)
 
     modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
@@ -128,9 +128,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # convert discrete template into a function
     S_star = interp1d(np.log(w_tpl)-berv/c, f_tpl)
 
+    IP = IPs[ip]
 
     # setup the model
-    IP = IPs[ip]
     S_mod = model(S_star, xj, iod_j, IP, **modset)
 
     if 0:
@@ -176,7 +176,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         #show_model(i[i_ok], f[i_ok], S_b(i[i_ok], *b))
         #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
 
-
     if 0:
         # fit v, a and b simultaneously
         S_vab = lambda x, v, a, *b: S_mod(x, v, [a], b, sg)
@@ -193,12 +192,13 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        print(np.diag(e_p)[5:9])
        bg = p[5:9]+ np.diag(e_p)[5:9]**0.5
 
-    S = lambda x, v, *abs: S_mod(x, v, abs[:4], abs[4:8], abs[8:])
-
     if o in lookguess:
         pg = [v, a+[0]*3, bg, s]
         prms = S_mod.show(pg, i[i_ok], f[i_ok], dx=0.1)
         pause('lookguess')
+
+
+    S = lambda x, v, *abs: S_mod(x, v, abs[:4], abs[4:8], abs[8:])
 
     p, e_p = curve_fit(S, i[i_ok], f[i_ok], p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
     #p, e_p = curve_fit(S, i[i_ok], f[i_ok], p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
@@ -251,7 +251,7 @@ if not N: pause('no files: ', obspath)
 if targname:
     targ = Targ(targname, csv=tag+'.targ.csv').sc
 
-orders = np.r_[oset] # np.arange(18,30)
+orders = np.r_[oset]
 print(orders)
 
 rv = np.nan * orders
@@ -310,6 +310,7 @@ print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
 vpr.plot_RV(tag+'.rvo.dat')
-pause()
 
-print('Done.')
+pause('%s done.' % tag)
+
+
