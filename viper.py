@@ -186,7 +186,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     if ip == 'sg':
        # prefit with Gaussian IP
        S_modg = model(S_star, xj, iod_j, IPs['g'], **modset)
-       S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_mod(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
+       S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
        p, e_p = curve_fit(S_g, i[i_ok], f[i_ok], p0=[v]+a+[0]*3+[*bg]+s[0:1], epsfcn=1e-12)
 #       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i[i_ok], f[i_ok], dx=0.1); pause()
        print(np.diag(e_p)[5:9])
