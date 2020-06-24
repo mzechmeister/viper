@@ -31,7 +31,6 @@ c = 3e5   # [km/s] speed of light
 
 dirname = r''
 
-ftsname = dirname + 'lib/TLS/FTS/TLS_I2_FTS.fits'
 obsname = dirname + 'data/TLS/betgem/BETA_GEM.fits'
 tplname = dirname + 'data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6'
 obsname = dirname + 'data/TLS/hd189733/TV00001.fits'
@@ -73,6 +72,7 @@ if __name__ == "__main__":
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian, mg: Multiplegaussian)', default='g', choices=['g', 'sg','mg'], type=str)
+    argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
@@ -97,6 +97,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     bp[mskatm(w) > 0.1] |= 16
     i_ok, = np.where(bp == 0)
 
+    if demo:
+       icen = 0
+
     modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     ####  stellar template  ####
@@ -118,11 +121,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     xj = xj_full[sj]
     iod_j = iod_j_full[sj]
 
-    if 0:
+    if demo & 1:
         # plot data, template, and iodine without any modifications
         gplot(w_I2[s], f_I2[s], 'w l lc 9,', w_tpl[s_s], f_tpl[s_s], 'w l lc 3,', w, f, 'w lp lc 1 pt 7 ps 0.5')
         # plot with some scaling
         #gplot(w_I2[s], f_I2[s]/1.18, 'w l lc 9,', w_tpl[s_s]*(1+12/c), f_tpl[s_s], 'w l lc 3,', w, f/1.04, 'w lp lc 1 pt 7 ps 0.5')
+        pause()
 
 
     # convert discrete template into a function
@@ -133,13 +137,15 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # setup the model
     S_mod = model(S_star, xj, iod_j, IP, **modset)
 
-    if 0:
+    if demo & 2:
         # plot the IP
         gplot(S_mod.vk, S_mod.IP(S_mod.vk))
+        pause()
 
-    if 0:
+    if demo & 4:
        # plot again, now the stellar template can be interpolated
        gplot(np.exp(xj), iod_j, S_star(xj), 'w l lc 9, "" us 1:3 w l lc 3')
+       pause()
 
 
     # trim the observation to a range valid for the model
@@ -149,38 +155,52 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     # an initial parameter set
     v = vg   # a good guess for the stellar RV is needed
-    a = ag = [np.mean(f[i_ok]) / np.mean(S_star(np.log(w[i_ok]))) / np.mean(iod_j)] 
-    b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
-    b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
+    a0 = np.mean(f[i_ok]) / np.mean(S_star(np.log(w[i_ok]))) / np.mean(iod_j)
+    a = ag = [a0]
+    if demo:
+        a = ag = [a0*1.3]
+    if demo:
+        b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
+        b = bg = [*np.polyfit(i[[400,-300]]-icen-2, w[[400,-300]], 1)[::-1], 0, 0]
+    else:
+        b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
     #show_model(i[i_ok], f[i_ok], S_b(i[i_ok],*bg), res=False)
     s = sg = [1.] if ip=='g' else [0.7, 2.]
+    if demo:
+        s = sg = [4.]
 
-    if 0:
+    if demo & 8:
         # a simple call to the forward model
         # Si_mod = S_mod(i[i_ok], v=0, a=a, b=b, s=s)
         # show the start guess
         S_mod.show([v,a,b,s], i[i_ok], f[i_ok], res=False, dx=0.1)
-        #pause()
+        pause('Smod simple call')
 
-    if 0:
+    if  demo & 16:
         # A wrapper to fit the continuum
         S_a = lambda x, a0: S_mod(x, vg, [a0], bg, sg)
-        a, e_a = curve_fit(S_a, i[i_ok], f[i_ok])
+        p_a, e_a = curve_fit(S_a, i[i_ok], f[i_ok])
         #show_model(i[i_ok], f[i_ok], S_a(i[i_ok],*a), res=False)
+        S_mod.show([v,p_a,b,s], i[i_ok], f[i_ok], res=False, dx=0.1)
+        pause('demo S_a')
 
-    if 0:
+    if  demo & 32:
         # A wrapper to fit the wavelength solution
-        S_b = lambda x, *b: S_mod(x, vg, a, b, sg)
+        S_b = lambda x, *b: S_mod(x, vg, p_a*1.3, b, sg)
         b, e_b = curve_fit(S_b, i[i_ok], f[i_ok], p0=bg)
         #show_model(i[i_ok], f[i_ok], S_b(i[i_ok], *bg))
         #show_model(i[i_ok], f[i_ok], S_b(i[i_ok], *b))
         #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
+        S_mod.show([v,p_a,b,s], i[i_ok], f[i_ok], res=False, dx=0.1)
+        pause('demo S_b')
 
-    if 0:
-        # fit v, a and b simultaneously
+    if demo & 64:
+        # fit v, a0 and b simultaneously
         S_vab = lambda x, v, a, *b: S_mod(x, v, [a], b, sg)
-        p_vab, e_p = curve_fit(S_vab, i[i_ok], f[i_ok], p0=[v, 1, *bg])
-        show_model(i[i_ok], f[i_ok], S_vab(i[i_ok], *p_vab))
+        p_vab, e_p = curve_fit(S_vab, i[i_ok], f[i_ok], p0=[v, a[0], *b])
+        #!p_vab, e_p = curve_fit(S_vab, i[i_ok], f[i_ok], p0=[v, 1, *b])
+        show_model(i[i_ok], f[i_ok], S_vab(i[i_ok], *p_vab), res=True)
+        pause('demo S_vab')
 
 
     if ip == 'sg':
@@ -193,6 +213,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        bg = p[5:9]+ np.diag(e_p)[5:9]**0.5
 
     if o in lookguess:
+        if demo:
+           bg = b
+           a = [a0]
         pg = [v, a+[0]*3, bg, s]
         prms = S_mod.show(pg, i[i_ok], f[i_ok], dx=0.1)
         pause('lookguess')
