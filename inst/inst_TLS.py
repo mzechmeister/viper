@@ -3,6 +3,7 @@ from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
+from astropy.constants import c
 
 from .readmultispec import readmultispec
 from .airtovac import airtovac
@@ -46,20 +47,19 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
     if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)  
-    berv = berv.to(u.km/u.s).value  
+    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
+    berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
     #print(bjd, berv)
     return w, f, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
+    '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        from inst.inst_TLS import Spectrum
-        w, f, b = Spectrum(tplname)
-        if o is not None:
-            w, f = w[o], f[o]
-    if tplname.endswith('_s1d_A.fits'):
+        w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
+    elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
         f = hdu.data
         h = hdu.header
