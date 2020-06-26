@@ -130,7 +130,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     # convert discrete template into a function
-    S_star = interp1d(np.log(w_tpl)-berv/c, f_tpl)
+    S_star = interp1d(np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
 
     IP = IPs[ip]
 
@@ -157,6 +157,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f[i_ok]) / np.mean(S_star(np.log(w[i_ok]))) / np.mean(iod_j)
     a = ag = [a0]
+    s = sg = [Inst.pg['s']]
     if demo:
         a = ag = [a0*1.3]
     if demo:
@@ -165,7 +166,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     else:
         b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
     #show_model(i[i_ok], f[i_ok], S_b(i[i_ok],*bg), res=False)
-    s = sg = [1.] if ip=='g' else [0.7, 2.]
+    if ip is not 'g':
+        s += [2.]
     if demo:
         s = sg = [4.]
 
