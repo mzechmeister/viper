@@ -91,7 +91,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     ####  data TLS  ####
     w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
-    #i_ok = slice(400,1700) # probably the wavelength solution of the template is bad
     bp[mskatm(w) > 0.1] |= 16
     i_ok, = np.where(bp == 0)
 
@@ -110,14 +109,19 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-    vcut = 30
-    sj = slice(*np.searchsorted(xj_full, [np.log(lmin)+vcut/c, np.log(lmax)-vcut/c])) # reduce range by 100 km/s
+    sj = slice(*np.searchsorted(xj_full, np.log([lmin, lmax])))
 
     # prepare input; convert discrete data to model
 
     # using the supersampled log(wavelength) space with knot index j
     xj = xj_full[sj]
     iod_j = iod_j_full[sj]
+
+    # trim the observation to a range valid for the model
+    vcut = 100   # [km/s]
+    bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
+    bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
+    i_ok = np.where(bp==0)
 
     if demo & 1:
         # plot data, template, and iodine without any modifications
@@ -145,11 +149,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        gplot(np.exp(xj), iod_j, S_star(xj), 'w l lc 9, "" us 1:3 w l lc 3')
        pause()
 
-
-    # trim the observation to a range valid for the model
-    bp[np.log(w) < xj[0]+100/c] |= 1
-    bp[np.log(w) > xj[-1]-100/c] |= 1
-    i_ok = np.where(bp==0)
 
     # an initial parameter set
     v = vg   # a good guess for the stellar RV is needed
