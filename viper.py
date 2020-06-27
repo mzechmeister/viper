@@ -157,19 +157,16 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f[i_ok]) / np.mean(S_star(np.log(w[i_ok]))) / np.mean(iod_j)
     a = ag = [a0]
+    b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
     s = sg = [Inst.pg['s']]
     if demo:
         a = ag = [a0*1.3]
-    if demo:
         b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
-        b = bg = [*np.polyfit(i[[400,-300]]-icen-2, w[[400,-300]], 1)[::-1], 0, 0]
-    else:
-        b = bg = np.polyfit(i[i_ok]-icen, w[i_ok], 3)[::-1]
-    #show_model(i[i_ok], f[i_ok], S_b(i[i_ok],*bg), res=False)
+        b = bg = [*np.polyfit(i[[400,-300]]-icen-10, w[[400,-300]], 1)[::-1], 0, 0]
+        s = sg = [s[0]*1.5]
+
     if ip is not 'g':
-        s += [2.]
-    if demo:
-        s = sg = [4.]
+        s += [2.]   # exponent of super gaussian 
 
     if demo & 8:
         # a simple call to the forward model
@@ -233,6 +230,10 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     #gplot+(i[i_ok], S_star(np.log(np.poly1d(b[::-1])(i[i_ok]))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')  
 
+    if o in look:
+        pause('look ', o)  # globals().update(locals())
+
+
     # error estimation
     # uncertainty in continuum
     xl = np.log(np.poly1d(p[5:9][::-1])(i-icen))
@@ -245,9 +246,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     lam = np.poly1d(p[5:9][::-1])(i-icen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_p[5:9,5:9], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
-
-    if o in look:
-        pause('look ', o)  # globals().update(locals())
 
     if o in lookpar:
         # compare the wavelength solutions
