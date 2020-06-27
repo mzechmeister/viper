@@ -8,7 +8,6 @@ import numpy as np
 
 from pause import pause
 from gplot import gplot
-gplot.tmp = '$'
 
 def plot_RV(file):
     gplot.mxtics().mytics()

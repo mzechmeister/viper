@@ -1,7 +1,6 @@
 import numpy as np
 
 from gplot import *
-gplot.tmp = '$'
 
 c = 3e5   # [km/s] speed of light
 

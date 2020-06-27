@@ -7,8 +7,8 @@ import tempfile
 import os
 
 __author__ = 'Mathias Zechmeister'
-__version__ = 'v13'
-__date__ = '2018-10-25'
+__version__ = 'v14'
+__date__ = '2020-06-27'
 __all__ = ['gplot', 'Gplot', 'ogplot', 'Iplot']
 
 
@@ -17,7 +17,7 @@ class Gplot(object):
    An interface between Python and gnuplot.
    
    Creation of an instance opens a pipe to gnuplot and return an object for communication.
-   Plot commands are send to gnuplot via the call method; arrays as arguments are handled .
+   Plot commands are send to gnuplot via the call method; arrays as arguments are handled.
    Gnuplot options are set by calling them as method attributes.
    Each method returns the object again. This allows to chain set and plot method.
    
@@ -25,12 +25,12 @@ class Gplot(object):
    ----------
    tmp : str, optional
        Method for passing data.
-       * None - create a non-persistent temporary file (default)
+       * '$' - use inline datablock (default) (not faster than temporary data,
+             does not work with flush='' an ogplot)
+       * None - create a non-persistent temporary file
        * '' - create a local persistent file
        * '-' - use gnuplot special filename (no interactive zoom available,
                replot does not work)
-       * '$' - use inline datablock (not faster than temporary data,
-             does not work with flush='' an ogplot)
        * 'filename' - create manually a temporary file
    stdout : boolean, optional
        If true, plot commands are send to stdout instead to gnuplot pipe.
@@ -80,11 +80,14 @@ class Gplot(object):
    >>> gplot([1],[2],[3],[4])
    >>> gplot(1,2,3,4)
    
+   Pass options as function arguments or in the method name separated with underscore
+
+   >>> gplot.key_bottom_rev("left")('sin(x)')
    """
    version = subprocess.check_output(['gnuplot', '-V'])
    version = float(version.split()[1]) 
    
-   def __init__(self, cmdargs='', tmp=None, mode='plot', stdout=False):
+   def __init__(self, cmdargs='', tmp='$', mode='plot', stdout=False):
       self.stdout = stdout
       self.tmp = tmp
       self.mode = getattr(self, mode)   # set the default mode for __call__ (plot, splot)
@@ -191,7 +194,8 @@ class Gplot(object):
       else:
          # dynamic attributes (xlabel, key, etc.)
          def func(*args):
-            return self.set(name, *args)
+            # _ underscores are replace with blank, e.g. gplot.key_left_Left()
+            return self.set(name.replace("_"," "), *args)
          return func
 
    def __add__(self, other):

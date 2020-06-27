@@ -16,7 +16,6 @@ from astropy.io import fits
 import astropy.units as u
 
 from gplot import *
-gplot.tmp = '$'
 gplot.colors('classic')
 from pause import pause
 
