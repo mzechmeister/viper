@@ -92,18 +92,20 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
     bp[mskatm(w) > 0.1] |= 16
-    i_ok, = np.where(bp == 0)
-
-    if demo:
-       icen = 0
-
-    modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     ####  stellar template  ####
     w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
 
     lmin = max(w[0], w_tpl[0], w_I2[0])
     lmax = min(w[-1], w_tpl[-1], w_I2[-1])
+
+    # trim the observation to a range valid for the model
+    vcut = 100   # [km/s]
+    bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
+    bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
+    i_ok = np.where(bp==0)
+
+    modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     # display
     # pre-look raw input
@@ -116,12 +118,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # using the supersampled log(wavelength) space with knot index j
     xj = xj_full[sj]
     iod_j = iod_j_full[sj]
-
-    # trim the observation to a range valid for the model
-    vcut = 100   # [km/s]
-    bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
-    bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
-    i_ok = np.where(bp==0)
 
     if demo & 1:
         # plot data, template, and iodine without any modifications
