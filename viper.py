@@ -11,7 +11,6 @@ import os
 import time
 
 import numpy as np
-from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from astropy.io import fits
 import astropy.units as u
@@ -93,7 +92,6 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
     #i_ok = slice(400,1700) # probably the wavelength solution of the template is bad
-    mskatm = interp1d(*np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
     bp[mskatm(w) > 0.1] |= 16
     i_ok, = np.where(bp == 0)
 
@@ -130,7 +128,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     # convert discrete template into a function
-    S_star = interp1d(np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
+    S_star = lambda x: np.interp(x, np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
 
     IP = IPs[ip]
 
@@ -291,6 +289,7 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 # using the supersampled log(wavelength) space with knot index j
 
 w_I2, f_I2, xj_full, iod_j_full = FTS(ftsname)
+mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
 
 T = time.time()

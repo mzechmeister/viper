@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import interpolate
 
 from gplot import *
 gplot.tmp = '$'
@@ -57,7 +56,7 @@ class model:
         Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
 
         # sampling to pixel
-        Si_eff = interpolate.interp1d(self.xj_eff, Sj_eff)(xi)
+        Si_eff = np.interp(xi, self.xj_eff, Sj_eff)
 
         # flux normalisation
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff

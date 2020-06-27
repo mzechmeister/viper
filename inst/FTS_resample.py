@@ -1,5 +1,4 @@
 import numpy as np
-from scipy import interpolate
 
 from astropy.io import fits
 
@@ -23,7 +22,7 @@ def resample(w, f, dv=100):
     '''
     # define a supersampled log(wavelength) space with knot index j
     xj = np.arange(np.log(w[0]), np.log(w[-1]), dv/c)
-    iod_j = interpolate.interp1d(np.log(w), f)(xj)
+    iod_j = np.interp(xj, np.log(w), f)
 
     return w, f, xj, iod_j
 
