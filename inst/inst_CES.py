@@ -11,7 +11,7 @@ from pause import pause
 
 location = lasilla = EarthLocation.of_site('lasilla')
 
-pg = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+pg = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 #/run/media/zechmeister/5748244b-c6d4-49bb-97d4-1ae0a8ba6aed/data/disk2/zechmeister/CES/reducedv4/ZET1RET/
