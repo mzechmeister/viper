@@ -19,6 +19,19 @@ pg = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolutio
 def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
+
+    dateobs = hdr['DATE-OBS']
+    exptime = hdr['EXP_TIME']
+    ra = hdr['RA']
+    de = hdr['DEC']
+
+    targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
+    if not targ: targ = targdrs
+    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
+    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
+    berv = berv.to(u.km/u.s).value
+    bjd = midtime.tdb
+
     f = hdu.data
     gg = readmultispec(filename, reform=True, quiet=True)
     w = gg['wavelen']
@@ -34,26 +47,6 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     b[...,:380] |= 8
     b[...,1700:] |= 8
 
-    dateobs = hdr['DATE-OBS']
-    exptime = hdr['EXP_TIME']
-    ra =  hdr['RA']
-    de = hdr['DEC']
-    #ra = 
-    #de = '+22:42:39.071811263'
-    #sys.path.insert(1, sys.path[0]+os.sep+'BarCor')            # bary now in src/BarCor
-    #import sys
-    #sys.path.insert(1, '/home/raid0/zechmeister/python/chamarthisireesha/VIPER/BarCor')            # bary now in src/BarCor
-    #import bary
-    #bjd, berv = bary.bary(dateobs, '20:00:43.7130382888', '+22:42:39.071811263', 'TLS', epoch=2000, exptime=exptime, pma=0, pmd=0)
-    #print(bjd, berv)
-    #from pause import pause; pause(bjd, berv)
-    targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
-    if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
-    berv = berv.to(u.km/u.s).value
-    bjd = midtime.tdb
-    #print(bjd, berv)
     return w, f, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
