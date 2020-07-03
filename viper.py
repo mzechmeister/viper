@@ -113,12 +113,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
     s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
-    sj = slice(*np.searchsorted(xj_full, np.log([lmin, lmax])))
+    sj = slice(*np.searchsorted(uj_full, np.log([lmin, lmax])))
 
     # prepare input; convert discrete data to model
 
     # using the supersampled log(wavelength) space with knot index j
-    xj = xj_full[sj]
+    uj = uj_full[sj]
     iod_j = iod_j_full[sj]
 
     if demo & 1:
@@ -133,7 +133,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     IP = IPs[ip]
 
     # setup the model
-    S_mod = model(S_star, xj, iod_j, IP, **modset)
+    S_mod = model(S_star, uj, iod_j, IP, **modset)
 
     if demo & 2:
         # plot the IP
@@ -142,8 +142,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if demo & 4:
        # plot again, now the stellar template can be interpolated
-       gplot(np.exp(xj), iod_j, S_star(xj)/np.median(S_star(xj)), 'w l lc 9, "" us 1:3 w l lc 3')
-       pause('demo 4: stellar template evaluate at xj')
+       gplot(np.exp(uj), iod_j, S_star(uj)/np.median(S_star(uj)), 'w l lc 9, "" us 1:3 w l lc 3')
+       pause('demo 4: stellar template evaluate at uj')
 
 
     # an initial parameter set
@@ -197,7 +197,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if ip == 'sg':
        # prefit with Gaussian IP
-       S_modg = model(S_star, xj, iod_j, IPs['g'], **modset)
+       S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
        S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
        p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*3+[*bg]+s[0:1], epsfcn=1e-12)
 #       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i_ok], f_ok, dx=0.1); pause()
@@ -283,7 +283,7 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 
 # using the supersampled log(wavelength) space with knot index j
 
-w_I2, f_I2, xj_full, iod_j_full = FTS(ftsname)
+w_I2, f_I2, uj_full, iod_j_full = FTS(ftsname)
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
 

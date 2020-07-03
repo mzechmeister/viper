@@ -39,11 +39,11 @@ class model:
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
-        self.S_star, self.xj, self.iod_j, self.IP = args
+        self.S_star, self.uj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
-        self.dx = self.xj[1] - self.xj[0]  # sampling in uniform resampled Iod
+        self.dx = self.uj[1] - self.uj[0]  # sampling in uniform resampled Iod
         self.vk = np.arange(-IP_hs,IP_hs+1) * self.dx * c
-        self.xj_eff = self.xj[IP_hs:-IP_hs]
+        self.uj_eff = self.uj[IP_hs:-IP_hs]
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, i, v, a, b, s):
@@ -52,10 +52,10 @@ class model:
         xi = np.log(np.poly1d(b[::-1])(i-self.icen))
 
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.xj-v/c) * self.iod_j, mode='valid')
+        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * self.iod_j, mode='valid')
 
         # sampling to pixel
-        Si_eff = np.interp(xi, self.xj_eff, Sj_eff)
+        Si_eff = np.interp(xi, self.uj_eff, Sj_eff)
 
         # flux normalisation
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff

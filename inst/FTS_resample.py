@@ -21,9 +21,10 @@ def resample(w, f, dv=100):
     dv: Sampling step for uniform log(lambda) [m/s]
     '''
     # define a supersampled log(wavelength) space with knot index j
-    xj = np.arange(np.log(w[0]), np.log(w[-1]), dv/c)
-    iod_j = np.interp(xj, np.log(w), f)
+    u = np.log(w)
+    uj = np.arange(u[0], u[-1], dv/c)
+    iod_j = np.interp(uj, u, f)
 
-    return w, f, xj, iod_j
+    return w, f, uj, iod_j
 
 
