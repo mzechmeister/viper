@@ -49,13 +49,13 @@ class model:
     def __call__(self, i, v, a, b, s):
         # wavelength solution 
         #    lam(x) = b0 + b1 * x + b2 * x^2
-        xi = np.log(np.poly1d(b[::-1])(i-self.icen))
+        ui = np.log(np.poly1d(b[::-1])(i-self.icen))
 
         # IP convolution
         Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * self.iod_j, mode='valid')
 
         # sampling to pixel
-        Si_eff = np.interp(xi, self.uj_eff, Sj_eff)
+        Si_eff = np.interp(ui, self.uj_eff, Sj_eff)
 
         # flux normalisation
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff

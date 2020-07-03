@@ -158,7 +158,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     if demo:
         a = ag = [a0*1.3]
         b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
-        b = bg = [*np.polyfit(i[[400,-300]]-icen-10, w[[400,-300]], 1)[::-1], 0, 0]
+        b = bg = [*np.polyfit(i[[400,-300]]-icen-10, w[[400,-300]], 1)[::-1]] + [0]*(degb-1)
         s = sg = [s[0]*1.5]
 
     if ip is not 'g':
