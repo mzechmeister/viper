@@ -51,6 +51,7 @@ def arg2slice(arg):
 def arg2range(arg):
     return  eval('np.r_['+arg+']')
 
+
 if __name__ == "__main__":
     # check first the instrument with preparsing
     preparser = argparse.ArgumentParser(add_help=False)
@@ -70,6 +71,8 @@ if __name__ == "__main__":
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian, mg: Multiplegaussian)', default='g', choices=['g', 'sg','mg'], type=str)
+    argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
+    argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
@@ -150,7 +153,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
     a = ag = [a0]
-    b = bg = np.polyfit(i_ok-icen, w_ok, 3)[::-1]
+    b = bg = np.polyfit(i_ok-icen, w_ok, degb)[::-1]
     s = sg = [Inst.pg['s']]
     if demo:
         a = ag = [a0*1.3]
@@ -199,26 +202,26 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        # prefit with Gaussian IP
        S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
        S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-       p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*3+[*bg]+s[0:1], epsfcn=1e-12)
+       p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
 #       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i_ok], f_ok, dx=0.1); pause()
        print(np.diag(e_p)[5:9])
-       bg = p[5:9]+ np.diag(e_p)[5:9]**0.5
+       bg = p[2+dega:2+dega+1+degb]+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
 
     if o in lookguess:
         if demo:
            bg = b
            a = [a0]
-        pg = [v, a+[0]*3, bg, s]
+        pg = [v, a+[0]*dega, bg, s]
         prms = S_mod.show(pg, i_ok, f_ok, dx=0.1)
         pause('lookguess')
 
 
-    S = lambda x, v, *abs: S_mod(x, v, abs[:4], abs[4:8], abs[8:])
+    S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 
-    p, e_p = curve_fit(S, i_ok, f_ok, p0=[v]+a+[0]*3+[*bg]+s, epsfcn=1e-12)
+    p, e_p = curve_fit(S, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
     #p, e_p = curve_fit(S, i_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
-    prms = S_mod.show([p[0], p[1:5], p[5:9], p[9:]], i_ok, f_ok, dx=0.1)
+    prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], i_ok, f_ok, dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
     #gplot+(i_ok, S_star(np.log(np.poly1d(b[::-1])(i_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')  
