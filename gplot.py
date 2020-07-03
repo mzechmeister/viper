@@ -134,7 +134,7 @@ class Gplot(object):
                   # create local temporary file
                   if tmp=='':
                      tmpname = 'gptmp_'+str(self.pid)+str(self.og)
-                  savetxt(tmpname, data, fmt="%s")
+                  savetxt(tmpname, list(data), fmt="%s")
                pl += '"'+tmpname+'"'
             pl += arg
             data = ()
