@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.special import erf
 
 from gplot import *
 
@@ -18,6 +19,24 @@ def IP_sg(vk, s=2.2, e=2.):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+def IP_ag(vk, s=2.2, a=0):
+    '''
+    Asymmetric (skewed) Gaussian.
+    
+    Example
+    -------
+    >>> vk = np.arange(-50, 50+1) 
+    >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100),', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
+    '''
+
+    b = a / np.sqrt(1+a**2) * np.sqrt(2/np.pi)
+    ss = s / np.sqrt(1-b**2)    # readjust scale parameter to have same variance as unskewed Gaussian
+    vk = (vk + ss*b) / ss       # recenter to have zero mean
+    IP_k = np.exp(-vk**2/2) * (1+erf(a/np.sqrt(2)*vk))  # Gauss IP * erf
+    IP_k /= IP_k.sum()          # normalise IP
+    return IP_k
+
+
 def IP_mg(vk, s):
     ''' IP for multiple, zero-centered Gaussians '''
     print(s)
@@ -27,7 +46,7 @@ def IP_mg(vk, s):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-IPs = {'g':IP, 'sg': IP_sg,'mg':IP_mg}
+IPs = {'g':IP, 'sg': IP_sg, 'ag': IP_ag, 'mg':IP_mg, 'bnd': 'bnd'}
 
 
 class model:
@@ -42,7 +61,8 @@ class model:
         self.S_star, self.uj, self.iod_j, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.uj[1] - self.uj[0]  # sampling in uniform resampled Iod
-        self.vk = np.arange(-IP_hs,IP_hs+1) * self.dx * c
+        self.IP_hs = IP_hs
+        self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
         self.uj_eff = self.uj[IP_hs:-IP_hs]
         #print("sampling [km/s]:", self.dx*c)
 
@@ -95,6 +115,62 @@ class model:
             args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
         gplot(*args)
         return prms
+
+class model_bnd(model):
+    '''
+    The forward model with band matrix.
+
+    '''
+    def base(self, x=None, degk=3, sig_k=1):
+        '''
+        Setup the base functions.
+        '''
+        bg = self.IP
+        # the initial trace
+        ui = np.log(np.poly1d(bg[::-1])(x-self.icen))
+        j = np.arange(self.uj.size)
+        jx = np.interp(ui, self.uj, j)
+        # position of Gaussians
+        vl = np.array([-1,0,1])[np.newaxis,np.newaxis,:]
+        vl = np.array([-1.4,-0.7,0,0.7,1.4])[np.newaxis,np.newaxis,:]
+        #vl = np.array([0])[np.newaxis,np.newaxis,:]
+
+        # bnd -- lists all j's contributing to x
+        self.bnd = jx[:,np.newaxis].astype(int) + np.arange(-self.IP_hs, self.IP_hs+1)
+
+        # base for multi-Gaussians
+        self.BBxjl = np.exp(-(self.uj[self.bnd][...,np.newaxis]-ui[:,np.newaxis,np.newaxis]+sig_k*vl)**2/sig_k**2)
+
+        # base function for flux polynomial
+        self.Bxk = np.vander(x-x.mean(), degk)[:,::-1]
+        #Bxk = np.vander(jx-jx.mean(), len(ak))[:,::-1]   # does not provide proper output for len(ak) > 4
+
+    def Axk(self, v, **kwargs):
+        if kwargs:
+            self.base(**kwargs)
+        starj = self.S_star(self.uj-v/c)  # np.interp(self.uj, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
+        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.iod_j)[self.bnd], self.BBxjl, self.Bxk)
+        return _Axkl
+
+    def IPxj(self, akl, **kwargs):
+        if kwargs:
+            self.base(**kwargs)
+        # sum all Gaussians
+        IPxj = np.einsum('xjl,xk,kl->xj', self.BBxjl, self.Bxk, akl.reshape(self.Bxk.shape[1],-1)) #.reshape(AAxkl[0].shape))
+        return IPxj
+
+    def fit(self, f, v, **kwargs):
+        Axkl = self.Axk(v, **kwargs)
+        return np.linalg.lstsq(Axkl.reshape((len(Axkl),-1)), f, rcond=1e-32)
+
+    def __call__(self, v, ak, **kwargs):
+        Axkl = self.Axk(v, **kwargs)
+#        dl = np.array([0.5,2,0.5])   # amplitude of Gaussian
+        #ak = np.array([1, 0, 0, 0, 0])
+        #fx = Axk @ ak
+#        fx = AAxkl.reshape((len(AAxkl),-1)) @ aakl
+        fx = Axkl.reshape((len(Axkl),-1)) @ ak
+        return fx
 
 
 def show_model(x, y, ymod, res=True):

@@ -17,9 +17,10 @@ import astropy.units as u
 
 from gplot import *
 gplot.colors('classic')
+gplot2 = Gplot()
 from pause import pause
 
-from model import model, IPs, show_model
+from model import model, model_bnd, IPs, show_model
 from targ import Targ
 import vpr
 
@@ -52,6 +53,48 @@ def arg2range(arg):
     return  eval('np.r_['+arg+']')
 
 
+def SSRstat(vgrid, SSR, dk=1, plot='maybe', N=None):
+   '''   
+   Analyse chi2 peak.
+
+   Parameters
+   ----------
+   N: Number of data points in the fit. Needed to estimate 1 sigma uncertainty and when SSR are not chi2 values.
+ 
+   '''
+   k = np.argmin(SSR[dk:-dk]) + dk   # best point (exclude borders)
+   vpeak = vgrid[k-dk:k+dk+1]
+   SSRpeak = SSR[k-dk:k+dk+1] - SSR[k]
+   v_step = vgrid[1] - vgrid[0]
+   # interpolating parabola a0+a1*x+a2*x**2 (direct solution) through the three pixels in the minimum
+   a = np.array([0, (SSR[k+dk]-SSR[k-dk])/(2*v_step), (SSR[k+dk]-2*SSR[k]+SSR[k-dk])/(2*v_step**2)])  # interpolating parabola for even grid
+   v = (SSR[k+dk]-SSR[k-dk]) / (SSR[k+dk]-2*SSR[k]+SSR[k-dk]) * 0.5 * v_step
+
+   v = vgrid[k] - a[1]/2./a[2]   # position of parabola minimum
+   e_v = np.nan
+   if -1 in SSR:
+      print('opti warning: bad ccf.')
+   elif a[2] <= 0:
+      print('opti warning: a[2]=%f<=0.' % a[2])
+   elif not vgrid[0] <= v <= vgrid[-1]:
+      print('opti warning: v not in [va,vb].')
+   else:
+      e_v = 1. / a[2]**0.5
+      if N:
+          # Rescale the variances (parabola) such that the minimum has value N, implying chi^2_red == 1.
+          # Then derive one sigma uncertainty from Delta chi^2 = 1.
+          SSRmin = SSR[k] + a[0] - a[1] * a[1]/2./a[2] + a[2] * (a[1]/2./a[2]) **2
+          e_v *= (SSRmin/N) **0.5
+ 
+
+   if (plot==1 and np.isnan(e_v)) or plot==2:
+      gplot2.yrange('[*:%f]' % np.max(SSR))
+      gplot2(vgrid, SSR-SSR[k], " w lp, v1="+str(vgrid[k])+", %f+(x-v1)*%f+(x-v1)**2*%f," % tuple(a), [v,v], [0,SSR[1]], 'w l t "%f km/s"'%v)
+      gplot2+(vpeak, SSRpeak, ' lt 1 pt 6; set yrange [*:*]')
+      pause(v)
+   return v, e_v, a
+
+
 if __name__ == "__main__":
     # check first the instrument with preparsing
     preparser = argparse.ArgumentParser(add_help=False)
@@ -70,7 +113,7 @@ if __name__ == "__main__":
     argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
-    argopt('-ip', help='IP model (g: Gaussian, sg: Supergaussian, mg: Multiplegaussian)', default='g', choices=['g', 'sg','mg'], type=str)
+    argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
     argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
@@ -171,7 +214,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         S_mod.show([v,a,b,s], i_ok, f_ok, res=False, dx=0.1)
         pause('demo 8: Smod simple call')
 
-    if  demo & 16:
+    if demo & 16:
         # A wrapper to fit the continuum
         S_a = lambda x, a0: S_mod(x, vg, [a0], bg, sg)
         p_a, e_a = curve_fit(S_a, i_ok, f_ok)
@@ -179,7 +222,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         S_mod.show([v,p_a,b,s], i_ok, f_ok, res=False, dx=0.1)
         pause('demo 16: S_a')
 
-    if  demo & 32:
+    if demo & 32:
         # A wrapper to fit the wavelength solution
         S_b = lambda x, *b: S_mod(x, vg, p_a*1.3, b, sg)
         b, e_b = curve_fit(S_b, i_ok, f_ok, p0=bg)
@@ -198,7 +241,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         pause('demo 64: S_vab')
 
 
-    if ip == 'sg':
+    if ip in ('sg', 'ag', 'bnd'):
        # prefit with Gaussian IP
        S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
        S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
@@ -214,6 +257,40 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         pg = [v, a+[0]*dega, bg, s]
         prms = S_mod.show(pg, i_ok, f_ok, dx=0.1)
         pause('lookguess')
+
+
+    if IP == 'bnd':
+       # Non parametric fit with band matrix
+       # We step through velocity in 100 m/s step. At each step there is linear least square
+       # fit for the 2D IP using band matrix.
+#      S_mod = model_bnd(S_star, uj, iod_j, np.polyfit(i_ok-icen, w_ok, degb)[::-1], **modset)
+       S_mod = model_bnd(S_star, uj, iod_j, p[1+1+dega:1+1+dega+1+degb], **modset)
+       opt = {'x':i_ok, 'sig_k': s[0]/1.5/c}
+       rr = S_mod.fit(f_ok, 0.1, **opt)
+       fx = S_mod(0.1, rr[0])
+       ipxj = S_mod.IPxj(rr[0])
+       if demo & 2:
+           gplot(ipxj, 'matrix w image')
+       show_model(i_ok, f_ok, fx)
+
+       vv = np.arange(-1,1,0.1)
+       RR = []
+       aa = []
+       for v in vv:
+         rr = S_mod.fit(f_ok, v, **opt)
+         RR.append(*rr[1])
+         aa.append(rr[0])
+         if 1:
+             print(v, rr[1])
+
+       v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
+#       from pause import stop; stop()
+       best = S_mod.fit(f_ok, v, **opt)
+       fx = S_mod(v, best[0])
+       res = f_ok - fx
+       np.savetxt('res.dat', list(zip(i_ok, res)), fmt="%s")
+       prms = np.std(res) / fx.mean() * 100
+       return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
 
     S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
@@ -306,6 +383,9 @@ for n,obsname in enumerate(obsnames):
 
         print(n+1, o, rv[i_o], e_rv[i_o])
         print(bjd, o, *sum(zip(p, np.diag(e_p)),()), prms, file=parunit)
+        # store residuals
+        os.system('mkdir -p res; touch res.dat')
+        os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
         #pause()
 
     oo = np.isfinite(e_rv)
