@@ -206,7 +206,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if ip in ('sg', 'mg'):
         s += [2.]   # exponent of super gaussian 
-    elif ip in ('ag'):
+    elif ip in ('ag',):
         s += [0.]   # skewness parameter
 
     if demo & 8:
