@@ -39,6 +39,7 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     if o is not None:
          w, f = w[o], f[o]
 
+    x = np.arange(f.size) 
     b = 1 * np.isnan(f) # bad pixel map
     b[f>1.5] |= 2 # large flux
     b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
@@ -47,13 +48,13 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     b[...,:380] |= 8
     b[...,1700:] |= 8
 
-    return w, f, b, bjd, berv
+    return x, w, f, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]

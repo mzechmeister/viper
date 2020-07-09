@@ -26,6 +26,20 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
         o = slice(o*chksize, (o+1)*chksize)
         x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
 
+    if 1:
+        # stitching
+        ax = 0*f + 1    # default pixel size
+        ax[576] = 0.963
+        ax[4+512*1] = 0.986
+        ax[4+512*2-1] = 0.981
+        ax[4+512*2] = 0.961
+        ax[4+512*3-1] = 0.993
+        ax[4+512*4] = 0.987
+        ax[4+512*5] = 0.992
+        ax[4+512*6-1] = 0.986
+        ax[4+512*7] = 0.971
+        x = np.cumsum(ax) - 1
+
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux
     b[2175:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
@@ -45,7 +59,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)  
     berv = berv.to(u.km/u.s).value  
     bjd = midtime.tdb
-    return w, f, b, bjd, berv
+    return x, w, f, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     if tplname.endswith('.dat'):

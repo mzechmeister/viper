@@ -124,8 +124,8 @@ if __name__ == "__main__":
 
 
 def fit_chunk(o, obsname, targ=None, tpltarg=None):
-    ####  data TLS  ####
-    w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
+    ####  observation  ####
+    x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
     bp[mskatm(w) > 0.1] |= 16
 
@@ -145,10 +145,11 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
 
     i_ok = np.where(bp==0)[0]
+    x_ok = x[i_ok]
     w_ok = w[i_ok]
     f_ok = f[i_ok]
 
-    modset['icen'] = icen = np.mean(i_ok) + 18   # slight offset, then it converges for CES+TauCet
+    modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
 
     # display
     # pre-look raw input
@@ -194,7 +195,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
     a = ag = [a0]
-    b = bg = np.polyfit(i_ok-icen, w_ok, degb)[::-1]
+    b = bg = np.polyfit(x_ok-icen, w_ok, degb)[::-1]
     s = sg = [Inst.pg['s']]
     if demo:
         a = ag = [a0*1.3]
@@ -209,35 +210,35 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if demo & 8:
         # a simple call to the forward model
-        # Si_mod = S_mod(i_ok, v=0, a=a, b=b, s=s)
+        # Si_mod = S_mod(x_ok, v=0, a=a, b=b, s=s)
         # show the start guess
-        S_mod.show([v,a,b,s], i_ok, f_ok, res=False, dx=0.1)
+        S_mod.show([v,a,b,s], x_ok, f_ok, res=False, dx=0.1)
         pause('demo 8: Smod simple call')
 
     if demo & 16:
         # A wrapper to fit the continuum
         S_a = lambda x, a0: S_mod(x, vg, [a0], bg, sg)
-        p_a, e_a = curve_fit(S_a, i_ok, f_ok)
-        #show_model(i_ok, f_ok, S_a(i_ok,*a), res=False)
-        S_mod.show([v,p_a,b,s], i_ok, f_ok, res=False, dx=0.1)
+        p_a, e_a = curve_fit(S_a, x_ok, f_ok)
+        #show_model(x_ok, f_ok, S_a(x_ok,*a), res=False)
+        S_mod.show([v,p_a,b,s], x_ok, f_ok, res=False, dx=0.1)
         pause('demo 16: S_a')
 
     if demo & 32:
         # A wrapper to fit the wavelength solution
         S_b = lambda x, *b: S_mod(x, vg, p_a*1.3, b, sg)
-        b, e_b = curve_fit(S_b, i_ok, f_ok, p0=bg)
-        #show_model(i_ok, f_ok, S_b(i_ok, *bg))
-        #show_model(i_ok, f_ok, S_b(i_ok, *b))
-        #gplot+(i_ok, S_star(np.log(np.poly1d(b[::-1])(i_ok))+(v)/c), 'w lp ps 0.5')
-        S_mod.show([v,p_a,b,s], i_ok, f_ok, res=False, dx=0.1)
+        b, e_b = curve_fit(S_b, x_ok, f_ok, p0=bg)
+        #show_model(x_ok, f_ok, S_b(x_ok, *bg))
+        #show_model(x_ok, f_ok, S_b(x_ok, *b))
+        #gplot+(x_ok, S_star(np.log(np.poly1d(b[::-1])(x_ok))+(v)/c), 'w lp ps 0.5')
+        S_mod.show([v,p_a,b,s], x_ok, f_ok, res=False, dx=0.1)
         pause('demo 32: S_b')
 
     if demo & 64:
         # fit v, a0 and b simultaneously
         S_vab = lambda x, v, a, *b: S_mod(x, v, [a], b, sg)
-        p_vab, e_p = curve_fit(S_vab, i_ok, f_ok, p0=[vg, a[0], *b])
-        #!p_vab, e_p = curve_fit(S_vab, i_ok, f_ok, p0=[v, 1, *b])
-        show_model(i_ok, f_ok, S_vab(i_ok, *p_vab), res=True)
+        p_vab, e_p = curve_fit(S_vab, x_ok, f_ok, p0=[vg, a[0], *b])
+        #!p_vab, e_p = curve_fit(S_vab, x_ok, f_ok, p0=[v, 1, *b])
+        show_model(x_ok, f_ok, S_vab(x_ok, *p_vab), res=True)
         pause('demo 64: S_vab')
 
 
@@ -246,14 +247,14 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
         if tplname:
             S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-            p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
+            p, e_p = curve_fit(S_g, x_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
         else:
             # do not fit for RV
             S_g = lambda x, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-            p, e_p = curve_fit(S_g, i_ok, f_ok, p0=a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
+            p, e_p = curve_fit(S_g, x_ok, f_ok, p0=a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
             p = [v, *p]
             e_p = np.diag([0, *np.diag(e_p)])
-        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i_ok], f_ok, dx=0.1); pause()
+        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], x_ok], f_ok, dx=0.1); pause()
         #print(np.diag(e_p)[5:9])
         bg = p[2+dega:2+dega+1+degb]+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
 
@@ -262,7 +263,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
             bg = b
             a = [a0]
         pg = [v, a+[0]*dega, bg, s]
-        prms = S_mod.show(pg, i_ok, f_ok, dx=0.1)
+        prms = S_mod.show(pg, x_ok, f_ok, dx=0.1)
         pause('lookguess')
 
 
@@ -271,13 +272,13 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # We step through velocity in 100 m/s step. At each step there is linear least square
         # fit for the 2D IP using band matrix.
         S_mod = model_bnd(S_star, uj, iod_j, p[1+1+dega:1+1+dega+1+degb], **modset)
-        opt = {'x':i_ok, 'sig_k': s[0]/1.5/c}
+        opt = {'x': x_ok, 'sig_k': s[0]/1.5/c}
         rr = S_mod.fit(f_ok, 0.1, **opt)
         fx = S_mod(0.1, rr[0])
         ipxj = S_mod.IPxj(rr[0])
         if demo & 2:
             gplot(ipxj, 'matrix w image')
-        show_model(i_ok, f_ok, fx)
+        show_model(x_ok, f_ok, fx)
 
         vv = np.arange(-1, 1, 0.1)
         RR = []
@@ -293,29 +294,29 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         best = S_mod.fit(f_ok, v, **opt)
         fx = S_mod(v, best[0])
         res = f_ok - fx
-        np.savetxt('res.dat', list(zip(i_ok, res)), fmt="%s")
+        np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
         prms = np.std(res) / fx.mean() * 100
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
     if tplname:
         S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
-        #p, e_p = curve_fit(S, i_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
+        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        #p, e_p = curve_fit(S, x_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
     else:
         # do not fit for velocity
         S = lambda x, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, i_ok, f_ok, p0=a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        p, e_p = curve_fit(S, x_ok, f_ok, p0=a+[0]*dega+[*bg]+s, epsfcn=1e-12)
         # prepend dummy parameter
         p = [v, *p]
         e_p = np.diag([np.nan, *np.diag(e_p)])
 
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
-    prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], i_ok, f_ok, dx=0.1)
+    prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], x_ok, f_ok, dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
-    #gplot+(i_ok, S_star(np.log(np.poly1d(b[::-1])(i_ok))+(v)/c), 'w lp ps 0.5')
+    #gplot+(x_ok, S_star(np.log(np.poly1d(b[::-1])(x_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
-    res = f_ok - S_mod(i_ok, p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:])
-    np.savetxt('res.dat', list(zip(i_ok, res)), fmt="%s")
+    res = f_ok - S_mod(x_ok, p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:])
+    np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
 
     if o in look:
         pause('look ', o)  # globals().update(locals())
