@@ -14,6 +14,8 @@ from .FTS_resample import resample, FTSfits
 
 location = tls = EarthLocation.from_geodetic(lat=50.980111*u.deg, lon=11.711167*u.deg, height=342*u.m)
 
+oset = '18:30'
+
 pg = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
 def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
