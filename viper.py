@@ -110,7 +110,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('obspath', help='Filename of observation', default='data/TLS/betgem/BETA_GEM.fits', type=str)
-    argopt('tplname', help='Filename of template', default='data/TLS/betgem/pepsib.20150409.000.sxt.awl.all6', type=str)
+    argopt('tplname', help='Filename of template', nargs='?', type=str)
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
@@ -139,7 +139,11 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     bp[mskatm(w) > 0.1] |= 16
 
     ####  stellar template  ####
-    w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
+    if tplname:
+        w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
+    else:
+        # no template given; model pure iodine
+        w_tpl, f_tpl = w, 0*f+1
 
     lmin = max(w[0], w_tpl[0], w_I2[0])
     lmax = min(w[-1], w_tpl[-1], w_I2[-1])
@@ -174,7 +178,10 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     # convert discrete template into a function
-    S_star = lambda x: np.interp(x, np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
+    if tplname:   
+        S_star = lambda x: np.interp(x, np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
+    else:
+        S_star = lambda x: 0*x+1
 
     IP = IPs[ip]
 
@@ -204,8 +211,10 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         b = bg = [*np.polyfit(i[[400,-300]]-icen-10, w[[400,-300]], 1)[::-1]] + [0]*(degb-1)
         s = sg = [s[0]*1.5]
 
-    if ip is not 'g':
+    if ip in ('sg', 'mg'):
         s += [2.]   # exponent of super gaussian 
+    elif ip in ('ag'):
+        s += [0.]   # skewness parameter
 
     if demo & 8:
         # a simple call to the forward model
@@ -242,13 +251,20 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     if ip in ('sg', 'ag', 'bnd'):
-       # prefit with Gaussian IP
-       S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
-       S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-       p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
-#       S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i_ok], f_ok, dx=0.1); pause()
-       print(np.diag(e_p)[5:9])
-       bg = p[2+dega:2+dega+1+degb]+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
+        # prefit with Gaussian IP
+        S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
+        if tplname:
+            S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
+            p, e_p = curve_fit(S_g, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
+        else:
+            # do not fit for RV
+            S_g = lambda x, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
+            p, e_p = curve_fit(S_g, i_ok, f_ok, p0=a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
+            p = [v, *p]
+            e_p = np.diag([0, *np.diag(e_p)])
+        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], i_ok], f_ok, dx=0.1); pause()
+        #print(np.diag(e_p)[5:9])
+        bg = p[2+dega:2+dega+1+degb]+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
 
     if o in lookguess:
         if demo:
@@ -292,11 +308,18 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
        prms = np.std(res) / fx.mean() * 100
        return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
+    if tplname:
+        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
+        p, e_p = curve_fit(S, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        #p, e_p = curve_fit(S, i_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
+    else:
+        # do not fit for velocity
+        S = lambda x, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
+        p, e_p = curve_fit(S, i_ok, f_ok, p0=a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        # prepend dummy parameter
+        p = [v, *p]
+        e_p = np.diag([np.nan, *np.diag(e_p)])
 
-    S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-
-    p, e_p = curve_fit(S, i_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
-    #p, e_p = curve_fit(S, i_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], i_ok, f_ok, dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
