@@ -111,7 +111,7 @@ if __name__ == "__main__":
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
-    argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
+    argopt('-nset', help='index for spectrum', default=':', type=arg2range)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default='18:30', type=arg2slice)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
@@ -259,8 +259,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if o in lookguess:
         if demo:
-           bg = b
-           a = [a0]
+            bg = b
+            a = [a0]
         pg = [v, a+[0]*dega, bg, s]
         prms = S_mod.show(pg, i_ok, f_ok, dx=0.1)
         pause('lookguess')
@@ -313,7 +313,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], i_ok, f_ok, dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
     #gplot+(i_ok, S_star(np.log(np.poly1d(b[::-1])(i_ok))+(v)/c), 'w lp ps 0.5')
-    # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')  
+    # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
+    res = f_ok - S_mod(i_ok, p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:])
+    np.savetxt('res.dat', list(zip(i_ok, res)), fmt="%s")
 
     if o in look:
         pause('look ', o)  # globals().update(locals())
@@ -351,7 +353,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
 
-obsnames = sorted(glob.glob(obspath))[nset]
+obsnames = np.array(sorted(glob.glob(obspath)))[nset]
 obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
 N = len(obsnames)
 if not N: pause('no files: ', obspath)
