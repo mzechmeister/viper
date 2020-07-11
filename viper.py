@@ -207,7 +207,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     if ip in ('sg', 'mg'):
         s += [2.]   # exponent of super gaussian 
     elif ip in ('ag',):
-        s += [0.]   # skewness parameter
+        s += [1.]   # skewness parameter (offset to get iterationss)
 
     if demo & 8:
         # a simple call to the forward model
@@ -255,16 +255,20 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
             p, e_p = curve_fit(S_g, x_ok, f_ok, p0=a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
             p = [v, *p]
             e_p = np.diag([0, *np.diag(e_p)])
-        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], x_ok], f_ok, dx=0.1); pause()
+        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], x_ok, f_ok, dx=0.1); pause()
         #print(np.diag(e_p)[5:9])
-        bg = p[2+dega:2+dega+1+degb]+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
+        a = [*p[1:1+dega+1]] #+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
+        bg = p[2+dega:2+dega+1+degb] #+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
+        s = [p[-1]] + s[1:]
+    else:
+        a = a[0:1] + [0]*dega
 
     if o in lookguess:
         if demo:
             bg = b
             a = [a0]
-        pg = [v, a+[0]*dega, bg, s]
-        prms = S_mod.show(pg, x_ok, f_ok, dx=0.1)
+        pg = [v, a, bg, s]
+        prms = S_mod.show(pg, x_ok, f_ok, res=True, dx=0.1)
         pause('lookguess')
 
 
@@ -279,34 +283,39 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         ipxj = S_mod.IPxj(rr[0])
         if demo & 2:
             gplot(ipxj, 'matrix w image')
-        show_model(x_ok, f_ok, fx)
+        show_model(x_ok, f_ok, fx, res=True)
 
-        vv = np.arange(-1, 1, 0.1)
-        RR = []
-        aa = []
-        for v in vv:
-            rr = S_mod.fit(f_ok, v, **opt)
-            RR.append(*rr[1])
-            aa.append(rr[0])
-            if 1:
-                print(v, rr[1])
+        e_v = np.nan
+        if tplname:
+            vv = np.arange(-1, 1, 0.1)
+            RR = []
+            aa = []
+            for v in vv:
+                rr = S_mod.fit(f_ok, v, **opt)
+                RR.append(*rr[1])
+                aa.append(rr[0])
+                if 1:
+                    print(v, rr[1])
 
-        v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
+            v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
+    
         best = S_mod.fit(f_ok, v, **opt)
         fx = S_mod(v, best[0])
         res = f_ok - fx
         np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
         prms = np.std(res) / fx.mean() * 100
+        if o in look:
+            pause()
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
     if tplname:
         S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
         #p, e_p = curve_fit(S, x_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
     else:
         # do not fit for velocity
         S = lambda x, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, x_ok, f_ok, p0=a+[0]*dega+[*bg]+s, epsfcn=1e-12)
+        p, e_p = curve_fit(S, x_ok, f_ok, p0=a+[*bg]+s, epsfcn=1e-12)
         # prepend dummy parameter
         p = [v, *p]
         e_p = np.diag([np.nan, *np.diag(e_p)])
@@ -350,7 +359,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         e_s = e_p[9,9]**0.5
         gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]), S_mod.IP(S_mod.vk,*[p[9]-e_s, *p[10:]]),  S_mod.IP(S_mod.vk, *[p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
-        pause()
+        pause('lookpar')
       
     return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 

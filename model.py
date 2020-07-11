@@ -8,7 +8,7 @@ c = 3e5   # [km/s] speed of light
 # IP sampling in velocity space
 # index k for IP space
 def IP(vk, s=2.2):
-    IP_k = np.exp(-(vk/s)**2)   # Gauss IP
+    IP_k = np.exp(-(vk/s)**2/2)   # Gauss IP
     #IP_k += 0.07*np.exp(-((vk+1.)/s)**2)   # an asymmetry Gauss IP
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
