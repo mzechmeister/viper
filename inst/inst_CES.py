@@ -66,7 +66,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
 def Tpl(tplname, o=None, targ=None):
     if tplname.endswith('.dat'):
         # echelle template
-        w, f, b, bjd, berv = Spectrum(tplname, targ=targ)
+        x, w, f, b, bjd, berv = Spectrum(tplname, targ=targ)
         w *= 1 + berv/3e5
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]

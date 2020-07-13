@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import curve_fit
 from scipy.special import erf
 
 from gplot import *
@@ -80,6 +81,27 @@ class model:
         # flux normalisation
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff
         return Si_mod
+ 
+    def fit(self, x, f, v=None, a=[], b=[], s=[], v0=None, a0=[], b0=[], s0=[], **kwargs):
+        '''
+        Generic fit wrapper.
+        '''
+        v0 = () if v0 is None else (v0,)
+        v = () if v is None else (v,)
+        sv = slice(0, len(v))
+        sa = slice(sv.stop, sv.stop+len(a))
+        sb = slice(sa.stop, sa.stop+len(b))
+        ss = slice(sb.stop, None)
+        a0 = tuple(a0)
+        b0 = tuple(b0)
+        s0 = tuple(s0)
+        S = lambda x, *p: self(x, *p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0)
+        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s], epsfcn=1e-12)
+        p = tuple(p)
+        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0]
+        if kwargs:
+            self.show(p, x, f, **kwargs)
+        return p, e_p
 
     def show(self, p, x, y, res=True, x2=None, dx=None):
         '''
@@ -89,7 +111,9 @@ class model:
 
         '''
         ymod = self(x, *p)
-        x2 = np.poly1d(p[2][::-1])(x-self.icen)
+        if x2 is None:
+            x2 = np.poly1d(p[2][::-1])(x-self.icen)
+
         gplot.put("if (!exists('lam')) {lam=1}")
         
         gplot.key('horizontal')
@@ -116,6 +140,7 @@ class model:
         gplot(*args)
         return prms
 
+
 class model_bnd(model):
     '''
     The forward model with band matrix.
@@ -125,6 +150,7 @@ class model_bnd(model):
         '''
         Setup the base functions.
         '''
+        self.x = x
         bg = self.IP
         # the initial trace
         ui = np.log(np.poly1d(bg[::-1])(x-self.icen))
@@ -163,7 +189,7 @@ class model_bnd(model):
         Axkl = self.Axk(v, **kwargs)
         return np.linalg.lstsq(Axkl.reshape((len(Axkl),-1)), f, rcond=1e-32)
 
-    def __call__(self, v, ak, **kwargs):
+    def __call__(self, x, v, ak, **kwargs):
         Axkl = self.Axk(v, **kwargs)
 #        dl = np.array([0.5,2,0.5])   # amplitude of Gaussian
         #ak = np.array([1, 0, 0, 0, 0])
@@ -171,6 +197,7 @@ class model_bnd(model):
 #        fx = AAxkl.reshape((len(AAxkl),-1)) @ aakl
         fx = Axkl.reshape((len(Axkl),-1)) @ ak
         return fx
+
 
 
 def show_model(x, y, ymod, res=True):

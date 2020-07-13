@@ -195,11 +195,11 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     # an initial parameter set
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
-    a = ag = [a0]
+    a = ag = [a0] + [0]*dega
     b = bg = np.polyfit(x_ok-icen, w_ok, degb)[::-1]
     s = sg = [Inst.pg['s']]
     if demo:
-        a = ag = [a0*1.3]
+        a = ag = [a0*1.3] + [0]*dega
         b = bg = [w[0], (w[-1]-w[0])/w.size] # [6128.8833940969, 0.05453566108124]
         b = bg = [*np.polyfit(i[[400,-300]]-icen-10, w[[400,-300]], 1)[::-1]] + [0]*(degb-1)
         s = sg = [s[0]*1.5]
@@ -218,28 +218,20 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     if demo & 16:
         # A wrapper to fit the continuum
-        S_a = lambda x, a0: S_mod(x, vg, [a0], bg, sg)
-        p_a, e_a = curve_fit(S_a, x_ok, f_ok)
-        #show_model(x_ok, f_ok, S_a(x_ok,*a), res=False)
-        S_mod.show([v,p_a,b,s], x_ok, f_ok, res=False, dx=0.1)
+        p_a, _ = S_mod.fit(x_ok, f_ok, a=[a0], v0=vg, b0=bg, s0=sg, res=False, dx=0.1)
+        ag[0] = p_a[1][0]
         pause('demo 16: S_a')
 
     if demo & 32:
         # A wrapper to fit the wavelength solution
-        S_b = lambda x, *b: S_mod(x, vg, p_a*1.3, b, sg)
-        b, e_b = curve_fit(S_b, x_ok, f_ok, p0=bg)
-        #show_model(x_ok, f_ok, S_b(x_ok, *bg))
-        #show_model(x_ok, f_ok, S_b(x_ok, *b))
-        #gplot+(x_ok, S_star(np.log(np.poly1d(b[::-1])(x_ok))+(v)/c), 'w lp ps 0.5')
-        S_mod.show([v,p_a,b,s], x_ok, f_ok, res=False, dx=0.1)
+        p_b, _ = S_mod.fit(x_ok, f_ok, b=bg[:-1]+[1e-15], v0=vg, a0=a, s0=sg,  res=False, dx=0.1)
+        b = p_b[2]
         pause('demo 32: S_b')
 
     if demo & 64:
         # fit v, a0 and b simultaneously
-        S_vab = lambda x, v, a, *b: S_mod(x, v, [a], b, sg)
-        p_vab, e_p = curve_fit(S_vab, x_ok, f_ok, p0=[vg, a[0], *b])
-        #!p_vab, e_p = curve_fit(S_vab, x_ok, f_ok, p0=[v, 1, *b])
-        show_model(x_ok, f_ok, S_vab(x_ok, *p_vab), res=True)
+        p, _ = S_mod.fit(x_ok, f_ok, a=a, b=b, v0=vg, s0=sg, res=False, dx=0.1)
+        v, a, b, s = p
         pause('demo 64: S_vab')
 
 
@@ -247,21 +239,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # prefit with Gaussian IP
         S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
         if tplname:
-            S_g = lambda x, v, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-            p, e_p = curve_fit(S_g, x_ok, f_ok, p0=[v]+a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
+            p, _ = S_modg.fit(x_ok, f_ok, v=vg, a=a, b=b, s=sg[0:1])
         else:
             # do not fit for RV
-            S_g = lambda x, a0,a1,a2,a3, b0,b1,b2,b3, *s: S_modg(x, v, [a0,a1,a2,a3], [b0,b1,b2,b3], s[0:1])
-            p, e_p = curve_fit(S_g, x_ok, f_ok, p0=a+[0]*dega+[*bg]+s[0:1], epsfcn=1e-12)
-            p = [v, *p]
-            e_p = np.diag([0, *np.diag(e_p)])
-        #S_modg.show([p[0], p[1:5], p[5:9], p[9:]], x_ok, f_ok, dx=0.1); pause()
-        #print(np.diag(e_p)[5:9])
-        a = [*p[1:1+dega+1]] #+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
-        bg = p[2+dega:2+dega+1+degb] #+ np.diag(e_p)[2+dega:2+dega+1+degb]**0.5
-        s = [p[-1]] + s[1:]
-    else:
-        a = a[0:1] + [0]*dega
+            p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1], v0=vg)
+        v, a, b, _ = p
+        s = [p[-1][0], *sg[1:]]
 
     if o in lookguess:
         if demo:
@@ -276,14 +259,13 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # Non parametric fit with band matrix
         # We step through velocity in 100 m/s step. At each step there is linear least square
         # fit for the 2D IP using band matrix.
-        S_mod = model_bnd(S_star, uj, iod_j, p[1+1+dega:1+1+dega+1+degb], **modset)
+        S_mod = model_bnd(S_star, uj, iod_j, p[2], **modset)
         opt = {'x': x_ok, 'sig_k': s[0]/1.5/c}
         rr = S_mod.fit(f_ok, 0.1, **opt)
-        fx = S_mod(0.1, rr[0])
+        fx = S_mod(x_ok, 0.1, rr[0])
         ipxj = S_mod.IPxj(rr[0])
         if demo & 2:
             gplot(ipxj, 'matrix w image')
-        show_model(x_ok, f_ok, fx, res=True)
 
         e_v = np.nan
         if tplname:
@@ -300,7 +282,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
             v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
     
         best = S_mod.fit(f_ok, v, **opt)
-        fx = S_mod(v, best[0])
+        fx = S_mod(x_ok, v, best[0])
+        pause()
+        S_mod.show([v, best[0]], x_ok, f_ok, x2=x_ok)
         res = f_ok - fx
         np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
         prms = np.std(res) / fx.mean() * 100
@@ -309,23 +293,23 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
     if tplname:
-        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
-        #p, e_p = curve_fit(S, x_ok, f_ok, p0=p+np.diag(abs(e_p))**0.5, epsfcn=1e-12)
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, dx=0.1)
+#        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
+#        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        S = lambda x, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
-        p, e_p = curve_fit(S, x_ok, f_ok, p0=a+[*bg]+s, epsfcn=1e-12)
+        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, v0=0, dx=0.1)
         # prepend dummy parameter
-        p = [v, *p]
-        e_p = np.diag([np.nan, *np.diag(e_p)])
+#        e_p = np.diag([np.nan, *np.diag(e_p)])
 
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
-    prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], x_ok, f_ok, dx=0.1)
+    #prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], x_ok, f_ok, dx=0.1)
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
     #gplot+(x_ok, S_star(np.log(np.poly1d(b[::-1])(x_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
-    res = f_ok - S_mod(x_ok, p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:])
+    fmod = S_mod(x_ok, *p)
+    res = f_ok - fmod
+    prms = np.std(res) / np.mean(fmod) * 100
     np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
 
     if o in look:
@@ -334,14 +318,14 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
     # error estimation
     # uncertainty in continuum
-    xl = np.log(np.poly1d(p[5:9][::-1])(i-icen))
+    xl = np.log(np.poly1d(p[2][::-1])(i-icen))
     Cg = np.poly1d(ag[::-1])(i-icen)        # continuum guess
-    Cp = np.poly1d(p[1:5][::-1])(i-icen)    # best continuum
-    X = np.vander(xl,4)[:,::-1].T
+    Cp = np.poly1d(p[1][::-1])(i-icen)    # best continuum
+    X = np.vander(xl,dega+1)[:,::-1].T
     e_Cp = np.einsum('ji,jk,ki->i', X, e_p[1:5,1:5], X)**0.5
     # uncertainty in wavelength solution
     lam_g = np.poly1d(bg[::-1])(i-icen)
-    lam = np.poly1d(p[5:9][::-1])(i-icen)
+    lam = np.poly1d(p[2][::-1])(i-icen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_p[5:9,5:9], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
@@ -357,7 +341,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         gplot(i, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[9,9]**0.5
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *s), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[9:]), S_mod.IP(S_mod.vk,*[p[9]-e_s, *p[10:]]),  S_mod.IP(S_mod.vk, *[p[9]+e_s, *p[10:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        s = p[3]
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *sg), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[3]), S_mod.IP(S_mod.vk,*[s[0]-e_s, *s[1:]]),  S_mod.IP(S_mod.vk, *[s[0]+e_s, *s[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause('lookpar')
       
