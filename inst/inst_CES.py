@@ -15,8 +15,6 @@ oset = '0:1'
 
 pg = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
-# see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
-#/run/media/zechmeister/5748244b-c6d4-49bb-97d4-1ae0a8ba6aed/data/disk2/zechmeister/CES/reducedv4/ZET1RET/
 
 def Spectrum(filename, o=None, targ=None, chksize=4000):
     with open(filename) as myfile:
@@ -24,10 +22,6 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     # PX#   WAVELENGTH          FLUX           ERROR         MASK (0/1/6)
     x, w, f, e_f, m = np.genfromtxt(filename, skip_header=21).T
     w = airtovac(w)
-    if o is not None:
-        o = slice(o*chksize, (o+1)*chksize)
-        x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
-
     if 1:
         # stitching
         ax = 0*f + 1    # default pixel size
@@ -42,11 +36,16 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
         ax[4+512*7] = 0.971
         x = np.cumsum(ax) - 1
 
+    if o is not None:
+        o = slice(o*chksize, (o+1)*chksize)
+        x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
+
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux
     b[2175:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
 
     dateobs = hdr[2].split()[-1]
+    #dateobs = hdr[0].split()[-1]
     exptime = float(hdr[4].split()[-1])
     ra = '03:17:46.1632605674'
     de = '-62:34:31.154247481'
@@ -59,7 +58,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     # sc = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg), pm_ra_cosdec=pmra*u.mas/u.yr, pm_dec=pmde*u.mas/u.yr)
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
     berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)  
-    berv = berv.to(u.km/u.s).value  
+    berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
     return x, w, f, b, bjd, berv
 
@@ -83,11 +82,15 @@ def Tpl(tplname, o=None, targ=None):
     return w, f
 
 
-def FTS(ftsname='lib/CES/iodine_50_wn.fits', dv=100):
-    print('FTS', ftsname)
-    # /run/media/zechmeister/5748244b-c6d4-49bb-97d4-1ae0a8ba6aed/data/mybook/Laptop_disk1/CES_iodine/
-    return resample(*FTSfits(ftsname), dv=dv)
-
+#def FTS(ftsname='lib/CES/iodine_50_wn.fits', dv=100):
+def FTS(ftsname='lib/CES/master_iodlund.dat', dv=100):
+    if ftsname.endswith('iodlund.dat'):
+        w = airtovac(1e8 / np.fromfile(ftsname)[-2::-2])
+        f = np.fromfile(ftsname)[::-2]
+        return resample(w, f, dv=dv)
+    else:
+        print('FTS', ftsname)
+        return resample(*FTSfits(ftsname), dv=dv)
 
 
 
