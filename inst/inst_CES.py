@@ -24,7 +24,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     w = airtovac(w)
     if 1:
         # stitching
-        ax = 0*f + 1    # default pixel size
+        ax = 0*w + 1    # default pixel size
         ax[576] = 0.963
         ax[4+512*1] = 0.986
         ax[4+512*2-1] = 0.981
@@ -41,12 +41,16 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
         x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
 
     b = 1 * np.isnan(f) # bad pixel map
+    f[np.isnan(f)] = 0
     #b[f>1.5] |= 2 # large flux
-    b[2175:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
+    b[2120:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
 
     dateobs = hdr[2].split()[-1]
-    #dateobs = hdr[0].split()[-1]
     exptime = float(hdr[4].split()[-1])
+    if ':' not in dateobs:  # e.g. HR2667_1999-12-30T062739.773.dat
+         dateobs = hdr[0].split()[-1]
+         exptime = float(hdr[2].split()[-1])
+
     ra = '03:17:46.1632605674'
     de = '-62:34:31.154247481'
     ra = '03:18:12.8185412558'
@@ -56,8 +60,8 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     #from pause import pause; pause()
     #SkyCoord.from_name('M31', frame='icrs')
     # sc = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg), pm_ra_cosdec=pmra*u.mas/u.yr, pm_dec=pmde*u.mas/u.yr)
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)  
+    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2 * u.s
+    berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
     return x, w, f, b, bjd, berv

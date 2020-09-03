@@ -28,8 +28,8 @@ def IP_ag(vk, s=2.2, a=0):
     -------
     >>> vk = np.arange(-50, 50+1) 
     >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100),', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
-    '''
 
+    '''
     b = a / np.sqrt(1+a**2) * np.sqrt(2/np.pi)
     ss = s / np.sqrt(1-b**2)    # readjust scale parameter to have same variance as unskewed Gaussian
     vk = (vk + ss*b) / ss       # recenter to have zero mean
@@ -38,12 +38,14 @@ def IP_ag(vk, s=2.2, a=0):
     return IP_k
 
 
-def IP_mg(vk, s):
-    ''' IP for multiple, zero-centered Gaussians '''
-    print(s)
-    s0, a1, s1 = s
+def IP_mg(vk, s0=2, a1=0.1):
+    ''' IP for multiple, zero-centered Gaussians. '''
+    #print(s)
+    s1 = 4 * s0   # width of second Gaussian with fixed relative width
+    a1 = a1 /10   # relative ampitude
     IP_k = np.exp(-(vk/s0)**2)   # Gauss IP
     IP_k += a1*np.exp(-(vk/s1)**2)   # Gauss IP
+    IP_k = IP_k.clip(0,None)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
@@ -67,13 +69,13 @@ class model:
         self.uj_eff = self.uj[IP_hs:-IP_hs]
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, i, v, a, b, s):
+    def __call__(self, i, v, a, b, s, cc=[0]):
         # wavelength solution 
         #    lam(x) = b0 + b1 * x + b2 * x^2
         ui = np.log(np.poly1d(b[::-1])(i-self.icen))
 
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * self.iod_j, mode='valid')
+        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j + cc[0]), mode='valid')
 
         # sampling to pixel
         Si_eff = np.interp(ui, self.uj_eff, Sj_eff)
@@ -82,7 +84,7 @@ class model:
         Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff
         return Si_mod
  
-    def fit(self, x, f, v=None, a=[], b=[], s=[], v0=None, a0=[], b0=[], s0=[], **kwargs):
+    def fit(self, x, f, v=None, a=[], b=[], s=[], c=[], v0=None, a0=[], b0=[], s0=[], c0=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
@@ -91,19 +93,22 @@ class model:
         sv = slice(0, len(v))
         sa = slice(sv.stop, sv.stop+len(a))
         sb = slice(sa.stop, sa.stop+len(b))
-        ss = slice(sb.stop, None)
+        ss = slice(sb.stop, sb.stop+len(s))
+        sc = slice(ss.stop, ss.stop+len(c))
         a0 = tuple(a0)
         b0 = tuple(b0)
         s0 = tuple(s0)
-        S = lambda x, *p: self(x, *p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0)
-        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s], epsfcn=1e-12)
+        c0 = tuple(c0)
+        S = lambda x, *p: self(x, *p[ sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0)
+        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s, *c], epsfcn=1e-12)
+        v = (*p[sv], *np.diag(e_p)[sv])
         p = tuple(p)
-        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0]
+        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0]
         if kwargs:
-            self.show(p, x, f, **kwargs)
+            self.show(p, x, f, v=v, **kwargs)
         return p, e_p
 
-    def show(self, p, x, y, res=True, x2=None, dx=None):
+    def show(self, p, x, y, v=None, res=True, x2=None, dx=None):
         '''
         res: Show residuals.
         x2: Values for second x axis.
@@ -113,9 +118,11 @@ class model:
         ymod = self(x, *p)
         if x2 is None:
             x2 = np.poly1d(p[2][::-1])(x-self.icen)
+        if v:
+            gplot.RV2title(", v=%.2f ± %.2f m/s" % (v[0]*1000, np.sqrt(v[1])*1000))
 
         gplot.put("if (!exists('lam')) {lam=1}")
-        
+
         gplot.key('horizontal')
         gplot.xlabel('lam?"Vaccum wavelength [Å]":"Pixel x"')
         gplot.ylabel('"flux"')

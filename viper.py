@@ -30,7 +30,7 @@ c = 3e5   # [km/s] speed of light
 
 targ = None
 modset = {}   # model setting parameters
-insts = ['TLS', 'CES']
+insts = ['TLS', 'CES', 'KECK', 'UVES']
 
 def arg2slice(arg):
     """Convert string argument to a slice."""
@@ -97,6 +97,7 @@ if __name__ == "__main__":
     FTS = Inst.FTS
     Tpl = Inst.Tpl
     Spectrum = Inst.Spectrum
+    iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
@@ -108,7 +109,9 @@ if __name__ == "__main__":
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
     argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
+    argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
+    argopt('-iset', help='maximum', default=iset, type=arg2slice)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
@@ -137,8 +140,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # no template given; model pure iodine
         w_tpl, f_tpl = w, 0*f+1
 
-    lmin = max(w[0], w_tpl[0], w_I2[0])
-    lmax = min(w[-1], w_tpl[-1], w_I2[-1])
+    lmin = max(w[iset][0], w_tpl[0], w_I2[0])
+    lmax = min(w[iset][-1], w_tpl[-1], w_I2[-1])
 
     # trim the observation to a range valid for the model
     vcut = 100   # [km/s]
@@ -171,7 +174,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     # convert discrete template into a function
-    if tplname:   
+    if tplname:
         S_star = lambda x: np.interp(x, np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
     else:
         S_star = lambda x: 0*x+1
@@ -197,6 +200,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
     a = ag = [a0] + [0]*dega
     b = bg = np.polyfit(x_ok-icen, w_ok, degb)[::-1]
+    cg = [0] #* degc
+    cc, c0 = (cg, []) if degc else ([], cg)
     s = sg = [Inst.pg['s']]
     if demo:
         a = ag = [a0*1.3] + [0]*dega
@@ -239,18 +244,18 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # prefit with Gaussian IP
         S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
         if tplname:
-            p, _ = S_modg.fit(x_ok, f_ok, v=vg, a=a, b=b, s=sg[0:1])
+            p, _ = S_modg.fit(x_ok, f_ok, v=vg, a=a, b=b, s=sg[0:1], c=cc, c0=c0)
         else:
             # do not fit for RV
-            p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1], v0=vg)
-        v, a, b, _ = p
-        s = [p[-1][0], *sg[1:]]
+            p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1], c=cc, v0=vg, c0=c0)
+        v, a, b, *_ = p
+        s = [p[-2][0], *sg[1:]]
 
     if o in lookguess:
         if demo:
             bg = b
             a = [a0]
-        pg = [v, a, bg, s]
+        pg = [v, a, bg, s, cc+c0]
         prms = S_mod.show(pg, x_ok, f_ok, res=True, dx=0.1)
         pause('lookguess')
 
@@ -293,14 +298,16 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
     if tplname:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, dx=0.1)
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1)
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, v0=0, dx=0.1)
+        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
+    # overplot FTS iodine spectrum
+    #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
 
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], x_ok, f_ok, dx=0.1)
@@ -313,20 +320,23 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
 
     if o in look:
-        pause('look ', o)  # globals().update(locals())
+        pause('look %s:'% o,  rvo,'+/- %.2f' % e_rvo)  # globals().update(locals())
 
-
+    sa = tplname is not None
+    sb = sa + dega+1
+    ss = sb + degb+1
     # error estimation
     # uncertainty in continuum
     xl = np.log(np.poly1d(p[2][::-1])(i-icen))
-    Cg = np.poly1d(ag[::-1])(i-icen)        # continuum guess
+    Cg = np.poly1d(ag[::-1])(i-icen)      # continuum guess
     Cp = np.poly1d(p[1][::-1])(i-icen)    # best continuum
-    X = np.vander(xl,dega+1)[:,::-1].T
-    e_Cp = np.einsum('ji,jk,ki->i', X, e_p[1:5,1:5], X)**0.5
+    X = np.vander(xl, dega+1)[:,::-1].T
+    e_Cp = np.einsum('ji,jk,ki->i', X, e_p[sa:sb,sa:sb], X)**0.5
     # uncertainty in wavelength solution
+    X = np.vander(xl, degb+1)[:,::-1].T
     lam_g = np.poly1d(bg[::-1])(i-icen)
     lam = np.poly1d(p[2][::-1])(i-icen)
-    e_lam = np.einsum('ji,jk,ki->i', X, e_p[5:9,5:9], X)**0.5
+    e_lam = np.einsum('ji,jk,ki->i', X, e_p[sb:ss,sb:ss], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
     if o in lookpar:
@@ -340,12 +350,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         gplot.xlabel('"pixel"').ylabel('"deviation c * ({/Symbol l} / {/Symbol l}_{guess} - 1) [km/s]"')
         gplot(i, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
-        e_s = e_p[9,9]**0.5
+        e_s = e_p[ss,ss]**0.5
         s = p[3]
         gplot(S_mod.vk, S_mod.IP(S_mod.vk, *sg), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[3]), S_mod.IP(S_mod.vk,*[s[0]-e_s, *s[1:]]),  S_mod.IP(S_mod.vk, *[s[0]+e_s, *s[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause('lookpar')
-      
+
     return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
 
@@ -382,7 +392,8 @@ for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
-        gplot.key('title "%s (n=%s, o=%s)"'% (filename, n+1, o))
+        gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
+        gplot.RV2title('')
         rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname, targ=targ, tpltarg=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
