@@ -13,7 +13,7 @@ def plot_RV(file):
     gplot.mxtics().mytics()
     gplot.xlabel("'BJD - 2 450 000'")
     gplot.ylabel("'RV [m/s]'")
-    gplot.key("title '%s'" % file)
+    gplot.key("title '%s' noenhance" % file)
     gplot('"%s" us ($1-2450000):"RV":(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", strcol("filename"),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):"RV":"e_RV" w e pt 7 lc 7' % file)
     pause()
 
@@ -35,14 +35,22 @@ def plot_rvo(rv=None, e_rv=None, file=None):
 
 
 class VPR():
-    def __init__(self, tag):
-        self.tag = tag
-        self.file = file = tag + '.rvo.dat'
+    def __init__(self, tag, gp=''):
+        self.tag = tag.replace('.rvo.dat', '')
+        self.file = file = self.tag + '.rvo.dat'
+        if gp:
+           gplot.put(gp)
+
         self.A = np.genfromtxt(file, usecols=range(-1,4), dtype=None, names=True, encoding=None).view(np.recarray)
         mat = np.genfromtxt(file, skip_header=1)
         self.rv, self.e_rv = mat.T[4:-1:2], mat.T[5::2]
         orders = np.genfromtxt(self.file, names=True).dtype.names[4:-1:2]
         self.orders = [int(o[2:]) for o in orders]
+        self.info()
+
+    def info(self):
+        print('rms(RV) [m/s]:     ', np.std(self.A.RV))
+        print('median(e_RV) [m/s]:', np.median(self.A.e_RV))
 
     def plot_RV(self):
         plot_RV(self.file)
@@ -50,7 +58,7 @@ class VPR():
     def plot_rv(self, o=None, n=None):
         A = self.A
         gplot.var(n=1, N=len(self.rv.T))
-        gplot.key('title "%s"'%self.tag)
+        gplot.key('title "%s" noenhance'%self.tag)
         gplot.bind('")" "n = n>=N? N : n+1; repl"')
         gplot.bind('"(" "n = n<=1? 1 : n-1; repl"')
         gplot.xlabel("'order o'")
@@ -66,9 +74,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Analyse viper RVs', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
+    argopt('-gp', help='gnuplot commands', default='', type=str)
 
     args = parser.parse_args()
 
-    vpr = VPR(args.tag)
+    vpr = VPR(**vars(args))
     vpr.plot_RV()
     vpr.plot_rv(o=1)
+
