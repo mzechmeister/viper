@@ -268,9 +268,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         pg = [vg, a, bg, s, cc+c0]
         smod = S_mod(x, *pg)
         resid = (f - smod)       
-        resid[np.where(bp!= 0)[0]] = 0
+        resid[bp != 0] = 0
 
-        bp[np.where(abs(resid) >= (kapsig*np.std(resid)))[0]] |= 64
+        bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
         i_ok = np.where(bp == 0)[0]
         x_ok = x[i_ok]
         w_ok = w[i_ok]
@@ -325,9 +325,9 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
     # overplot with clipped data
-    gplot+(w[np.where(bp != 0)[0]], f[np.where(bp != 0)[0]], 'w p pt 6 ps 0.5 lc 7 t "clipped data"')
-    if kapsig and f[np.where(bp == 64)[0]] != []:
-       gplot+(w[np.where(bp == 64)[0]], f[np.where(bp == 64)[0]], 'w p pt 7 ps 0.5 lc 2 t "kapsig"')
+    gplot+(w[bp != 0], f[bp != 0], 'w p pt 6 ps 0.5 lc 7 t "clipped data"')
+    if kapsig and f[bp == 64] != []:
+       gplot+(w[bp == 64], f[bp == 64], 'w p pt 7 ps 0.5 lc 2 t "kapsig"')
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
