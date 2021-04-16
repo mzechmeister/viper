@@ -112,6 +112,7 @@ if __name__ == "__main__":
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
+    argopt('-kapsig', help='Kappa sigma clipping value', default=None, type=float)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
@@ -260,6 +261,22 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         pause('lookguess')
 
 
+    if kapsig:
+        # clipping of outliers        
+     #   len1 = len(f_ok)
+            
+        pg = [vg, a, bg, s, cc+c0]
+        smod = S_mod(x, *pg)
+        resid = (f - smod)       
+        resid[np.where(bp!= 0)[0]] = 0
+
+        bp[np.where(abs(resid) >= (kapsig*np.std(resid)))[0]] |= 64
+        i_ok = np.where(bp == 0)[0]
+        x_ok = x[i_ok]
+        w_ok = w[i_ok]
+        f_ok = f[i_ok]
+     #   print("Nr of clipped data   :",len1-len(f_ok),"/",len1)
+
     if IP == 'bnd':
         # Non parametric fit with band matrix
         # We step through velocity in 100 m/s step. At each step there is linear least square
@@ -306,6 +323,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
+
+    # overplot with clipped data
+    gplot+(w[np.where(bp != 0)[0]], f[np.where(bp != 0)[0]], 'w p pt 6 ps 0.5 lc 7 t "clipped data"')
+    if kapsig and f[np.where(bp == 64)[0]] != []:
+       gplot+(w[np.where(bp == 64)[0]], f[np.where(bp == 64)[0]], 'w p pt 7 ps 0.5 lc 2 t "kapsig"')
+
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
 
@@ -433,5 +456,4 @@ print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 vpr.plot_RV(tag+'.rvo.dat')
 
 pause('%s done.' % tag)
-
 
