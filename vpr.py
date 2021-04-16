@@ -33,31 +33,68 @@ def plot_rvo(rv=None, e_rv=None, file=None):
     gplot(rv, e_rv, 'us 0:1:2 w e pt 7 t "%s", RV=%s, e_RV=%s, RV lc 3 t "RV = %.5f +/- %.5f m/s", RV+e_RV lc 3 dt 2 t "", RV-e_RV lc 3 dt 2 t ""' % (file, RV,e_RV,RV,e_RV))
     pause()
 
+def arg2slice(arg):
+    """Convert string argument to a slice."""
+    # We want four cases for indexing: None, int, list of ints, slices.
+    # Use [] as default, so 'in' can be used.
+    if isinstance(arg, str):
+        arg = eval('np.s_['+arg+']')
+    return [arg] if isinstance(arg, int) else arg
+
 
 class VPR():
-    def __init__(self, tag, gp=''):
+    def __init__(self, tag, gp='', oset=None):
+        '''
+        oset: slice,list
+        '''
         self.tag = tag.replace('.rvo.dat', '')
         self.file = file = self.tag + '.rvo.dat'
+        self.oset = oset
+
         if gp:
            gplot.put(gp)
 
-        self.A = np.genfromtxt(file, usecols=range(-1,4), dtype=None, names=True, encoding=None).view(np.recarray)
+        self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
+        colnames = self.Afull.dtype.names
+
+        if oset is not None:
+            self.orders = np.r_[oset]
+            onames = tuple(f"rv{o}" for o in self.orders)
+        else:
+            onames = tuple(col for col in colnames if col.startswith('rv'))
+            self.orders = np.array([int(o[2:]) for o in onames])
+
+        # remove columns not in oset
+        self.A = self.Afull[[col for col in colnames if not col.startswith(('e_rv', 'rv')) or col.endswith(onames)]]
+
         mat = np.genfromtxt(file, skip_header=1)
-        self.rv, self.e_rv = mat.T[4:-1:2], mat.T[5::2]
-        orders = np.genfromtxt(self.file, names=True).dtype.names[4:-1:2]
-        self.orders = [int(o[2:]) for o in orders]
+        self.full_rv, self.full_e_rv = mat.T[4:-1:2], mat.T[5::2]
+
+        self.rv = np.array(self.A[list(onames)].tolist()).T
+        self.e_rv = np.array(self.A[list("e_"+o for o in onames)].tolist()).T
+
+        # recompute mean RV
+        self.BJD = self.A.BJD
+        self.RV = np.mean(self.rv, axis=0)
+        self.e_RV = np.std(self.rv, axis=0) / (len(onames)-1)**0.5
+
         self.info()
 
     def info(self):
-        print('rms(RV) [m/s]:     ', np.std(self.A.RV))
-        print('median(e_RV) [m/s]:', np.median(self.A.e_RV))
+        print('rms(RV) [m/s]:     ', np.std(self.RV))
+        print('median(e_RV) [m/s]:', np.median(self.e_RV))
 
     def plot_RV(self):
-        plot_RV(self.file)
+        gplot.mxtics().mytics()
+        gplot.xlabel("'BJD - 2 450 000'")
+        gplot.ylabel("'RV [m/s]'")
+        gplot.key("title '%s' noenhance" % (self.tag))
+        gplot(self.BJD, self.RV,self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % self.oset)
+        pause('RV time serie')
 
-    def plot_rv(self, o=None, n=None):
-        A = self.A
-        gplot.var(n=1, N=len(self.rv.T))
+    def plot_rv(self, o=None, n=1):
+        A = self
+        gplot.var(n=n, N=len(self.rv.T))
         gplot.key('title "%s" noenhance'%self.tag)
         gplot.bind('")" "n = n>=N? N : n+1; repl"')
         gplot.bind('"(" "n = n<=1? 1 : n-1; repl"')
@@ -65,8 +102,9 @@ class VPR():
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
 
-        gplot('for [n=1:N]', self.orders, (self.rv-A.RV).T, self.e_rv.T, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV+400, A.e_RV, A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "", "" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
-        pause()
+        gplot('for [n=1:N]', self.orders, (A.rv-A.RV).T, self.e_rv.T, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "", "" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
+        print("Use '(' and ')' to go through epochs n.")
+        pause('rv order dispersion')
 
 
 if __name__ == "__main__":
@@ -75,10 +113,14 @@ if __name__ == "__main__":
     argopt = parser.add_argument   # function short cut
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
     argopt('-gp', help='gnuplot commands', default='', type=str)
+    argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
 
     args = parser.parse_args()
 
     vpr = VPR(**vars(args))
-    vpr.plot_RV()
-    vpr.plot_rv(o=1)
+    if args.oset is None:
+        plot_RV(vpr.file)
+    else:
+        vpr.plot_RV()
+    vpr.plot_rv(n=1)
 
