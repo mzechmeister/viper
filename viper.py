@@ -30,7 +30,7 @@ c = 3e5   # [km/s] speed of light
 
 targ = None
 modset = {}   # model setting parameters
-insts = ['TLS', 'CES', 'KECK', 'UVES']
+insts = ['TLS', 'CES', 'KECK', 'UVES', 'OES']
 
 def arg2slice(arg):
     """Convert string argument to a slice."""
