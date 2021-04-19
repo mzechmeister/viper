@@ -15,6 +15,7 @@ from .FTS_resample import resample, FTSfits
 location = tls = EarthLocation.from_geodetic(lat=50.980111*u.deg, lon=11.711167*u.deg, height=342*u.m)
 
 oset = '18:30'
+iset = '380:1700'
 
 pg = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
@@ -47,8 +48,6 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
-    b[...,:380] |= 8
-    b[...,1700:] |= 8
 
     return x, w, f, b, bjd, berv
 

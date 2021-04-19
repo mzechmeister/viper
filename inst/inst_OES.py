@@ -32,9 +32,9 @@ def Spectrum(filename='', o=None, targ=None):
     if not targ: 
         #targ = targdrs
         berv = 0
-    else:       
+    else:
         berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
-        berv = berv.to(u.km/u.s).value        
+        berv = berv.to(u.km/u.s).value
 
     f = hdu.data
     gg = readmultispec(filename, reform=True, quiet=True)

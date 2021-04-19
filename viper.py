@@ -150,21 +150,19 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
     bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
 
+    if chunks > 1:
+        # divide dataset into chunks
+        i0 = np.where(bp&1==0)[0][0]   # the first pixel that is not trimmed
+        len_ch = int(np.sum(bp&1==0) / chunks)
+
+        bp[i0:i0+chunk*len_ch] |= 32
+        bp[i0+(chunk+1)*len_ch:] |= 32
+
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
     w_ok = w[i_ok]
     f_ok = f[i_ok]
 
-    if chunks > 1:
-    # divide dataset into chunks
-        len_ch = int(len(w_ok)/chunks)
-        x_ok = x_ok[chunk*len_ch:(chunk+1)*len_ch]
-        w_ok = w_ok[chunk*len_ch:(chunk+1)*len_ch]
-        f_ok = f_ok[chunk*len_ch:(chunk+1)*len_ch]
-        bp[np.isin(w,w_ok, invert=True)] |= 32
-    
-        lmin = max(w_ok[0], w_tpl[0], w_I2[0])
-        lmax = min(w_ok[-1], w_tpl[-1], w_I2[-1])
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
 
@@ -274,12 +272,12 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
 
     if kapsig:
-        # clipping of outliers        
-     #   len1 = len(f_ok)
-            
+        # kappa sigma clipping of outliers
+        # len1 = len(f_ok)
+
         pg = [vg, a, bg, s, cc+c0]
         smod = S_mod(x, *pg)
-        resid = (f - smod)       
+        resid = (f - smod)
         resid[bp != 0] = 0
 
         bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
@@ -287,7 +285,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         x_ok = x[i_ok]
         w_ok = w[i_ok]
         f_ok = f[i_ok]
-     #   print("Nr of clipped data   :",len1-len(f_ok),"/",len1)
+        # print("Nr of clipped data   :",len1-len(f_ok),"/",len1)
 
     if IP == 'bnd':
         # Non parametric fit with band matrix
@@ -314,7 +312,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
                     print(v, rr[1])
 
             v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
-    
+
         best = S_mod.fit(f_ok, v, **opt)
         fx = S_mod(x_ok, v, best[0])
         pause()
@@ -336,10 +334,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
-    # overplot with clipped data
-    gplot+(w[bp != 0], f[bp != 0], 'w p pt 6 ps 0.5 lc 7 t "clipped data"')
-    if kapsig and f[bp == 64] != []:
-       gplot+(w[bp == 64], f[bp == 64], 'w p pt 7 ps 0.5 lc 2 t "kapsig"')
+    # overplot flagged and clipped data
+    gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == 64), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
