@@ -107,6 +107,7 @@ if __name__ == "__main__":
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
+    argopt('-chunks', nargs='?', help='Divide one order into a number of chunks', default=1, type=int)
     argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
@@ -128,7 +129,7 @@ if __name__ == "__main__":
     globals().update(vars(args))
 
 
-def fit_chunk(o, obsname, targ=None, tpltarg=None):
+def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
     x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
@@ -149,10 +150,19 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
     bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
     bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
 
+    if chunks > 1:
+        # divide dataset into chunks
+        i0 = np.where(bp&1==0)[0][0]   # the first pixel that is not trimmed
+        len_ch = int(np.sum(bp&1==0) / chunks)
+
+        bp[i0:i0+chunk*len_ch] |= 32
+        bp[i0+(chunk+1)*len_ch:] |= 32
+
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
     w_ok = w[i_ok]
     f_ok = f[i_ok]
+
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
 
@@ -262,12 +272,12 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
 
 
     if kapsig:
-        # clipping of outliers        
-     #   len1 = len(f_ok)
-            
+        # kappa sigma clipping of outliers
+        # len1 = len(f_ok)
+
         pg = [vg, a, bg, s, cc+c0]
         smod = S_mod(x, *pg)
-        resid = (f - smod)       
+        resid = (f - smod)
         resid[bp != 0] = 0
 
         bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
@@ -275,7 +285,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         x_ok = x[i_ok]
         w_ok = w[i_ok]
         f_ok = f[i_ok]
-     #   print("Nr of clipped data   :",len1-len(f_ok),"/",len1)
+        # print("Nr of clipped data   :",len1-len(f_ok),"/",len1)
 
     if IP == 'bnd':
         # Non parametric fit with band matrix
@@ -302,7 +312,7 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
                     print(v, rr[1])
 
             v, e_v, a = SSRstat(vv, RR, plot=1, N=f_ok.size)
-    
+
         best = S_mod.fit(f_ok, v, **opt)
         fx = S_mod(x_ok, v, best[0])
         pause()
@@ -324,10 +334,8 @@ def fit_chunk(o, obsname, targ=None, tpltarg=None):
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
-    # overplot with clipped data
-    gplot+(w[bp != 0], f[bp != 0], 'w p pt 6 ps 0.5 lc 7 t "clipped data"')
-    if kapsig and f[bp == 64] != []:
-       gplot+(w[bp == 64], f[bp == 64], 'w p pt 7 ps 0.5 lc 2 t "kapsig"')
+    # overplot flagged and clipped data
+    gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == 64), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
@@ -393,8 +401,8 @@ if targname:
 orders = np.r_[oset]
 print(orders)
 
-rv = np.nan * orders
-e_rv = np.nan * orders
+rv = np.nan * np.empty((chunks*len(orders)))
+e_rv = np.nan * np.empty((chunks*len(orders)))
 
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
@@ -415,9 +423,10 @@ for n,obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
-        gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
-        gplot.RV2title('')
-        rv[i_o], e_rv[i_o], bjd,berv, p, e_p, prms = fit_chunk(o, obsname=obsname, targ=targ, tpltarg=targ)
+        for ch in np.arange(chunks):
+            gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
+            gplot.RV2title('')
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms = fit_chunk(o, ch, obsname=obsname, targ=targ, tpltarg=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
@@ -425,12 +434,12 @@ for n,obsname in enumerate(obsnames):
 #               exit()
 #            print("Order failed due to:", repr(e))
 
-        print(n+1, o, rv[i_o], e_rv[i_o])
-        print(bjd, o, *sum(zip(p, np.diag(e_p)),()), prms, file=parunit)
-        # store residuals
-        os.system('mkdir -p res; touch res.dat')
-        os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
-        #pause()
+            print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
+            print(bjd, o, ch, *sum(zip(p, np.diag(e_p)),()), prms, file=parunit)
+            # store residuals
+            os.system('mkdir -p res; touch res.dat')
+            os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
+            pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:

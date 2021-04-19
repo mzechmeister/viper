@@ -14,6 +14,7 @@ from .FTS_resample import resample, FTSfits
 location = paranal = EarthLocation.of_site('paranal')
 
 oset = '5:16'
+iset = '400:2000'
 
 pg = {'s': 300_000/220_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
@@ -59,8 +60,6 @@ def Spectrum(filename, o=None, targ=None):
     #b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
-    b[...,:400] |= 8
-    b[...,2000:] |= 8
 
     return x, w, f, b, bjd, berv
 
