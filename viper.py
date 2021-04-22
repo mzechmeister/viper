@@ -150,19 +150,20 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
     bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
 
+    
+    ibeg, iend = np.where(bp&1==0)[0][[0,-1]]   # the first and last pixel that is not trimmed
+    len_ch = int((iend-ibeg)/chunks)
+    ibeg = ibeg + chunk*len_ch
+    iend = ibeg + len_ch
     if chunks > 1:
         # divide dataset into chunks
-        i0 = np.where(bp&1==0)[0][0]   # the first pixel that is not trimmed
-        len_ch = int(np.sum(bp&1==0) / chunks)
-
-        bp[i0:i0+chunk*len_ch] |= 32
-        bp[i0+(chunk+1)*len_ch:] |= 32
-
+        bp[:ibeg] |= 32
+        bp[iend:] |= 32    
+    
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
     w_ok = w[i_ok]
     f_ok = f[i_ok]
-
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
 
@@ -377,9 +378,9 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         gplot.multiplot("layout 2,2")
         gplot.xlabel('"pixel"').ylabel('"k(x2)"')
         gplot.mxtics().mytics()
-        gplot('[][0:]', i, Cg, Cp, e_Cp, 'w l lc 9 t "guess",  "" us 1:3 w l lc 3, "" us 1:($3-$4):($3+$4) w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}" ')
+        gplot(f'[{ibeg}:{iend}][0:]', i, Cg, Cp, e_Cp, 'w l lc 9 t "guess",  "" us 1:3 w l lc 3, "" us 1:($3-$4):($3+$4) w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}" ')
         gplot.xlabel('"pixel"').ylabel('"deviation c * ({/Symbol l} / {/Symbol l}_{guess} - 1) [km/s]"')
-        gplot(i, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(f'[{ibeg}:{iend}]', i, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_p[ss,ss]**0.5
         s = p[3]
