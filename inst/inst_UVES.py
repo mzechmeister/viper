@@ -43,11 +43,9 @@ def Spectrum(filename, o=None, targ=None):
     targdrs = SkyCoord(ra=ra, dec=de, unit=(u.deg,u.deg))
     if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime/2 * u.s
-    print(exptime)
     berv = targ.radial_velocity_correction(obstime=midtime, location=paranal)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
-    print(bjd, berv)
  
     d = np.genfromtxt(filename, skip_header=offset+4096*o, dtype='i,f,f,f,i', names='ordpix,wave,flux,e_flux,flag', max_rows=4096)
     w, f, e = d['wave'], d['flux'], d['e_flux']
@@ -77,7 +75,6 @@ def Tpl(tplname, o=None, targ=None):
         w = airtovac(w)
     elif tplname.endswith('_tpl.fits'):
         hdu = fits.open(tplname)[1]
-        #print(hdu.data)
         #from pause import pause; pause()
         w = np.exp(hdu.data['lnwave'])
         f = hdu.data['flux']
@@ -88,6 +85,10 @@ def Tpl(tplname, o=None, targ=None):
     elif tplname.endswith('.ddd'):
         x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)  # o =17 for CES
         w *= 1 + (berv*u.km/u.s/c).to_value('')
+        from scipy.interpolate import CubicSpline
+        uj = np.linspace(np.log(w[0]), np.log(w[-1]), 5*w.size)
+        fj = CubicSpline(np.log(w), f)(uj)
+        w,f = np.exp(uj), fj
     else:
         # long 1d template
         hdu = fits.open(tplname)
