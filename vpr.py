@@ -98,12 +98,26 @@ class VPR():
         gplot.key('title "%s" noenhance'%self.tag)
         gplot.bind('")" "n = n>=N? N : n+1; repl"')
         gplot.bind('"(" "n = n<=1? 1 : n-1; repl"')
+        gplot.bind('"]" "n = n+10>N? N : n+10; repl"')
+        gplot.bind('"[" "n = n-10<1? 1 : n-10; repl"')
+        gplot.bind('"^" "n = 1; repl"')
+        gplot.bind('"$" "n = N; repl"')
         gplot.xlabel("'order o'")
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
+        stat_o = np.percentile(A.rv-A.RV, [17,50,83], axis=1)
+        med_e_rvo = np.median(A.e_rv, axis=1)
 
-        gplot('for [n=1:N]', self.orders, (A.rv-A.RV).T, self.e_rv.T, 'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", "" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",', A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "", "" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n", "" us 1:($2/($0+1==n)):3 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}"')
-        print("Use '(' and ')' to go through epochs n.")
+        gplot('for [n=1:N]', self.orders, (A.rv-A.RV).T, self.e_rv.T,
+            'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
+            '"" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",',
+            '"" us ($1-0.25+0.5*n/N):(column(1+n)):(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
+            A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
+            '"" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n",' +
+            '"" us 1:2:3 every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}",',             self.orders, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc 3 pt 4 t "order stat",' +
+            ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
+            '"" us 1:4:(sprintf(" %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
+        print("Use '()[]^$' in gnuplot window to go through epochs n.")
         pause('rv order dispersion')
 
 
