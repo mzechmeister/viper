@@ -43,7 +43,7 @@ def arg2slice(arg):
 
 
 class VPR():
-    def __init__(self, tag, gp='', oset=None):
+    def __init__(self, tag, gp='', oset=None, sort=''):
         '''
         oset: slice,list
         '''
@@ -55,6 +55,8 @@ class VPR():
            gplot.put(gp)
 
         self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
+        if sort:
+            self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
 
         if oset is not None:
@@ -128,6 +130,7 @@ if __name__ == "__main__":
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
+    argopt('-sort', nargs='?', help='sort by column name', const='BJD')
 
     args = parser.parse_args()
 
