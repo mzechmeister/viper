@@ -37,7 +37,7 @@ def Spectrum(filename='', o=None, targ=None):
 
     print('---dateobs, exptime  :', dateobs, exptime)
 
-    targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
+    targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
     berv = targ.radial_velocity_correction(obstime=midtime, location=crires)
