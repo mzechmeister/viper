@@ -135,15 +135,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     i = np.arange(f.size)
     bp[mskatm(w) > 0.1] |= 16
 
-    ####  stellar template  ####
-    if tplname:
-        w_tpl, f_tpl = Tpl(tplname, o=o, targ=tpltarg)
-    else:
-        # no template given; model pure iodine
-        w_tpl, f_tpl = w, 0*f+1
-
-    lmin = max(w[iset][0], w_tpl[0], w_I2[0])
-    lmax = min(w[iset][-1], w_tpl[-1], w_I2[-1])
+    lmin = max(w[iset][0], w_tpl[o][0], w_I2[0])
+    lmax = min(w[iset][-1], w_tpl[o][-1], w_I2[-1])
 
     # trim the observation to a range valid for the model
     vcut = 100   # [km/s]
@@ -170,7 +163,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     # display
     # pre-look raw input
     s = slice(*np.searchsorted(w_I2, [lmin, lmax]))
-    s_s = slice(*np.searchsorted(w_tpl, [lmin, lmax]))
+    s_s = slice(*np.searchsorted(w_tpl[o], [lmin, lmax]))
     sj = slice(*np.searchsorted(uj_full, np.log([lmin, lmax])))
 
     # prepare input; convert discrete data to model
@@ -187,7 +180,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     # convert discrete template into a function
     if tplname:
-        S_star = lambda x: np.interp(x, np.log(w_tpl)-berv/c, f_tpl)  # Apply barycentric motion
+        S_star = lambda x: np.interp(x, np.log(w_tpl[o])-berv/c, f_tpl[o])  # Apply barycentric motion
     else:
         S_star = lambda x: 0*x+1
 
@@ -418,6 +411,16 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 w_I2, f_I2, uj_full, iod_j_full = FTS(ftsname)
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
+####  stellar template  ####
+if tplname:
+    print('reading stellar template')
+    w_tpl, f_tpl = {}, {}
+    for o in orders:
+        w_tpl[o], f_tpl[o] = Tpl(tplname, o=o, targ=targ)
+else:
+    # no template given; model pure iodine
+    w_tpl, f_tpl = [w_I2[[0,-1]]]*100, [np.ones(2)]*100
+
 
 T = time.time()
 for n,obsname in enumerate(obsnames):
@@ -427,7 +430,7 @@ for n,obsname in enumerate(obsnames):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
             gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms = fit_chunk(o, ch, obsname=obsname, targ=targ, tpltarg=targ)
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
@@ -440,7 +443,7 @@ for n,obsname in enumerate(obsnames):
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
-            pause()
+            #pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
