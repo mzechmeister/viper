@@ -32,6 +32,41 @@ targ = None
 modset = {}   # model setting parameters
 insts = ['TLS', 'CES', 'KECK', 'UVES', 'OES']
 
+class nameddict(dict):
+   """
+   Examples
+   --------
+   >>> nameddict({'a':1, 'b':2})
+   {'a': 1, 'b': 2}
+   >>> x = nameddict(a=1, b=2)
+   >>> x.a
+   1
+   >>> x['a']
+   1
+   >>> x.translate(3)
+   ['a', 'b']
+   """
+   __getattr__ = dict.__getitem__
+
+   def translate(self, x):
+      return [name for name,f in self.items() if (f & x) or f==x==0]
+
+# bpmap flagging
+flag = nameddict(
+   ok=       0, # good pixel
+   nan=      1, # nan flux in pixel of spectrum
+   neg=      2, # significant negative flux in pixel of spectrum (f < -3*f_err < 0 && )
+   sat=      4, # too high flux (saturated)
+   atm=      8, # telluric at wavelength of spectrum
+   sky=     16, # sky emission at wavelength of spectrum
+   out=     32, # region outside the template
+   clip=    64, # clipped value
+   lowQ=   128, # low Q in stellar spectrum (mask continuum)
+   badT=   256, # bad corresponding region in the template spectrum
+   chunk=  512, # chunk cutting
+)
+
+
 def arg2slice(arg):
     """Convert string argument to a slice."""
     # We want four cases for indexing: None, int, list of ints, slices.
@@ -134,15 +169,16 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
     x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
-    bp[mskatm(w) > 0.1] |= 16
+    bp[mskatm(w) > 0.1] |= flag.atm
+    bp[np.isnan(f)] |= flag.nan
 
     lmin = max(w[iset][0], w_tpl[o][0], w_I2[0])
     lmax = min(w[iset][-1], w_tpl[o][-1], w_I2[-1])
 
     # trim the observation to a range valid for the model
     vcut = 100   # [km/s]
-    bp[np.log(w) < np.log(lmin)+vcut/c] |= 1
-    bp[np.log(w) > np.log(lmax)-vcut/c] |= 1
+    bp[np.log(w) < np.log(lmin)+vcut/c] |= flag.out
+    bp[np.log(w) > np.log(lmax)-vcut/c] |= flag.out
 
     
     ibeg, iend = np.where(bp&1==0)[0][[0,-1]]   # the first and last pixel that is not trimmed
@@ -151,8 +187,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     iend = ibeg + len_ch
     if chunks > 1:
         # divide dataset into chunks
-        bp[:ibeg] |= 32
-        bp[iend:] |= 32    
+        bp[:ibeg] |= flag.chunk
+        bp[iend:] |= flag.chunk    
     
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
@@ -275,7 +311,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         resid = (f - smod)
         resid[bp != 0] = 0
 
-        bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
+        bp[abs(resid) >= (kapsig*np.std(resid))] |= flag.clip
         i_ok = np.where(bp == 0)[0]
         x_ok = x[i_ok]
         w_ok = w[i_ok]
@@ -334,7 +370,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         smod = S_mod(x, *pg)
         resid = f - smod
 
-        bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
+        bp[abs(resid) >= (kapsig*np.std(resid))] |= flag.clip
         i_ok = np.where(bp == 0)[0]
         x_ok = x[i_ok]
         w_ok = w[i_ok]
@@ -347,7 +383,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
 
     # overplot flagged and clipped data
-    gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == 64), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
+    gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
