@@ -117,6 +117,7 @@ if __name__ == "__main__":
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
+    argopt('-lookres', nargs='?', help='Analyse the residuals', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
@@ -328,11 +329,30 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
+    if kapsig:
+        # kappa sigma clipping of outliers
+        smod = S_mod(x, *pg)
+        resid = f - smod
+
+        bp[abs(resid) >= (kapsig*np.std(resid))] |= 64
+        i_ok = np.where(bp == 0)[0]
+        x_ok = x[i_ok]
+        w_ok = w[i_ok]
+        f_ok = f[i_ok]
+
+        if tplname:
+            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1)
+        else:
+            # do not fit for velocity
+            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
+
     # overplot flagged and clipped data
     gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == 64), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
+    # overplot stellar spectrum
+    #gplot+(np.exp(uj), S_star(uj)/S_star(uj).max()*f_ok.max(), 'w l lc 9')
 
     rvo, e_rvo = 1000*p[0], 1000*np.diag(e_p)[0]**0.5   # convert to m/s
     #prms = S_mod.show([p[0], p[1:1+1+dega], p[2+dega:2+dega+1+degb], p[3+dega+degb:]], x_ok, f_ok, dx=0.1)
@@ -346,6 +366,17 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if o in look:
         pause('look %s:'% o,  rvo,'+/- %.2f' % e_rvo)  # globals().update(locals())
+
+    if o in lookres:
+        gplot.palette_defined('(0 "blue", 1 "green", 2 "red")')
+        gplot.var(j=1, lab_ddS='"Finite second derivative 2S_i - S_{i+1} - S_{i-1}"')
+        # shortcut "j" allows to toggle between flux and second derivative
+        gplot.bind('j "j=(j+1) % 2; set xlabel (j==0? \\"S(i)\\" : lab_ddS) ;repl"')
+        gplot.xlabel('lab_ddS')
+        gplot.ylabel('"residuals S_i - S(i)"')
+        gplot.cblabel('"pixel x_i"')
+        gplot(x_ok, f_ok, S_mod(x_ok, *p), 2*f_ok-f[x_ok-1]-f[x_ok+1], 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
+        pause(f'lookres {o}')
 
     sa = tplname is not None
     sb = sa + dega+1
@@ -379,7 +410,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         s = p[3]
         gplot(S_mod.vk, S_mod.IP(S_mod.vk, *sg), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*p[3]), S_mod.IP(S_mod.vk,*[s[0]-e_s, *s[1:]]),  S_mod.IP(S_mod.vk, *[s[0]+e_s, *s[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
-        pause('lookpar')
+        pause('lookpar', s)
 
     return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
