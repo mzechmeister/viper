@@ -41,7 +41,6 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
         x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
 
     b = 1 * np.isnan(f) # bad pixel map
-    f[np.isnan(f)] = 0
     #b[f>1.5] |= 2 # large flux
     b[2120:2310] |= 4  # grating ghost on spectrum, CES.2000-08-13T073047.811, stationary?
 
