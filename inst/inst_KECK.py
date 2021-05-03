@@ -15,6 +15,7 @@ from .FTS_resample import resample, FTSfits
 location = keck = EarthLocation.of_site('Keck Observatory')
 
 oset = '5:16'
+iset = '500:2000'
 
 pg = {'s': 300_000/87_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
@@ -51,11 +52,10 @@ def Spectrum(filename, o=None, targ=None):
     #f[[1351,1352,1662,1663]] = np.nan
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux
-    b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
+    b[(5300<w) & (w<5343)] |= 256  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
-    b[...,:500] |= 8
-    b[...,2000:] |= 8
+
 
     return x, w, f, b, bjd, berv
     '''
