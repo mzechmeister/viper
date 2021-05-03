@@ -44,8 +44,8 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
 
     x = np.arange(f.size) 
     b = 1 * np.isnan(f) # bad pixel map
-    b[f>1.5] |= 2 # large flux
-    b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
+    b[f>1.5] |= 4 # large flux
+    b[(5300<w) & (w<5343)] |= 256  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
 
