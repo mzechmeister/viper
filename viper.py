@@ -156,6 +156,8 @@ if __name__ == "__main__":
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
+    argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess; n: no stepRV)',
+           default='n', choices=['a', 'm','n'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
@@ -354,6 +356,78 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         if o in look:
             pause()
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
+
+    if stepRV in ['a','m']:
+    # calculating the best RV by going trough different fixed RVs
+    # finding best value for minimum in rms
+    # still some improvement/testing needed
+        vb = 0.5       
+        rms1 = [0,0,0]
+        rms_all = []
+        v_all = []
+        rounds = 0       # to make sure, it will not end in a endless loop
+
+        if stepRV == 'm':
+           # fix step size in given range
+           # otherwise search minimum 
+            v1 = np.arange(vg-1, vg+1, 0.1)
+           # v1 = np.arange(-0.1, 0.3, 0.01)
+        elif stepRV == 'a':
+            v1 = [vg-vb,vg,vg+vb]
+
+        while rounds < 20:
+            for vv,vguess in enumerate(v1):
+                if vguess not in v_all:
+                    p, e_p = S_mod.fit(x_ok, f_ok, None, a, bg, s, v0 = vguess, c=cc, c0=c0, dx=0.1)
+                    rms11 = np.std(f_ok - S_mod(x_ok, *p))
+                    if stepRV == 'a':
+                        rms1[vv] = rms11
+         #           print('p:',rms1[vv],p)
+                    v_all.append(vguess)
+                    rms_all.append(rms11)
+                else:
+                    rms1[vv] = rms_all[(np.argwhere(np.asarray(v_all)==vguess))[0][0]]  
+ 
+            if (((3 <= np.argmin(rms_all) <= rounds-3) or (abs(v1[0]-v1[1]) < 0.03)) and (rounds >= 6)) or (stepRV == 'm'):
+            # fitting process is done
+                rounds = 20
+            else:
+            # find the position of the current minimum and search further in this direction
+                ind = np.argsort(rms1)
+                if ind[0] == 0:
+                    v1 = [v1[0]-vb,v1[0],v1[1]]
+                elif ind[0] == 1:
+                    v1 = [v1[ind[0]], (v1[ind[1]]+v1[ind[0]])/2 ,v1[ind[1]]]             
+                elif ind[0] == 2:
+                    v1 = v1 = [v1[1],v1[2],v1[2]+vb]    
+            
+                rounds += 1
+
+        ind = np.argsort(v_all)
+        v_all = np.asarray(v_all)[ind]
+        rms_all = np.asarray(rms_all)[ind]
+
+        # if best RV is too far away from start, just use values around minimum
+        # not needed for good frequency resolution of tpl
+        pmin = np.argmin(rms_all)
+        if abs(v_all[pmin]-vg) > 1:
+             rms_all = rms_all[pmin-2:pmin+3]
+             v_all = v_all[pmin-2:pmin+3]
+
+        # polyfit through the rms values
+        v_gr = np.linspace(v_all[0],v_all[-1],100)
+        pol, resi, _, _, _ = np.polyfit(v_all,rms_all,2, w=1./np.sqrt(rms_all),full=True)
+        sp = np.poly1d(pol)(v_gr)
+        rvs = v_gr[np.argmin(sp)]
+   
+        gplot.RV2title(", v=%.2f ± %.2f m/s" % (rvs*1000, resi*1000))
+        gplot.xlabel('"RV [km/s]"')
+        gplot.ylabel('"rms"')
+        gplot(v_gr, sp, 'w l lc 9 t "polynomial fit",', v_all ,rms_all, 'lc 3 ps 1 pt 2 t "curvefit"')  
+        #pause()   
+
+   #     p, e_p = S_mod.fit(x_ok, f_ok, rvs,a, bg, s, c=cc, c0=c0, dx=0.1)
+        v = rvs
 
     if tplname:
         p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1)
