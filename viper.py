@@ -115,7 +115,7 @@ def SSRstat(vgrid, SSR, dk=1, plot='maybe', N=None):
 
     if (plot==1 and np.isnan(e_v)) or plot==2:
         gplot2.yrange('[*:%f]' % np.max(SSR))
-        gplot2(vgrid, SSR-SSR[k], " w lp, v1="+str(vgrid[k])+", %f+(x-v1)*%f+(x-v1)**2*%f," % tuple(a), [v,v], [0,SSR[1]], 'w l t "%f km/s"'%v)
+        gplot2(vgrid, SSR-SSR[k], " w lp, vk="+str(vgrid[k])+", %f+(x-vk)*%f+(x-vk)**2*%f," % tuple(a), [v,v], [0,SSR[1]], 'w l t "%f km/s"'%v)
         gplot2+(vpeak, SSRpeak, ' lt 1 pt 6; set yrange [*:*]')
         pause(v)
     return v, e_v, a
@@ -156,8 +156,7 @@ if __name__ == "__main__":
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
-    argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess; n: no stepRV)',
-           default='n', choices=['a', 'm','n'], type=str)
+    argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
@@ -370,13 +369,13 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         if stepRV == 'm':
            # fix step size in given range
            # otherwise search minimum 
-            v1 = np.arange(vg-1, vg+1, 0.1)
-           # v1 = np.arange(-0.1, 0.3, 0.01)
+            vk = np.arange(vg-1, vg+1, 0.1)
+           # vk = np.arange(-0.1, 0.3, 0.01)
         elif stepRV == 'a':
-            v1 = [vg-vb,vg,vg+vb]
+            vk = [vg-vb,vg,vg+vb]
 
         while rounds < 20:
-            for vv,vguess in enumerate(v1):
+            for vv,vguess in enumerate(vk):
                 if vguess not in v_all:
                     p, e_p = S_mod.fit(x_ok, f_ok, None, a, bg, s, v0 = vguess, c=cc, c0=c0, dx=0.1)
                     rms11 = np.std(f_ok - S_mod(x_ok, *p))
@@ -388,18 +387,18 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
                 else:
                     rms1[vv] = rms_all[(np.argwhere(np.asarray(v_all)==vguess))[0][0]]  
  
-            if (((3 <= np.argmin(rms_all) <= rounds-3) or (abs(v1[0]-v1[1]) < 0.03)) and (rounds >= 6)) or (stepRV == 'm'):
+            if (((3 <= np.argmin(rms_all) <= rounds-3) or (abs(vk[0]-vk[1]) < 0.03)) and (rounds >= 6)) or (stepRV == 'm'):
             # fitting process is done
                 rounds = 20
             else:
             # find the position of the current minimum and search further in this direction
                 ind = np.argsort(rms1)
                 if ind[0] == 0:
-                    v1 = [v1[0]-vb,v1[0],v1[1]]
+                    vk = [vk[0]-vb,vk[0],vk[1]]
                 elif ind[0] == 1:
-                    v1 = [v1[ind[0]], (v1[ind[1]]+v1[ind[0]])/2 ,v1[ind[1]]]             
+                    vk = [vk[ind[0]], (vk[ind[1]]+vk[ind[0]])/2 ,vk[ind[1]]]             
                 elif ind[0] == 2:
-                    v1 = v1 = [v1[1],v1[2],v1[2]+vb]    
+                    vk = vk = [vk[1],vk[2],vk[2]+vb]    
             
                 rounds += 1
 
