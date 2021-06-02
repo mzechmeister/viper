@@ -147,6 +147,7 @@ if __name__ == "__main__":
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
+    argopt('-iphs', nargs='?', help='Half size of the IP', default=50, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
     argopt('-kapsig', help='Kappa sigma clipping value', default=None, type=float)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
@@ -197,6 +198,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     f_ok = f[i_ok]
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
+    modset['IP_hs'] = iphs
 
     # display
     # pre-look raw input
