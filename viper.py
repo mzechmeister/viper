@@ -563,7 +563,8 @@ if tplname:
         w_tplo, f_tplo = Tpl(tplname, o=o, targ=targ)
         if oversampling:
             us = np.linspace(np.log(w_tplo[0]),np.log(w_tplo[-1]), oversampling*w_tplo.size)
-            f_tplo[np.isnan(f_tplo)] = 0
+           # f_tplo[np.isnan(f_tplo)] = 0
+            F_tplo = np.nan_to_num(f_tplo)
             fs = CubicSpline(np.log(w_tplo),f_tplo)(us)
             w_tpl[o], f_tpl[o] = np.exp(us), fs
         else:
@@ -594,7 +595,7 @@ for n,obsname in enumerate(obsnames):
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
-            pause()
+         #   pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
