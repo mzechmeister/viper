@@ -12,6 +12,7 @@ import time
 
 import numpy as np
 from scipy.optimize import curve_fit
+from scipy.interpolate import CubicSpline
 from astropy.io import fits
 import astropy.units as u
 
@@ -157,6 +158,7 @@ if __name__ == "__main__":
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
+    argopt('-oversampling', help='value for oversampling the template data', default=None, type=int)
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
@@ -558,7 +560,14 @@ if tplname:
     print('reading stellar template')
     w_tpl, f_tpl = {}, {}
     for o in orders:
-        w_tpl[o], f_tpl[o] = Tpl(tplname, o=o, targ=targ)
+        w_tplo, f_tplo = Tpl(tplname, o=o, targ=targ)
+        if oversampling:
+            us = np.linspace(np.log(w_tplo[0]),np.log(w_tplo[-1]), oversampling*w_tplo.size)
+            f_tplo[np.isnan(f_tplo)] = 0
+            fs = CubicSpline(np.log(w_tplo),f_tplo)(us)
+            w_tpl[o], f_tpl[o] = np.exp(us), fs
+        else:
+            w_tpl[o], f_tpl[o] = w_tplo, f_tplo
 else:
     # no template given; model pure iodine
     w_tpl, f_tpl = [w_I2[[0,-1]]]*100, [np.ones(2)]*100
@@ -585,7 +594,7 @@ for n,obsname in enumerate(obsnames):
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
-            #pause()
+            pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
