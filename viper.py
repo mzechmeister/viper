@@ -563,8 +563,7 @@ if tplname:
         w_tplo, f_tplo = Tpl(tplname, o=o, targ=targ)
         if oversampling:
             us = np.linspace(np.log(w_tplo[0]),np.log(w_tplo[-1]), oversampling*w_tplo.size)
-           # f_tplo[np.isnan(f_tplo)] = 0
-            F_tplo = np.nan_to_num(f_tplo)
+            f_tplo = np.nan_to_num(f_tplo)
             fs = CubicSpline(np.log(w_tplo),f_tplo)(us)
             w_tpl[o], f_tpl[o] = np.exp(us), fs
         else:
