@@ -41,6 +41,8 @@ def bt_start():
         str_arg += " -lookguess "
     if cb_lookres.get() == 1:
         str_arg += " -lookres "
+    if e_overs.get():
+        str_arg += " -oversampling "+ str(e_overs.get())
     if e_targ.get():
         str_arg += " -targ " + str(e_targ.get())
     if e_tag.get():
@@ -173,6 +175,10 @@ e_kapsig = Entry(master=win)
 e_kapsig.insert(0,'4.5')
 e_kapsig.place(x=x0+xss+0*sp,y=(sl+3)*lh,width=50)
 
+e_overs = Entry(master=win)
+e_overs.insert(0,'1')
+e_overs.place(x=x0+xss+0*sp,y=(sl+4)*lh,width=50)
+
 ###### COMBOBOXES ######
 
 combo_inst = ttk.Combobox(master=win,values=['TLS','CRIRES','CES', 'KECK', 'UVES','OES'])
@@ -185,7 +191,7 @@ combo_ip.place(x=x0+xss+sp,y=(sl+0)*lh,width=50)
 
 combo_stepRV = ttk.Combobox(master=win,values=['', 'a', 'm'])
 combo_stepRV.set('')
-combo_stepRV.place(x=x0+xss+0*sp,y=(sl+4)*lh,width=50)
+combo_stepRV.place(x=x0+xss+0*sp,y=(sl+5)*lh,width=50)
 
 ###### CHECKBOXES ######
 
@@ -237,7 +243,9 @@ ttk.Checkbutton(master=win, text="     lookres", variable=cb_lookres).place(x=x0
 (Label(master=win,text='vguess:', background=bg_frame)).place(x=x0+sp,y=(sl+2)*lh)
 
 (Label(master=win,text='kapsig:', background=bg_frame)).place(x=x0+0*sp,y=(sl+3)*lh)
-(Label(master=win,text='stepRV:', background=bg_frame)).place(x=x0+0*sp,y=(sl+4)*lh)
+(Label(master=win,text='oversampl:', background=bg_frame)).place(x=x0+0*sp,y=(sl+4)*lh)
+(Label(master=win,text='stepRV:', background=bg_frame)).place(x=x0+0*sp,y=(sl+5)*lh)
+
 
 
 ###### MAIN ######
