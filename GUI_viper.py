@@ -152,11 +152,11 @@ e_ch.insert(0,'1')
 e_ch.place(x=x0+xss,y=(sl+2)*lh,width=50)
 
 e_dega = Entry(master=win)
-e_dega.insert(0,'2')
+e_dega.insert(0,'3')
 e_dega.place(x=x0+xss+1*sp,y=(sl+3)*lh,width=50)
 
 e_degb = Entry(master=win)
-e_degb.insert(0,'2')
+e_degb.insert(0,'3')
 e_degb.place(x=x0+xss+1*sp,y=(sl+4)*lh,width=50)
 
 e_degc = Entry(master=win)
