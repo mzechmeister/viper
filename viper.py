@@ -216,7 +216,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if demo & 1:
         # plot data, template, and iodine with some scaling
-        gplot(w_I2[s], f_I2[s]/np.median(f_I2[s]), 'w l lc 9,', w_tpl[s_s], f_tpl[s_s]/np.median(f_tpl[s_s]), 'w l lc 3,', w, f/np.median(f), 'w lp lc 1 pt 7 ps 0.5')
+        gplot(w_I2[s], f_I2[s]/np.median(f_I2[s]), 'w l lc 9,', w_tpl[o][s_s], f_tpl[o][s_s]/np.nanmedian(f_tpl[o][s_s]), 'w l lc 3,', w, f/np.nanmedian(f), 'w lp lc 1 pt 7 ps 0.5')
         pause('demo 1: raw input')
 
 
