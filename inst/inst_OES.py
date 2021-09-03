@@ -22,7 +22,7 @@ def Spectrum(filename='', o=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
 
-    dateobs = hdr['DATE-OBS']
+    dateobs = hdr['DATE-OBS']+ 'T' + hdr['UT']
     exptime = hdr['EXPTIME']
 
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
