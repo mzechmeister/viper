@@ -270,20 +270,20 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if demo & 16:
         # A wrapper to fit the continuum
-        p_a, _ = S_mod.fit(x_ok, f_ok, a=[a0], v0=vg, b0=bg, s0=sg, res=False, dx=0.1)
+        p_a, _ = S_mod.fit(x_ok, f_ok, a=[a0], v0=vg, b0=bg, s0=sg, c0=cg, res=False, dx=0.1)
         ag[0] = p_a[1][0]
         pause('demo 16: S_a')
 
     if demo & 32:
         # A wrapper to fit the wavelength solution
-        p_b, _ = S_mod.fit(x_ok, f_ok, b=bg[:-1]+[1e-15], v0=vg, a0=a, s0=sg,  res=False, dx=0.1)
+        p_b, _ = S_mod.fit(x_ok, f_ok, b=bg[:-1]+[1e-15], v0=vg, a0=a, s0=sg, c0=cg,  res=False, dx=0.1)
         b = p_b[2]
         pause('demo 32: S_b')
 
     if demo & 64:
         # fit v, a0 and b simultaneously
-        p, _ = S_mod.fit(x_ok, f_ok, a=a, b=b, v0=vg, s0=sg, res=False, dx=0.1)
-        v, a, b, s = p
+        p, _ = S_mod.fit(x_ok, f_ok, a=a, b=b, v0=vg, s0=sg, c0=cg, res=False, dx=0.1)
+        v, a, b, s,cc = p
         pause('demo 64: S_vab')
 
 
