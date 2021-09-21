@@ -54,7 +54,11 @@ class VPR():
         if gp:
            gplot.put(gp)
 
-        self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
+        try:
+            self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
+        except:
+            self.Afull = np.genfromtxt(file, dtype=None, names=True).view(np.recarray)
+            
         if sort:
             self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
