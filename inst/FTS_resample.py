@@ -10,7 +10,11 @@ def FTSfits(ftsname):
 
     f = hdu.data[::-1]
     h = hdu.header
-    w = h['CRVAL1'] + h['CDELT1'] * (np.arange(f.size) + 1. - h['CRPIX1'])
+    try:
+        w = h['CRVAL1'] + h['CDELT1'] * (np.arange(f.size) + 1. - h['CRPIX1'])
+    except:
+        # for OES
+        w = h['CRVAL1'] + h['CDELT1'] * (np.arange(f.size) + 1.)
     w = 1e8 / w[::-1]   # convert wavenumbers to wavelength [angstrom]
 
     return w, f
