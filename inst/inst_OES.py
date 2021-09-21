@@ -51,21 +51,15 @@ def Spectrum(filename='', o=None, targ=None):
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('.model'):# or tplname.endswith('.deconv'):
-        # echelle template
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
-        w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
-    elif tplname.endswith('_s1d_A.fits'):
+    if tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
         f = hdu.data
         h = hdu.header
         w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
         w = airtovac(w)
     else:
-        # long 1d template
-        hdu = fits.open(tplname)
-        w = hdu[1].data.field('Arg')
-        f = hdu[1].data.field('Fun')
+        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        w *= 1 + (berv*u.km/u.s/c).to_value('')
 
     return w, f
 
