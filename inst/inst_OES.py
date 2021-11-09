@@ -37,6 +37,7 @@ def Spectrum(filename='', o=None, targ=None):
         berv = berv.to(u.km/u.s).value
 
     f = hdu.data
+    f /= np.nanmean(f)
     gg = readmultispec(filename, reform=True, quiet=True)
     w = gg['wavelen']
     w = airtovac(w)
