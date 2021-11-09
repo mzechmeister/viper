@@ -31,7 +31,7 @@ c = 3e5   # [km/s] speed of light
 
 targ = None
 modset = {}   # model setting parameters
-insts = ['TLS', 'CES', 'KECK', 'UVES', 'OES']
+insts = ['TLS', 'CES', 'KECK', 'UVES', 'OES', 'CRIRES']
 
 class nameddict(dict):
    """
