@@ -24,9 +24,9 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     hdr = hdu.header
 
     dateobs = hdr['DATE-OBS']
-    exptime = hdr['EXP_TIME']
-    ra = hdr['RA']
-    de = hdr['DEC']
+    exptime = hdr.get('EXP_TIME',hdr.get('EXPOSURE'))   # 20211018_guenther_TCEcell_0063.fits EXPOSURE (no exptime)
+    ra = hdr.get('RA', np.nan)                          # 20211018_guenther_TCEcell_0184.fits no RA
+    de = hdr.get('DEC', np.nan)
 
     targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
     if not targ: targ = targdrs
@@ -44,7 +44,7 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
 
     x = np.arange(f.size) 
     b = 1 * np.isnan(f) # bad pixel map
-    b[f>1.5] |= 4 # large flux
+    #b[f>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
     b[(5300<w) & (w<5343)] |= 256  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
@@ -57,12 +57,15 @@ def Tpl(tplname, o=None, targ=None):
         # echelle template
         x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
-    elif tplname.endswith('_s1d_A.fits'):
+    elif tplname.endswith('_s1d_A.fits') or  tplname.endswith('.tpl.s1d.fits'):
         hdu = fits.open(tplname)[0]
         f = hdu.data
         h = hdu.header
         w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
-        w = airtovac(w)
+        if tplname.endswith('_s1d_A.fits'):
+            w = airtovac(w)
+        else:
+            w = np.exp(w)
     else:
         # long 1d template
         hdu = fits.open(tplname)
