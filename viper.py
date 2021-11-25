@@ -184,7 +184,6 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     bp[np.log(w) < np.log(lmin)+vcut/c] |= flag.out
     bp[np.log(w) > np.log(lmax)-vcut/c] |= flag.out
 
-    
     ibeg, iend = np.where(bp&1==0)[0][[0,-1]]   # the first and last pixel that is not trimmed
     len_ch = int((iend-ibeg)/chunks)
     ibeg = ibeg + chunk*len_ch
@@ -192,8 +191,9 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     if chunks > 1:
         # divide dataset into chunks
         bp[:ibeg] |= flag.chunk
-        bp[iend:] |= flag.chunk    
-    
+        bp[iend:] |= flag.chunk
+
+
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
     w_ok = w[i_ok]
@@ -403,7 +403,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
                     vk = [vk[ind[0]], (vk[ind[1]]+vk[ind[0]])/2 ,vk[ind[1]]]             
                 elif ind[0] == 2:
                     vk = vk = [vk[1],vk[2],vk[2]+vb]    
-            
+
                 rounds += 1
 
         ind = np.argsort(v_all)
@@ -422,7 +422,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         pol, resi, _, _, _ = np.polyfit(v_all,rms_all,2, w=1./np.sqrt(rms_all),full=True)
         sp = np.poly1d(pol)(v_gr)
         rvs = v_gr[np.argmin(sp)]
-   
+
         gplot.RV2title(", v=%.2f ± %.2f m/s" % (rvs*1000, resi*1000))
         gplot.xlabel('"RV [km/s]"')
         gplot.ylabel('"rms"')
@@ -481,14 +481,15 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         pause('look %s:'% o,  rvo,'+/- %.2f' % e_rvo)  # globals().update(locals())
 
     if o in lookres:
-        gplot.palette_defined('(0 "blue", 1 "green", 2 "red")')
-        gplot.var(j=1, lab_ddS='"Finite second derivative 2S_i - S_{i+1} - S_{i-1}"')
+        gplot2.palette_defined('(0 "blue", 1 "green", 2 "red")')
+        gplot2.var(j=1, lab_ddS='"Finite second derivative 2S(i) - S(i+1) - S(i-1)"')
         # shortcut "j" allows to toggle between flux and second derivative
-        gplot.bind('j "j=(j+1) % 2; set xlabel (j==0? \\"S(i)\\" : lab_ddS) ;repl"')
-        gplot.xlabel('lab_ddS')
-        gplot.ylabel('"residuals S_i - S(i)"')
-        gplot.cblabel('"pixel x_i"')
-        gplot(x_ok, f_ok, S_mod(x_ok, *p), 2*f_ok-f[x_ok-1]-f[x_ok+1], 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
+        gplot2.bind('j "j=(j+1) % 2; set xlabel (j==0? \\"S(i)\\" : lab_ddS) ;repl"')
+        gplot2.xlabel('lab_ddS')
+        gplot2.ylabel('"residuals S_i - S(i)"')
+        gplot2.cblabel('"pixel x_i"')
+        #gplot(x_ok, f_ok, S_mod(x_ok, *p), 2*f_ok-f[x_ok-1]-f[x_ok+1], 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
+        gplot2(x_ok, f_ok, S_mod(x_ok, *p), 2*S_mod(x_ok, *p)-S_mod(x_ok-1, *p)-S_mod(x_ok+1, *p), 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
         pause(f'lookres {o}')
 
     sa = tplname is not None
