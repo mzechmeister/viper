@@ -46,7 +46,7 @@ def Spectrum(filename='', o=None, targ=None):
 
     x = np.arange(f.size) 
     b = 1 * np.isnan(f) # bad pixel map
-    b[f>1.5] |= 4 # large flux
+ #   b[f>1.5] |= 4 # large flux
 
     return x, w, f, b, bjd, berv
 
