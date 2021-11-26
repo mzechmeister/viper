@@ -193,6 +193,13 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         bp[:ibeg] |= flag.chunk
         bp[iend:] |= flag.chunk
 
+    if 1:
+        # preclip upper outlier (cosmics)
+        kap = 6
+        p17, smod, p83 = np.percentile(f[bp==0], [17, 50, 83])
+        sig = (p83 - p17) / 2
+        bp[f > smod+kap*sig] |= flag.clip
+        # gplot(f, f', {p17}, {smod}, {p83}, {smod+ kap*sig}')
 
     i_ok = np.where(bp==0)[0]
     x_ok = x[i_ok]
