@@ -632,6 +632,7 @@ print("processing time total:       ", Tfmt(T))
 print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
+vpr.VPR(tag)   # to print info statistic
 vpr.plot_RV(tag+'.rvo.dat')
 
 pause('%s done.' % tag)
