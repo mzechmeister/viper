@@ -51,13 +51,25 @@ def IP_mg(vk, s0=2, a1=0.1):
 
 IPs = {'g':IP, 'sg': IP_sg, 'ag': IP_ag, 'mg':IP_mg, 'bnd': 'bnd'}
 
+def poly(x, a):
+    # redefine polynomial for argument order and adjacent coefficients
+    return np.polyval(a[::-1], x)
+
+def pade(x, a, b):
+    '''
+    rational polynomial
+    b: denominator coefficients b1, b2, ... (b0 is fixed to 1)
+    '''
+    y = poly(x, a) / (1+x*poly(x, b))
+    return y
+
 
 class model:
     '''
     The forward model
 
     '''
-    def __init__(self, *args, IP_hs=50, icen=0):
+    def __init__(self, *args, envelope=poly, IP_hs=50, icen=0):
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
@@ -67,6 +79,7 @@ class model:
         self.IP_hs = IP_hs
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
         self.uj_eff = self.uj[IP_hs:-IP_hs]
+        self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, i, v, a, b, s, cc=[0]):
@@ -81,7 +94,8 @@ class model:
         Si_eff = np.interp(ui, self.uj_eff, Sj_eff)
 
         # flux normalisation
-        Si_mod = np.poly1d(a[::-1])(i-self.icen) * Si_eff
+        Si_mod = self.envelope(i-self.icen, a) * Si_eff
+        #Si_mod = self.envelope((np.exp(ui)-b[0]-a[-1]), a[:-1]) * Si_eff
         return Si_mod
  
     def fit(self, x, f, v=None, a=[], b=[], s=[], c=[], v0=None, a0=[], b0=[], s0=[], c0=[], **kwargs):

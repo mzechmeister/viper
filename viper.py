@@ -21,7 +21,7 @@ gplot.colors('classic')
 gplot2 = Gplot()
 from pause import pause
 
-from model import model, model_bnd, IPs, show_model
+from model import model, model_bnd, IPs, show_model, pade
 from targ import Targ
 import vpr
 
@@ -145,6 +145,7 @@ if __name__ == "__main__":
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks', default=1, type=int)
     argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
+    argopt('-degar', nargs='?', help='Rational polynomial degree of denominator for flux normalisation.', type=int)
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
@@ -208,6 +209,10 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
     modset['IP_hs'] = iphs
+    
+    if degar:
+        # rational polynomial
+        modset['envelope'] = lambda x, a: pade(x, a[:dega+1], a[dega+1:])
 
     # display
     # pre-look raw input
@@ -253,6 +258,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     v = vg   # a good guess for the stellar RV is needed
     a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
     a = ag = [a0] + [0]*dega
+    if degar:   # rational polynom
+        a += [5e-7]*degar   # a tiny scale hint (zero didn't iterate)
     b = bg = np.polyfit(x_ok-icen, w_ok, degb)[::-1]
     cg = [0] #* degc
     cc, c0 = (cg, []) if degc else ([], cg)
