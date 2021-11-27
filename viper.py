@@ -458,7 +458,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig:
         # kappa sigma clipping of outliers
-        smod = S_mod(x, *pg)
+        smod = S_mod(x, *p)
         resid = f - smod
 
         bp[abs(resid) >= (kapsig*np.std(resid))] |= flag.clip
