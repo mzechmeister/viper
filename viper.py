@@ -151,6 +151,7 @@ if __name__ == "__main__":
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
     argopt('-iphs', nargs='?', help='Half size of the IP', default=50, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
+    argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine', action='store_true')
     argopt('-kapsig', help='Kappa sigma clipping value', default=None, type=float)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
@@ -476,6 +477,39 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     # overplot flagged and clipped data
     gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
+    if infoprec:
+        # estimate velocity precision limit from stellar information content 
+        # without iodine cell (smoothed to a constant)
+        S_pure = model(S_star, uj, iod_j*0+np.mean(iod_j), IP, **modset)
+        dS = S_pure(x+0.1, *p) - S_pure(x, *p)    # flux gradient from finite difference
+        du = 1000 * c * np.diff(w)*0.1 / w[:-1]   # [m/s] velocity differential from initial solution
+        # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
+        varS = abs(f) + 5**2   # (5 = readout noise)
+        # RV precision Eq. (6) Butler+ 1996PASP..108..500B 
+        ev_star = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
+        print(f'Stellar RV precision limit: {ev_star} m/s')
+
+        # estimate velocity precision limit for the iodine from its RV information content 
+        # now the star is smoothed
+        tpl_smooth = np.cumsum(f_tpl[o])
+        wz = 1000   # window size
+        tpl_smooth = (tpl_smooth[wz:] - tpl_smooth[:-wz]) / wz 
+        # gplot(f_tpl[o], ',', tpl_smooth)
+        S_smooth = lambda x: np.interp(x, np.log(w_tpl[o][wz//2:-wz//2])-berv/c, tpl_smooth)
+        iod_pure = model(S_smooth, uj, iod_j, IP, **modset)
+        dS = iod_pure(x+0.1, *p) - iod_pure(x, *p)   # flux gradient from finite difference
+        ev_iod = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
+        print(f'Iodine RV precision limit: {ev_iod} m/s')
+
+        # total precision is the squared sum of both
+        # in practice it will be worse since more parameters are modelled
+        ev_total = np.sqrt(ev_star**2 + ev_iod**2)
+        print(f'Total RV precision limit: {ev_total} m/s')
+        if 1:
+            # plot spectra for which precision limits were estimated
+            gplot2(x, f, bp, f' us 1:2:($3>0?9:1) lc var ps 0.5 t "data ({ev_total:.2f} m/s)",', x, iod_pure(x, *p)+np.mean(f)/2, bp, f' us 1:2:($3>0?9:2) w l lc var t "offset + IP x iod ({ev_iod:.2f} m/s)",', x, S_pure(x, *p), bp, f' us 1:2:($3>0?9:3) w l lc var t "IP x star ({ev_star:.2f} m/s)"')
+            #pause()
+
     # overplot FTS iodine spectrum
     #gplot+(np.exp(uj), iod_j/iod_j.max()*f_ok.max(), 'w l lc 9')
     # overplot stellar spectrum
@@ -486,6 +520,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     # gplot+(w_tpl[s_s]*(1-berv/c), f_tpl[s_s]*ag, 'w lp lc 4 ps 0.5')
     #gplot+(x_ok, S_star(np.log(np.poly1d(b[::-1])(x_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
+
     fmod = S_mod(x_ok, *p)
     res = f_ok - fmod
     prms = np.std(res) / np.mean(fmod) * 100
