@@ -58,6 +58,27 @@ def Tpl(tplname, o=None, targ=None):
         h = hdu.header
         w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
         w = airtovac(w)
+    elif tplname.endswith('1d.fits'):
+        hdu = fits.open(tplname, ignore_blank=True)[0]
+        hdr = hdu.header
+        dateobs = hdr['DATE']
+        exptime = hdr['EXPTIME']
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
+        bjd = midtime.tdb
+
+        if not targ: 
+            #targ = targdrs
+            berv = 0
+        else:
+            berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
+            berv = berv.to(u.km/u.s).value
+
+        f = hdu.data
+        f /= np.nanmean(f)
+        gg = readmultispec(tplname, reform=True, quiet=True)
+        w = gg['wavelen']
+        w = airtovac(w)
+        w *= 1 + (berv*u.km/u.s/c).to_value('')
     else:
         x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')
