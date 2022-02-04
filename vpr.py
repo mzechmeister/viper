@@ -43,7 +43,7 @@ def arg2slice(arg):
 
 
 class VPR():
-    def __init__(self, tag, gp='', oset=None, sort=''):
+    def __init__(self, tag, gp='', oset=None, sort='', cen=False):
         '''
         oset: slice,list
         '''
@@ -58,7 +58,7 @@ class VPR():
             self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
         except:
             self.Afull = np.genfromtxt(file, dtype=None, names=True).view(np.recarray)
-            
+
         if sort:
             self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
@@ -84,6 +84,12 @@ class VPR():
         self.RV = np.mean(self.rv, axis=0)
         self.e_RV = np.std(self.rv, axis=0) / (len(onames)-1)**0.5
 
+        if cen:
+            off = np.nanmedian(self.RV)
+            print('Subtracting', off, 'm/s from all RVs.')
+            self.RV -= off
+            self.rv -= off
+
         self.info()
 
     def info(self):
@@ -95,7 +101,7 @@ class VPR():
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
         gplot.key("title '%s' noenhance" % (self.tag))
-        gplot(self.BJD, self.RV,self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % self.oset)
+        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % self.oset)
         pause('RV time serie')
 
     def plot_rv(self, o=None, n=1):
@@ -135,11 +141,12 @@ if __name__ == "__main__":
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
+    argopt('-cen', help='center RVs to zero median', action='store_true')
 
     args = parser.parse_args()
 
     vpr = VPR(**vars(args))
-    if args.oset is None:
+    if args.oset is None and not args.cen:
         plot_RV(vpr.file)
     else:
         vpr.plot_RV()
