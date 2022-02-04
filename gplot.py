@@ -7,8 +7,8 @@ import tempfile
 import os
 
 __author__ = 'Mathias Zechmeister'
-__version__ = 'v14'
-__date__ = '2020-06-27'
+__version__ = 'v17'
+__date__ = '2021-03-30'
 __all__ = ['gplot', 'Gplot', 'ogplot', 'Iplot']
 
 
@@ -16,7 +16,7 @@ class Gplot(object):
    """
    An interface between Python and gnuplot.
    
-   Creation of an instance opens a pipe to gnuplot and return an object for communication.
+   Creation of an instance opens a pipe to gnuplot and returns an object for communication.
    Plot commands are send to gnuplot via the call method; arrays as arguments are handled.
    Gnuplot options are set by calling them as method attributes.
    Each method returns the object again. This allows to chain set and plot method.
@@ -25,8 +25,7 @@ class Gplot(object):
    ----------
    tmp : str, optional
        Method for passing data.
-       * '$' - use inline datablock (default) (not faster than temporary data,
-             does not work with flush='' an ogplot)
+       * '$' - use inline datablock (default) (not faster than temporary data)
        * None - create a non-persistent temporary file
        * '' - create a local persistent file
        * '-' - use gnuplot special filename (no interactive zoom available,
@@ -34,6 +33,11 @@ class Gplot(object):
        * 'filename' - create manually a temporary file
    stdout : boolean, optional
        If true, plot commands are send to stdout instead to gnuplot pipe.
+   stderr : int, optional
+       Gnuplot prints errors and user prints to stderr (term output is sent to stdout). The
+       default stderr=None retains this behaviour. stderr=-1 (subprocess.PIPE) tries to
+       capture stderr so that the output can be redirected to the Jupyter cells instead of
+       parent console. This feature can be fragile and is experimental.
    mode : str, optional
        Primary command for the call method. The default is 'plot'. After creation it can
        be changed, e.g. gplot.mode = gplot.splot.
@@ -87,17 +91,22 @@ class Gplot(object):
    version = subprocess.check_output(['gnuplot', '-V'])
    version = float(version.split()[1]) 
    
-   def __init__(self, cmdargs='', tmp='$', mode='plot', stdout=False):
+   def __init__(self, cmdargs='', tmp='$', mode='plot', stdout=False, stderr=None):
       self.stdout = stdout
       self.tmp = tmp
       self.mode = getattr(self, mode)   # set the default mode for __call__ (plot, splot)
       self.gnuplot = subprocess.Popen('gnuplot '+cmdargs, shell=True, stdin=subprocess.PIPE,
-                   universal_newlines=True, bufsize=0)   # This line is needed for python3! Unbuffered and to pass str instead of bytes
+                   stderr=stderr, universal_newlines=True, bufsize=0)   # This line is needed for python3! Unbuffered and to pass str instead of bytes
       self.pid = self.gnuplot.pid
       self.og = 0   # overplot number
       self.buf = ''
       self.tmp2 = []
       self.flush = None
+      self.put = self._put
+      if stderr:
+          import fcntl
+          fcntl.fcntl(self.gnuplot.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
+          self.put = self.PUT
    
    def _plot(self, *args, **kwargs):
       # collect all arguments
@@ -107,9 +116,13 @@ class Gplot(object):
       # with mouse zooming (see http://sourceforge.net/p/gnuplot/bugs/1203/)
       self.flush = flush
       pl = ''
+      buf = ''
       data = ()
+      if tmp in ('$',):
+           pl, self.buf = self.buf, pl
+
       for arg in args + (flush,):
-         if isinstance(arg, str):   # append argument, but flush the data before
+         if isinstance(arg, (str, u''.__class__)):   # append argument, but flush the data before
             if data:
                # transpose data when writing
                data = zip(*data)
@@ -122,7 +135,7 @@ class Gplot(object):
                   # gnuplot's inline datablock
                   tmpname = "$data%s" % self.og
                   # prepend the datablock
-                  pl = tmpname+" <<EOD\n"+("\n".join(" ".join(map(str,tup)) for tup in data))+"\nEOD\n" + pl
+                  buf += tmpname+" <<EOD\n"+("\n".join(" ".join(map(str,tup)) for tup in data))+"\nEOD\n"
                elif tmp is None:
                   # create temporary file; default
                   self.tmp2.append(tempfile.NamedTemporaryFile())
@@ -132,7 +145,7 @@ class Gplot(object):
                   self.tmp2[-1].seek(0)
                else:
                   # create local temporary file
-                  if tmp=='':
+                  if tmp == '':
                      tmpname = 'gptmp_'+str(self.pid)+str(self.og)
                   savetxt(tmpname, list(data), fmt="%s")
                pl += '"'+tmpname+'"'
@@ -143,12 +156,41 @@ class Gplot(object):
             _1D = hasattr(arg, '__iter__')
             _2D = _1D and hasattr(arg[0], '__iter__') and not isinstance(arg[0], str)
             data += tuple(arg) if _2D else (arg,) if _1D else ([arg],)
-      self.put(pl, end='')
-      if flush!='': self.put(self.buf, end='')
 
-   def put(self, *args, **kwargs):
+      if tmp in ('$',):
+          self.put(buf, end='')
+          self.buf += pl
+          pl = ''
+      self.put(pl, end='')
+      if flush != '':
+          self.put(self.buf, end='')
+          self.buf = ''
+
+   def _put(self, *args, **kwargs):
       # send the commands to gnuplot
       print(file=None if self.stdout else self.gnuplot.stdin, *args, **kwargs)
+      return self
+
+   def PUT(self, *args, **kwargs):
+      # same a _put, but tries to catch stdout and stderr of gnuplot
+      #r,w = os.pipe()
+      #stdout = '/proc/%s/fd/%s' % (os.getpid(), w)
+      #f = os.fdopen(r, 'r')
+      #g = os.fdopen(w, 'w')
+      #self.gnuplot.stdin.write("set print '%s'\n"% stdout)
+      self._put(*args, **kwargs)
+      self.gnuplot.stdin.write('printerr ""\n')
+      # self.gnuplot.stdin.write("set print\n")
+      # g.close()
+      # s = f.read()
+      # f.close()
+      import time
+      try:
+          time.sleep(0.03) # if long the fifo cannot be read?
+          s = self.gnuplot.stderr.read()[:-1]
+          if s: print(s, end='')  # gnuplot already appends a newline
+      except:
+          pass
       return self
 
    # some plot commands (kwargs possible)
@@ -185,16 +227,16 @@ class Gplot(object):
          raise AttributeError
       elif name=='repl':
          return self.replot()
-      elif name in ['load', 'set', 'show', 'unset', 'reset', 'print', 'bind']:
+      elif name.startswith(('load', 'pwd', 'set', 'show', 'system', 'unset', 'reset', 'print', 'bind')):
          # some fixed keywords
          # print as attribute does not work in python 2
          def func(*args):
-            return self.put(name, *args)
+            return self.put(name.replace("_"," "), *args)
          return func
       else:
          # dynamic attributes (xlabel, key, etc.)
          def func(*args):
-            # _ underscores are replace with blank, e.g. gplot.key_left_Left()
+            # _ underscores are replaced with blanks, e.g. gplot.key_left_Left()
             return self.set(name.replace("_"," "), *args)
          return func
 
@@ -206,7 +248,7 @@ class Gplot(object):
       The plot will be update immediately. To pass flush='', use the __lt__
       method.
       '''
-      self.oplot(*other)
+      self.oplot(*other) if other else self._plot()
 
    def __sub__(self, other):
       '''Start a new plot, but do not flush.
@@ -278,7 +320,7 @@ class Iplot(Gplot):
       
       Examples
       --------
-      >>> iplot = Iplot(opt='size 300,200')
+      >>> iplot = Iplot(opt='size 300,200', stderr=-1)
       >>> iplot('x')
       
       NOTES
@@ -375,7 +417,6 @@ class Iplot(Gplot):
                gnuplot_svg_js = open(self._jsdir+"gnuplot_svg.js").read()
             gnuplot_svg_js.replace("documentElement", 'getElementsByTagName("svg")[0]')
             imgdata = ('''
-    Inline SVG1
      <script>
 ''' + gnuplot_svg_js + '''
         // manually gnuplot_svg.Init (onload does not fire?)
