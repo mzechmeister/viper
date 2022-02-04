@@ -149,22 +149,24 @@ if __name__ == "__main__":
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-cen', help='center RVs to zero median', action='store_true')
-    argopt('-cmp', help='compare two time series', type=str)
+    argopt('-cmp', help='compare two time series (default: cmp=None or, if cmposet is passed, cmp=tag)', type=str)
+    argopt('-cmposet', help='index for order subset of comparison', type=arg2slice)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
 
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
-    tag = args.__dict__.pop('tag')
-    tagcmp = args.__dict__.pop('cmp')
+    tagcmp = args.pop('cmp')
+    cmposet = args.pop('cmposet')
 
-    vpr = VPR(tag, **vars(args))
+    vpr = VPR(**args)
 
-    if tagcmp:
-        vprcmp = VPR(tagcmp, **vars(args))
+    if tagcmp or cmposet:
+        if tagcmp: args['tag'] = tagcmp
+        if cmposet: args['oset'] = cmposet
+        vprcmp = VPR(**args)
         plot_cmp(vpr, vprcmp)
-
-    if args.oset is None and not args.cen:
+    elif args.oset is None and not args.cen:
         plot_RV(vpr.file)
     else:
         vpr.plot_RV()
