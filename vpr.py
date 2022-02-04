@@ -41,6 +41,13 @@ def arg2slice(arg):
         arg = eval('np.s_['+arg+']')
     return [arg] if isinstance(arg, int) else arg
 
+def plot_cmp(vpr, vprcmp):
+        gplot.mxtics().mytics()
+        gplot.xlabel("'BJD - 2 450 000'")
+        gplot.ylabel("'RV [m/s]'")
+        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 1 t "%s [o=%s] rms=%.2f m/s" noenh' % (vprcmp.tag, vprcmp.oset, vprcmp.rms))
+        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "%s [o=%s] rms=%.2f m/s" noenh' % (vpr.tag, vpr.oset, vpr.rms))
+        pause('RV time serie')
 
 class VPR():
     def __init__(self, tag, gp='', oset=None, sort='', cen=False):
@@ -50,6 +57,7 @@ class VPR():
         self.tag = tag.replace('.rvo.dat', '')
         self.file = file = self.tag + '.rvo.dat'
         self.oset = oset
+        print(self.tag)
 
         if gp:
            gplot.put(gp)
@@ -93,7 +101,8 @@ class VPR():
         self.info()
 
     def info(self):
-        print('rms(RV) [m/s]:     ', np.std(self.RV))
+        self.rms = np.std(self.RV)
+        print('rms(RV) [m/s]:     ', self.rms)
         print('median(e_RV) [m/s]:', np.median(self.e_RV))
 
     def plot_RV(self):
@@ -139,13 +148,22 @@ if __name__ == "__main__":
     argopt = parser.add_argument   # function short cut
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
     argopt('-gp', help='gnuplot commands', default='', type=str)
+    argopt('-cen', help='center RVs to zero median', action='store_true')
+    argopt('-cmp', help='compare two time series', type=str)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
-    argopt('-cen', help='center RVs to zero median', action='store_true')
 
     args = parser.parse_args()
 
-    vpr = VPR(**vars(args))
+    tag = args.__dict__.pop('tag')
+    tagcmp = args.__dict__.pop('cmp')
+
+    vpr = VPR(tag, **vars(args))
+
+    if tagcmp:
+        vprcmp = VPR(tagcmp, **vars(args))
+        plot_cmp(vpr, vprcmp)
+
     if args.oset is None and not args.cen:
         plot_RV(vpr.file)
     else:
