@@ -50,7 +50,7 @@ def plot_cmp(vpr, vprcmp):
         pause('RV time serie')
 
 class VPR():
-    def __init__(self, tag, gp='', oset=None, sort='', cen=False):
+    def __init__(self, tag, gp='', oset=None, ocen=None, sort='', cen=False):
         '''
         oset: slice,list
         '''
@@ -99,6 +99,17 @@ class VPR():
             self.rv -= off
 
         self.info()
+
+        if ocen:
+            RVo = np.mean(self.rv-self.RV, axis=1)
+            print('Subtracting mean order offsets from all RVs.')
+            # This should not change the RV mean values.
+            # The idea is to reduce RV uncertainty overestimation coming from large order offsets.
+            # Offsets are hints for systematics in wavelength solutions (template or fts-iod)
+            self.rv -= RVo[:,None]
+            self.RV = np.mean(self.rv, axis=0)
+            self.e_RV = np.std(self.rv, axis=0) / (len(onames)-1)**0.5
+            self.info()
 
     def info(self):
         self.rms = np.std(self.RV)
@@ -150,7 +161,9 @@ if __name__ == "__main__":
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-cen', help='center RVs to zero median', action='store_true')
     argopt('-cmp', help='compare two time series (default: cmp=None or, if cmposet is passed, cmp=tag)', type=str)
+    argopt('-cmpocen', help='center orders (subtract order offset) of comparison', action='store_true')
     argopt('-cmposet', help='index for order subset of comparison', type=arg2slice)
+    argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
 
@@ -158,15 +171,17 @@ if __name__ == "__main__":
 
     tagcmp = args.pop('cmp')
     cmposet = args.pop('cmposet')
+    cmpocen = args.pop('cmpocen')
 
     vpr = VPR(**args)
 
-    if tagcmp or cmposet:
+    if tagcmp or cmposet or cmpocen:
         if tagcmp: args['tag'] = tagcmp
         if cmposet: args['oset'] = cmposet
+        if cmpocen: args['ocen'] = cmpocen
         vprcmp = VPR(**args)
         plot_cmp(vpr, vprcmp)
-    elif args.oset is None and not args.cen:
+    elif args['oset'] is None and not args['cen']:
         plot_RV(vpr.file)
     else:
         vpr.plot_RV()
