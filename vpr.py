@@ -152,6 +152,29 @@ class VPR():
         print("Use '()[]^$' in gnuplot window to go through epochs n.")
         pause('rv order dispersion')
 
+def plot_res(opt, o=[1], n=[1]):
+    '''
+    Plot stacked residuals.
+
+    Examples:
+    vpr -res -oset [20] -nset [`seq -s, 1 50`]
+    vpr -res -oset [`seq -s, 19 29`] -nset [17]
+    '''
+    gplot.var(No=len(o), o=1, obeg=1, oend=len(o))
+    gplot.var(Nn=len(n), n=1, nbeg=1, nend=len(n))
+    gplot.bind("'('  'o=obeg=oend = o>1?o-1:1;   nbeg=1; nend=Nn; set key tit \"(o=\".A[o].\")\"; repl'")
+    gplot.bind("')'  'o=obeg=oend = o<No?o+1:No; nbeg=1; nend=Nn; set key tit \"(o=\".A[o].\")\"; repl'")
+    gplot.bind("'['  'n=nbeg=nend = n>1?n-1:1;   obeg=1; oend=No; set key tit \"[n=\".Sp[n].\"]\"; repl'")
+    gplot.bind("']'  'n=nbeg=nend = n<Nn?n+1:Nn; obeg=1; oend=No; set key tit \"[n=\".Sp[n].\"]\"; repl'")
+    gplot.key_invert()
+    gplot.term_qt_size('600,1300')
+    gplot.xlabel("'pixel x'").ylabel("'residuals'")
+    gplot.put("array A[No] = %s" % o)
+    gplot.put("array Sp[Nn] = %s" % n)
+    gplot.put('array d3color[6] = ["#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD", "#8C564B"]')
+    print("type '(' and ')' to go through the orders o or '[' and ']' to go through epochs n")
+    gplot('for [n=nbeg:nend] for [o=obeg:oend] sprintf("res/%03d_%03d.dat", Sp[int(n)], A[int(o)]) us 1:($2+int(nbeg==nend?o:n)/3.) lc rgb d3color[1+ int(nbeg==nend?o:n)%5] pt 7 ps 0.5 t "".Sp[n]."-".A[o]')
+    pause('residuals stacked: o=%s' % o)
 
 if __name__ == "__main__":
 
@@ -163,11 +186,18 @@ if __name__ == "__main__":
     argopt('-cmp', help='compare two time series (default: cmp=None or, if cmposet is passed, cmp=tag)', type=str)
     argopt('-cmpocen', help='center orders (subtract order offset) of comparison', action='store_true')
     argopt('-cmposet', help='index for order subset of comparison', type=arg2slice)
+    argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
+    argopt('-res', help='Plot residuals stacked', nargs='?',  const='', type=str)
 
     args = vars(parser.parse_args())
+
+    resopt = args.pop('res')
+    if resopt is not None:
+        plot_res(resopt, o=args['oset'], n=args['nset'])
+        exit()
 
     tagcmp = args.pop('cmp')
     cmposet = args.pop('cmposet')
