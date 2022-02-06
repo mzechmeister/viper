@@ -27,7 +27,7 @@ import vpr
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
-c = 3e5   # [km/s] speed of light
+c = 299792.458   # [km/s] speed of light
 
 targ = None
 modset = {}   # model setting parameters
@@ -235,7 +235,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     # convert discrete template into a function
     if tplname:
-        S_star = lambda x: np.interp(x, np.log(w_tpl[o])-berv/c, f_tpl[o])  # Apply barycentric motion
+        S_star = lambda x: np.interp(x, np.log(w_tpl[o])-np.log(1+berv/c), f_tpl[o])  # Apply barycentric motion
     else:
         S_star = lambda x: 0*x+1
 
