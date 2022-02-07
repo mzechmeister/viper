@@ -15,12 +15,12 @@ __all__ = ['gplot', 'Gplot', 'ogplot', 'Iplot']
 class Gplot(object):
    """
    An interface between Python and gnuplot.
-   
+
    Creation of an instance opens a pipe to gnuplot and returns an object for communication.
    Plot commands are send to gnuplot via the call method; arrays as arguments are handled.
    Gnuplot options are set by calling them as method attributes.
    Each method returns the object again. This allows to chain set and plot method.
-   
+
    Parameters
    ----------
    tmp : str, optional
@@ -59,22 +59,22 @@ class Gplot(object):
    test
    unset
    var
-   
+
    NOTES
    -----
    The attribute print does not work in python 2.
 
    Examples
    --------
-   
+
    A simple plot and add a data set
-   
+
    >>> gplot('sin(x) w lp lt 2')
    >>> gplot+(np.arange(10)**2., 'w lp lt 3')
    >>> gplot+('"filename" w lp lt 3')
-   
+
    Pass multiple curves in one call
-   
+
    >>> gplot('x/5, 1, x**2/50 w l lt 3,', np.sqrt(np.arange(10)),' us 0:1 ps 2 pt 7 ,sin(x)')
    >>> gplot.mxtics().mytics(2).repl
    >>> gplot([1,2,3,4])
@@ -83,14 +83,14 @@ class Gplot(object):
    >>> gplot([[2,2,1,1.5]])
    >>> gplot([1],[2],[3],[4])
    >>> gplot(1,2,3,4)
-   
+
    Pass options as function arguments or in the method name separated with underscore
 
    >>> gplot.key_bottom_rev("left")('sin(x)')
    """
    version = subprocess.check_output(['gnuplot', '-V'])
-   version = float(version.split()[1]) 
-   
+   version = float(version.split()[1])
+
    def __init__(self, cmdargs='', tmp='$', mode='plot', stdout=False, stderr=None):
       self.stdout = stdout
       self.tmp = tmp
@@ -107,7 +107,7 @@ class Gplot(object):
           import fcntl
           fcntl.fcntl(self.gnuplot.stderr, fcntl.F_SETFL, os.O_NONBLOCK)
           self.put = self.PUT
-   
+
    def _plot(self, *args, **kwargs):
       # collect all arguments
       tmp = kwargs.pop('tmp', self.tmp)
@@ -212,6 +212,12 @@ class Gplot(object):
       pl = ',' if self.flush=='' else ' replot '
       return self._plot(pl, *args, **kwargs)
 
+   def array(self, **kwargs):
+      # set gnuplot variables
+      # gplot.array(A=[1, 2, 3], B=[4, 5, "6"])
+      for k,v in kwargs.items(): self.put("array %s[%d] = %s" % (k, len(v), list(v)))
+      return self
+
    def var(self, **kwargs):
       # set gnuplot variables
       for i in kwargs.items(): self.put("%s=%s" % i)
@@ -242,7 +248,7 @@ class Gplot(object):
 
    def __add__(self, other):
       '''Add a curve to an existing plot (similar as ogplot).
-      
+
       This will look like calling the gplot instance, but a tuple is retrieved.
       Hence no keywords can be passed.
       The plot will be update immediately. To pass flush='', use the __lt__
@@ -252,7 +258,7 @@ class Gplot(object):
 
    def __sub__(self, other):
       '''Start a new plot, but do not flush.
-      
+
       In particular for larger data sets, one may want to accumulate
       remaing curves before, instead of replotting each time.
       Use gplot< to append more sets and gplot+ to finish the plot.
@@ -262,7 +268,7 @@ class Gplot(object):
 
    def __lt__(self, other):
       '''Add a curve to an existing plot, but do not flush.
-      
+
       In the "<" sign shall remind to the bash pipe operator.
       '''
       self.oplot(*other, flush='')
@@ -271,10 +277,10 @@ class Gplot(object):
 class Iplot(Gplot):
    '''
    Gnuplot for Jupyter.
-   
+
    The class is similar as Gplot, but, instead of self, plot method returns
    an object that can be displayed.
-   
+
    '''
    # Search gnuplot installation with javascript library
    # '/usr/share/gnuplot/%s/js/' % Gplot.version
@@ -289,14 +295,14 @@ class Iplot(Gplot):
 
    # online locations:
    # latest version, including mouse wheel for zooming for svg:
-   _jsdir = "http://gnuplot.sourceforge.net/demo_canvas_cvs/" 
+   _jsdir = "http://gnuplot.sourceforge.net/demo_canvas_cvs/"
    # "http://gnuplot.sourceforge.net/demo_canvas_5.2/"
    # "http://gnuplot.sourceforge.net/demo_svg/"
-   
+
    def __init__(self, *args, **kwargs):
       '''
       Iplot(*args, suffix='png', uri=True, cleanup=True, **kwargs)
-      
+
       Parameters:
       -----------
       *args : cmdargs (see Gplot).
@@ -317,12 +323,12 @@ class Iplot(Gplot):
           Path to gnuplot javascript library.
           (default: http://gnuplot.sourceforge.net/demo_canvas_cvs/)
       **kwargs : tmp (see Gplot).
-      
+
       Examples
       --------
       >>> iplot = Iplot(opt='size 300,200', stderr=-1)
       >>> iplot('x')
-      
+
       NOTES
       -----
       To get nice working gnuplot output, some issues needed to be
@@ -334,7 +340,7 @@ class Iplot(Gplot):
          * svg: Inline javascript is not loaded when using uri.
          * png: ok.
       Changing size was not tested yet.
-      
+
       '''
       self.suffix = kwargs.pop('suffix', 'png')
       self.opt = kwargs.pop('opt', '')
@@ -382,7 +388,7 @@ class Iplot(Gplot):
          1
          #imgdata = fifo.read()
          #imgfile = 'data:image/png;base64,'+
-         #imgdata = open(imgfile, "rb").read() # png needs rb, but imgfile can be also passed directly 
+         #imgdata = open(imgfile, "rb").read() # png needs rb, but imgfile can be also passed directly
          #imgdata.replace('<svg ','<script type="text/javascript" xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="./gp/gnuplot_svg.js"></script>\n<svg ')
          #import base64
          #print (base64.b64encode(imgdata).decode('ascii')[-10:])
@@ -431,7 +437,7 @@ class Iplot(Gplot):
             imgdata = '<script>%s</script>' % open(imgfile).read()
          else:
             imgdata = '''<script src="%s"></script>''' % imgfile
-         # style the buttons and work around some mousing issues 
+         # style the buttons and work around some mousing issues
          imgdata = '''
          <link rel="stylesheet" href="%sgnuplot_mouse.css" type="text/css">
 <style>
@@ -499,7 +505,7 @@ class Iplot(Gplot):
           %s();
            $('body').on('contextmenu', '#%s', function(e){ return false; });
       </script>
-      
+
             ''' % ((self._jsdir,)*4 + (imgdata,) + (self._jsdir,)*5 + (canvasname,)*12)
 
       #print(imgdata)
