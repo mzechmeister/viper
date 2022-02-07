@@ -66,6 +66,9 @@ def Tpl(tplname, o=None, targ=None):
             w = airtovac(w)
         else:
             w = np.exp(w)
+    elif tplname.endswith('PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'):
+        from . import phoenix
+        w, f = phoenix.read(tplname)
     else:
         # long 1d template
         hdu = fits.open(tplname)
