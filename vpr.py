@@ -199,6 +199,7 @@ if __name__ == "__main__":
         plot_res(resopt, o=args['oset'], n=args['nset'])
         exit()
 
+    args.pop('nset')
     tagcmp = args.pop('cmp')
     cmposet = args.pop('cmposet')
     cmpocen = args.pop('cmpocen')
