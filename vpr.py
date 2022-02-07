@@ -152,7 +152,7 @@ class VPR():
         print("Use '()[]^$' in gnuplot window to go through epochs n.")
         pause('rv order dispersion')
 
-def plot_res(opt, o=[1], n=[1]):
+def plot_res(folder, o=[1], n=[1]):
     '''
     Plot stacked residuals.
 
@@ -169,11 +169,13 @@ def plot_res(opt, o=[1], n=[1]):
     gplot.key_invert()
     gplot.term_qt_size('600,1300')
     gplot.xlabel("'pixel x'").ylabel("'residuals'")
-    gplot.put("array A[No] = %s" % o)
-    gplot.put("array Sp[Nn] = %s" % n)
-    gplot.put('array d3color[6] = ["#1F77B4", "#FF7F0E", "#2CA02C", "#D62728", "#9467BD", "#8C564B"]')
+    gplot.array(A=o, Sp=n)
+    gplot.array(d3color=[0x1F77B4, 0xFF7F0E, 0x2CA02C, 0xD62728, 0x9467BD, 0x8C564B])
     print("type '(' and ')' to go through the orders o or '[' and ']' to go through epochs n")
-    gplot('for [n=nbeg:nend] for [o=obeg:oend] sprintf("res/%03d_%03d.dat", Sp[int(n)], A[int(o)]) us 1:($2+int(nbeg==nend?o:n)/3.) lc rgb d3color[1+ int(nbeg==nend?o:n)%5] pt 7 ps 0.5 t "".Sp[n]."-".A[o]')
+    gplot(f'for [n=nbeg:nend] for [o=obeg:oend] sprintf("{folder}/%03d_%03d.dat", Sp[int(n)], A[int(o)]) us 1:($2+int(nbeg==nend?o:n)/3.) lc rgb d3color[1+ int(nbeg==nend?o:n)%5] pt 7 ps 0.5 t "".Sp[n]."-".A[o]')
+    # colored y2ticlabel are not really possible :(
+    # gplot+('A us (1700):(int(nbeg==nend?$1:0)/3.):2:(d3color[1+ int(nbeg==nend?$1:n)%5]) with labels tc rgb var')
+    # gplot+('A us (NaN):(int(nbeg==nend?$1:0)/3.):yticlabel(2) t ""')
     pause('residuals stacked: o=%s' % o)
 
 if __name__ == "__main__":
@@ -190,7 +192,7 @@ if __name__ == "__main__":
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
-    argopt('-res', help='Plot residuals stacked', nargs='?',  const='', type=str)
+    argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
 
     args = vars(parser.parse_args())
 
