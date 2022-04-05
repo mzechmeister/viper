@@ -30,10 +30,10 @@ def Spectrum(filename='', o=None, targ=None):
     hdr = hdu[0].header
     dateobs = hdr['DATE-OBS']
    
-    ra = hdr['RA']
-    de = hdr['DEC']
+    ra = hdr.get('RA',np.nan)
+    de = hdr.get('DEC',np.nan)
     hdr = hdu[1].header
-    exptime = hdr['EXPTIME']
+    exptime = hdr.get('EXPTIME',0) 
 
     targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
@@ -52,21 +52,13 @@ def Spectrum(filename='', o=None, targ=None):
     x = np.arange(f.size) 
 
     setting = (hdu[0]).header['ESO INS WLEN ID']
-    # using an own wavelength solution as the one given by CRIRES+ pipeline is wrong
-    if setting == 'K2166': 
-        bw = (np.load('lib/CRIRES/wavesolution/wave_solution_K2166.npy'))[o-1]   
-        w = np.poly1d(bw[::-1])(x)  
-    elif setting == 'K2192':  
-        bw = (np.load('lib/CRIRES/wavesolution/wave_solution_K2192.npy'))[o-1]
+    # using an own wavelength solution as the one given by CRIRES+ pipeline is imprecisely
+    if str(setting) in ('K2148','K2166','K2192'):
+        B = np.genfromtxt('lib/CRIRES/wavesolution/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
+        bw = [B.b1[o-1], B.b2[o-1], B.b3[o-1]]
         w = np.poly1d(bw[::-1])(x)
     else:
         w = (hdu[d].data.field(3*oi+2))*10
-
-    try:
-        mtrlgy = (hdu[0]).header['ESO OCS MTRLGY DX']
-        f = np.interp(x+mtrlgy,x,f)
-    except:
-        pass
 
     b = 1 * np.isnan(f) # bad pixel map
 
@@ -78,7 +70,7 @@ def Spectrum(filename='', o=None, targ=None):
     b[:flag_start[o-1]] |= 64
     b[flag_end[o-1]:] |= 64
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, b, bjd, berv,b,b,b,b
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
