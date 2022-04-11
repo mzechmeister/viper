@@ -178,9 +178,6 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
 
-    telluric = 'sig'
-    tsig = 0.01
-
     if telluric == 'mask':
         bp[mskatm(w) > 0.1] |= flag.atm
         bp[np.isnan(f)] |= flag.nan
