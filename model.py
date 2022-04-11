@@ -98,7 +98,7 @@ class model:
         #Si_mod = self.envelope((np.exp(ui)-b[0]-a[-1]), a[:-1]) * Si_eff
         return Si_mod
  
-    def fit(self, x, f, v=None, a=[], b=[], s=[], c=[], v0=None, a0=[], b0=[], s0=[], c0=[], **kwargs):
+    def fit(self, x, f, v=None, a=[], b=[], s=[], c=[], v0=None, a0=[], b0=[], s0=[], c0=[],sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
@@ -114,7 +114,7 @@ class model:
         s0 = tuple(s0)
         c0 = tuple(c0)
         S = lambda x, *p: self(x, *p[ sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0)
-        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s, *c], epsfcn=1e-12)
+        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s, *c],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
         v = (*p[sv], *np.diag(e_p)[sv])
         p = tuple(p)
         p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0]
