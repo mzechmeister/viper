@@ -164,6 +164,8 @@ if __name__ == "__main__":
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
+    argopt('-telluric', help='mask: mask telluric; sig: downweigth tellurics (just for CRIRES+)', default=None, type=str)
+    argopt('-tsig', help='(relative) sigma value for weighting', default=0.01, type=float)
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
@@ -175,8 +177,10 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
     x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
-    bp[mskatm(w) > 0.1] |= flag.atm
-    bp[np.isnan(f)] |= flag.nan
+
+    if telluric == 'mask':
+        bp[mskatm(w) > 0.1] |= flag.atm
+        bp[np.isnan(f)] |= flag.nan
 
     lmin = max(w[iset][0], w_tpl[o][0], w_I2[0])
     lmax = min(w[iset][-1], w_tpl[o][-1], w_I2[-1])
@@ -447,13 +451,18 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
    #     p, e_p = S_mod.fit(x_ok, f_ok, rvs,a, bg, s, c=cc, c0=c0, dx=0.1)
         v = rvs
 
+    sig = np.ones(len(f))
+    if telluric == 'sig':
+        sig[mskatm(w) < 0.1] = tsig
+        
+
     if tplname:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1)
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
+        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
@@ -469,10 +478,10 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         f_ok = f[i_ok]
 
         if tplname:
-            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1)
+            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
         else:
             # do not fit for velocity
-            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1)
+            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
 
     # overplot flagged and clipped data
     gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')

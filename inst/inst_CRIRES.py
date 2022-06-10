@@ -70,7 +70,7 @@ def Spectrum(filename='', o=None, targ=None):
     b[:flag_start[o-1]] |= 64
     b[flag_end[o-1]:] |= 64
 
-    return x, w, f, b, bjd, berv,b,b,b,b
+    return x, w, f, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
