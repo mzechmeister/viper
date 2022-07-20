@@ -73,7 +73,7 @@ class model:
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
-        self.S_star, self.uj, self.iod_j, self.IP = args
+        self.S_star, self.uj, self.iod_j, self.atmj, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.uj[1] - self.uj[0]  # sampling in uniform resampled Iod
         self.IP_hs = IP_hs
@@ -82,13 +82,20 @@ class model:
         self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, i, v, a, b, s, cc=[0]):
+    def __call__(self, i, v, a, b, s,t, cc=[0]):
         # wavelength solution 
         #    lam(x) = b0 + b1 * x + b2 * x^2
         ui = np.log(np.poly1d(b[::-1])(i-self.icen))
 
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j + cc[0]), mode='valid')
+        if self.atmj == []:
+            Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j + cc[0]), mode='valid')
+        else:
+            # telluric forward modelling
+            atm = np.ones(len(self.atmj[0]))
+            for aj in range(0,len(self.atmj),1):
+                atm *= (self.atmj[aj]**t[aj])
+            Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j * atm + cc[0]), mode='valid')
 
         # sampling to pixel
         Si_eff = np.interp(ui, self.uj_eff, Sj_eff)
@@ -98,7 +105,7 @@ class model:
         #Si_mod = self.envelope((np.exp(ui)-b[0]-a[-1]), a[:-1]) * Si_eff
         return Si_mod
  
-    def fit(self, x, f, v=None, a=[], b=[], s=[], c=[], v0=None, a0=[], b0=[], s0=[], c0=[],sig=[], **kwargs):
+    def fit(self, x, f, v=None, a=[], b=[], s=[],t=[], c=[], v0=None, a0=[], b0=[], s0=[],t0=[], c0=[],sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
@@ -108,16 +115,18 @@ class model:
         sa = slice(sv.stop, sv.stop+len(a))
         sb = slice(sa.stop, sa.stop+len(b))
         ss = slice(sb.stop, sb.stop+len(s))
-        sc = slice(ss.stop, ss.stop+len(c))
+        st = slice(ss.stop, ss.stop+len(t))
+        sc = slice(st.stop, st.stop+len(c))
         a0 = tuple(a0)
         b0 = tuple(b0)
         s0 = tuple(s0)
+        t0 = tuple(t0)
         c0 = tuple(c0)
-        S = lambda x, *p: self(x, *p[ sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0)
-        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s, *c],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
+        S = lambda x, *p: self(x, *p[ sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[st]+t0, p[sc]+c0)
+        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s,*t, *c],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
         v = (*p[sv], *np.diag(e_p)[sv])
         p = tuple(p)
-        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[sc]+c0]
+        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[st]+t0, p[sc]+c0]
         if kwargs:
             self.show(p, x, f, v=v, **kwargs)
         return p, e_p
