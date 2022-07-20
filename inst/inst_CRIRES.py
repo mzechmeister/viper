@@ -57,6 +57,9 @@ def Spectrum(filename='', o=None, targ=None):
         B = np.genfromtxt('lib/CRIRES/wavesolution/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
         bw = [B.b1[o-1], B.b2[o-1], B.b3[o-1]]
         w = np.poly1d(bw[::-1])(x)
+        # normalization
+        bl = np.load('lib/CRIRES/'+str(setting)+'_blaze.npy')[o]
+        f /= bl
     else:
         w = (hdu[d].data.field(3*oi+2))*10
 
@@ -88,3 +91,21 @@ def Tpl(tplname, o=None, targ=None):
 def FTS(ftsname='lib/CRIRES/FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
+
+def Tell(molec):
+      modelfile = 'lib/CRIRES/atmos/stdAtmos_crires_'+str(molec)+'.fits'
+      hdu = fits.open(modelfile, ignore_blank=True)
+      atm_model = hdu[1].data
+      w_atm = atm_model.field(0).astype(np.float64)
+      f_atm = atm_model.field(1).astype(np.float64)
+    
+      return w_atm, f_atm
+
+
+
+
+
+
+
+
+
