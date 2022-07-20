@@ -133,6 +133,9 @@ if __name__ == "__main__":
     FTS = Inst.FTS
     Tpl = Inst.Tpl
     Spectrum = Inst.Spectrum
+    if preargs.inst == 'CRIRES':
+        # as it is just available for CRIRES in the moment
+        Tell = Inst.Tell
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
@@ -164,10 +167,12 @@ if __name__ == "__main__":
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
-    argopt('-telluric', help='mask: mask telluric; sig: downweigth tellurics (just for CRIRES+)', default=None, type=str)
-    argopt('-tsig', help='(relative) sigma value for weighting', default=0.01, type=float)
+    argopt('-telluric', help='mask: mask telluric; sig: downweigth tellurics; add: telluric forward modelling (just for CRIRES+)', default=None, type=str)
+    argopt('-tsig', help='(relative) sigma value for weighting tellurics', default=1, type=float)
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
+
+    
 
     args = parser.parse_args()
     globals().update(vars(args))
@@ -214,7 +219,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
     modset['IP_hs'] = iphs
-    
+
     if degar:
         # rational polynomial
         modset['envelope'] = lambda x, a: pade(x, a[:dega+1], a[dega+1:])
@@ -231,6 +236,19 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     uj = uj_full[sj]
     iod_j = iod_j_full[sj]
 
+    # telluric forward modelling
+    if telluric == 'add':
+        atmj = {}
+        for at in range(0,len(molec),1):
+            s_t = slice(*np.searchsorted(w_atm[at], [lmin, lmax]))
+            # bring it to same log(wavelength) scale as cell
+            atmj[at] = np.interp(uj, np.log(w_atm[at][s_t]), f_atm[at][s_t])
+        # parameter to scale each telluric model:
+        t = t0 = np.ones(len(atmj))
+    else:
+        atmj = []
+        t= t0 = []
+
     if demo & 1:
         # plot data, template, and iodine with some scaling
         gplot(w_I2[s], f_I2[s]/np.median(f_I2[s]), 'w l lc 9,', w_tpl[o][s_s], f_tpl[o][s_s]/np.nanmedian(f_tpl[o][s_s]), 'w l lc 3,', w, f/np.nanmedian(f), 'w lp lc 1 pt 7 ps 0.5')
@@ -246,7 +264,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     IP = IPs[ip]
 
     # setup the model
-    S_mod = model(S_star, uj, iod_j, IP, **modset)
+    S_mod = model(S_star, uj, iod_j, atmj, IP, **modset)
 
     if demo & 2:
         # plot the IP
@@ -280,40 +298,44 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     elif ip in ('ag',):
         s += [1.]   # skewness parameter (offset to get iterationss)
 
+    sig = np.ones(len(f)) 
+    if telluric in('sig','add'):
+        sig[mskatm(w) < 0.1] = tsig
+
     if demo & 8:
         # a simple call to the forward model
         # Si_mod = S_mod(x_ok, v=0, a=a, b=b, s=s)
         # show the start guess
-        S_mod.show([v,a,b,s], x_ok, f_ok, res=False, dx=0.1)
+        S_mod.show([v,a,b,s,t], x_ok, f_ok, res=False, dx=0.1)
         pause('demo 8: Smod simple call')
 
     if demo & 16:
         # A wrapper to fit the continuum
-        p_a, _ = S_mod.fit(x_ok, f_ok, a=[a0], v0=vg, b0=bg, s0=sg, c0=cg, res=False, dx=0.1)
+        p_a, _ = S_mod.fit(x_ok, f_ok, a=[a0], v0=vg, b0=bg, s0=sg,t=t0, c0=cg, res=False, dx=0.1, sig=sig[i_ok])
         ag[0] = p_a[1][0]
         pause('demo 16: S_a')
 
     if demo & 32:
         # A wrapper to fit the wavelength solution
-        p_b, _ = S_mod.fit(x_ok, f_ok, b=bg[:-1]+[1e-15], v0=vg, a0=a, s0=sg, c0=cg,  res=False, dx=0.1)
+        p_b, _ = S_mod.fit(x_ok, f_ok, b=bg[:-1]+[1e-15], v0=vg, a0=a, s0=sg,t=t0, c0=cg,  res=False, dx=0.1, sig=sig[i_ok])
         b = p_b[2]
         pause('demo 32: S_b')
 
     if demo & 64:
         # fit v, a0 and b simultaneously
-        p, _ = S_mod.fit(x_ok, f_ok, a=a, b=b, v0=vg, s0=sg, c0=cg, res=False, dx=0.1)
-        v, a, b, s,cc = p
+        p, _ = S_mod.fit(x_ok, f_ok, a=a, b=b, v0=vg, s0=sg,t=t0, c0=cg, res=False, dx=0.1, sig=sig[i_ok])
+        v, a, b, s,t,cc = p
         pause('demo 64: S_vab')
 
 
     if ip in ('sg', 'ag', 'bnd'):
         # prefit with Gaussian IP
-        S_modg = model(S_star, uj, iod_j, IPs['g'], **modset)
+        S_modg = model(S_star, uj, iod_j, atmj, IPs['g'], **modset)
         if tplname:
-            p, _ = S_modg.fit(x_ok, f_ok, v=vg, a=a, b=b, s=sg[0:1], c=cc, c0=c0)
+            p, _ = S_modg.fit(x_ok, f_ok, v=vg, a=a, b=b, s=sg[0:1],t=t0, c=cc, c0=c0, sig=sig[i_ok])
         else:
             # do not fit for RV
-            p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1], c=cc, v0=vg, c0=c0)
+            p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1],t=t0, c=cc, v0=vg, c0=c0, sig=sig[i_ok])
         v, a, b, *_ = p
         s = [p[-2][0], *sg[1:]]
 
@@ -321,7 +343,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         if demo:
             bg = b
             a = [a0]
-        pg = [v, a, bg, s, cc+c0]
+        pg = [v, a, bg, s,t0 ,cc+c0]
         prms = S_mod.show(pg, x_ok, f_ok, res=True, dx=0.1)
         pause('lookguess')
 
@@ -330,7 +352,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         # kappa sigma clipping of outliers
         # len1 = len(f_ok)
 
-        pg = [vg, a, bg, s, cc+c0]
+        pg = [vg, a, bg, s,t, cc+c0]
         smod = S_mod(x, *pg)
         resid = (f - smod)
         resid[bp != 0] = 0
@@ -400,7 +422,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         while rounds < 20:
             for vv,vguess in enumerate(vk):
                 if vguess not in v_all:
-                    p, e_p = S_mod.fit(x_ok, f_ok, None, a, bg, s, v0 = vguess, c=cc, c0=c0, dx=0.1)
+                    p, e_p = S_mod.fit(x_ok, f_ok, None, a, bg, s,t, v0 = vguess, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
                     rms11 = np.std(f_ok - S_mod(x_ok, *p))
                     if stepRV == 'a':
                         rms1[vv] = rms11
@@ -449,20 +471,15 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         #pause()   
 
    #     p, e_p = S_mod.fit(x_ok, f_ok, rvs,a, bg, s, c=cc, c0=c0, dx=0.1)
-        v = rvs
-
-    sig = np.ones(len(f))
-    if telluric == 'sig':
-        sig[mskatm(w) < 0.1] = tsig
-        
+        v = rvs      
 
     if tplname:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc , c0=c0, dx=0.1, sig=sig[i_ok])
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
+        p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
         # prepend dummy parameter
 #        e_p = np.diag([np.nan, *np.diag(e_p)])
 
@@ -478,10 +495,10 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         f_ok = f[i_ok]
 
         if tplname:
-            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
+            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
         else:
             # do not fit for velocity
-            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
+            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
 
     # overplot flagged and clipped data
     gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
@@ -489,7 +506,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     if infoprec:
         # estimate velocity precision limit from stellar information content 
         # without iodine cell (smoothed to a constant)
-        S_pure = model(S_star, uj, iod_j*0+np.mean(iod_j), IP, **modset)
+        S_pure = model(S_star, uj, iod_j*0+np.mean(iod_j),atmj, IP, **modset)
         dS = S_pure(x+0.1, *p) - S_pure(x, *p)    # flux gradient from finite difference
         du = 1000 * c * np.diff(w)*0.1 / w[:-1]   # [m/s] velocity differential from initial solution
         # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
@@ -505,7 +522,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         tpl_smooth = (tpl_smooth[wz:] - tpl_smooth[:-wz]) / wz 
         # gplot(f_tpl[o], ',', tpl_smooth)
         S_smooth = lambda x: np.interp(x, np.log(w_tpl[o][wz//2:-wz//2])-berv/c, tpl_smooth)
-        iod_pure = model(S_smooth, uj, iod_j, IP, **modset)
+        iod_pure = model(S_smooth, uj, iod_j,atmj, IP, **modset)
         dS = iod_pure(x+0.1, *p) - iod_pure(x, *p)   # flux gradient from finite difference
         ev_iod = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
         print(f'Iodine RV precision limit: {ev_iod} m/s')
@@ -613,6 +630,16 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 
 w_I2, f_I2, uj_full, iod_j_full = FTS(ftsname)
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
+
+#### Telluric model ####
+
+# in the moment just for CRIRES+
+#telluric = 'add'
+if telluric == 'add':
+    molec = ['H2O','CH4','N2O','CO2']
+    w_atm, f_atm = {}, {}	
+    for mol in range(0, len(molec),1):
+        w_atm[mol], f_atm[mol] = Tell(molec[mol])
 
 ####  stellar template  ####
 if tplname:
