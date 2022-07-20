@@ -27,12 +27,14 @@ def bt_start():
     x = np.ones(len(cb_demo))*2    
     demo = (np.poly1d(ar_demo[::-1])(x))[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -dega "+e_dega.get()+" -degb "+e_degb.get()+" -degc "+e_degc.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -vg "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get()  
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -dega "+e_dega.get()+" -degb "+e_degb.get()+" -degc "+e_degc.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -vg "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
     if combo_stepRV.get():
         str_arg += " -stepRV " + str(combo_stepRV.get())
+    if combo_tell.get():
+        str_arg += " -telluric " + str(combo_tell.get())
     if e_kapsig.get():
         str_arg += " -kapsig "+ str(e_kapsig.get())
     if cb_lookpar.get() == 1:
@@ -41,6 +43,8 @@ def bt_start():
         str_arg += " -lookguess "
     if cb_lookres.get() == 1:
         str_arg += " -lookres "
+    if cb_infoprec.get() == 1:
+        str_arg += " -infoprec "
     if e_overs.get():
         str_arg += " -oversampling "+ str(e_overs.get())
     if e_targ.get():
@@ -104,7 +108,7 @@ sl = 6
 Frame(master=win,height=108,width=win_width-40,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20)
 
 Frame(master=win,height=258,width=380,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20+112)
-Frame(master=win,height=208,width=414,bg=bg_frame,bd=2, relief='groove').place(x=405,y=20+112)
+Frame(master=win,height=223,width=414,bg=bg_frame,bd=2, relief='groove').place(x=405,y=20+112)
 
 
 ###### BUTTONS ######
@@ -149,7 +153,7 @@ e_oset.place(x=x0+xss,y=(sl+1)*lh,width=100)
 
 e_ch = Entry(master=win)
 e_ch.insert(0,'1')
-e_ch.place(x=x0+xss,y=(sl+2)*lh,width=50)
+e_ch.place(x=x0+xss,y=(sl+2)*lh,width=60)
 
 e_dega = Entry(master=win)
 e_dega.insert(0,'3')
@@ -163,6 +167,10 @@ e_degc = Entry(master=win)
 e_degc.insert(0,'1')
 e_degc.place(x=x0+xss+1*sp,y=(sl+5)*lh,width=50)
 
+e_tsig = Entry(master=win)
+e_tsig.insert(0,'1')
+e_tsig.place(x=x0+xss+1*sp,y=(sl+6)*lh,width=50)
+
 e_iphs = Entry(master=win)
 e_iphs.insert(0,'50')
 e_iphs.place(x=x0+xss+sp,y=(sl+1)*lh,width=50)
@@ -173,11 +181,11 @@ e_vg.place(x=x0+xss+sp,y=(sl+2)*lh,width=50)
 
 e_kapsig = Entry(master=win)
 e_kapsig.insert(0,'4.5')
-e_kapsig.place(x=x0+xss+0*sp,y=(sl+3)*lh,width=50)
+e_kapsig.place(x=x0+xss+0*sp,y=(sl+3)*lh,width=60)
 
 e_overs = Entry(master=win)
 e_overs.insert(0,'1')
-e_overs.place(x=x0+xss+0*sp,y=(sl+4)*lh,width=50)
+e_overs.place(x=x0+xss+0*sp,y=(sl+4)*lh,width=60)
 
 ###### COMBOBOXES ######
 
@@ -191,7 +199,11 @@ combo_ip.place(x=x0+xss+sp,y=(sl+0)*lh,width=50)
 
 combo_stepRV = ttk.Combobox(master=win,values=['', 'a', 'm'])
 combo_stepRV.set('')
-combo_stepRV.place(x=x0+xss+0*sp,y=(sl+5)*lh,width=50)
+combo_stepRV.place(x=x0+xss+0*sp,y=(sl+5)*lh,width=60)
+
+combo_tell = ttk.Combobox(master=win,values=['','add', 'mask', 'sig'])
+combo_tell.set('')
+combo_tell.place(x=x0+xss+0*sp,y=(sl+6)*lh,width=60)
 
 ###### CHECKBOXES ######
 
@@ -212,6 +224,8 @@ cb_lookpar = IntVar()
 ttk.Checkbutton(master=win, text="     lookpar", variable=cb_lookpar).place(x=x0+sp+2*sps,y=(sl+4)*lh)
 cb_lookres = IntVar()
 ttk.Checkbutton(master=win, text="     lookres", variable=cb_lookres).place(x=x0+sp+1*sps,y=(sl+4)*lh)
+cb_infoprec = IntVar()
+ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=x0+sp+1*sps,y=(sl+5)*lh)
 
 #cb_atmmask = IntVar()
 #ttk.Checkbutton(master=win, text="     atmmask", variable=cb_atmmask).place(x=x0+0*sp,y=(sl+5)*lh)
@@ -246,6 +260,8 @@ ttk.Checkbutton(master=win, text="     lookres", variable=cb_lookres).place(x=x0
 (Label(master=win,text='oversampl:', background=bg_frame)).place(x=x0+0*sp,y=(sl+4)*lh)
 (Label(master=win,text='stepRV:', background=bg_frame)).place(x=x0+0*sp,y=(sl+5)*lh)
 
+(Label(master=win,text='telluric:', background=bg_frame)).place(x=x0+0*sp,y=(sl+6)*lh)
+(Label(master=win,text='tsig:', background=bg_frame)).place(x=x0+1*sp,y=(sl+6)*lh)
 
 
 ###### MAIN ######
