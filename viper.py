@@ -237,18 +237,20 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     uj = uj_full[sj]
     iod_j = iod_j_full[sj]
 
-    # telluric forward modelling
     if telluric == 'add':
-        atmj = {}
+        atmj = np.zeros((0,len(uj)))
         for at in range(0,len(molec),1):
             s_t = slice(*np.searchsorted(w_atm[at], [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
-            atmj[at] = np.interp(uj, np.log(w_atm[at][s_t]), f_atm[at][s_t])
+            atmi = np.interp(uj, np.log(w_atm[at][s_t]), f_atm[at][s_t])
+            # chose just present molecules in wavelength range
+            if np.nanstd(atmi) > 0.0001:
+                atmj = np.r_[atmj,[atmi]]
         # parameter to scale each telluric model:
         t = t0 = np.ones(len(atmj))
     else:
         atmj = []
-        t= t0 = []
+        t = t0 = []
 
     if demo & 1:
         # plot data, template, and iodine with some scaling
@@ -643,7 +645,8 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 # in the moment just for CRIRES+
 #telluric = 'add'
 if telluric == 'add':
-    molec = ['H2O','CH4','N2O','CO2']
+    # add later: choice of molecules
+    molec = ['H2O','CH4','N2O','CO2']#,'CO','NO2']
     w_atm, f_atm = {}, {}	
     for mol in range(0, len(molec),1):
         w_atm[mol], f_atm[mol] = Tell(molec[mol])
