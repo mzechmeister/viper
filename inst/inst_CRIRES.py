@@ -69,7 +69,22 @@ def Spectrum(filename='', o=None, targ=None):
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('.npy'):
+
+    if tplname.endswith('_tpl.fits'):
+        # tpl created with viper
+        hdu = fits.open(tplname, ignore_blank=True)
+        hdr = hdu[0].header
+
+        oi = 5-int((o-1)/3)  
+        d = np.mod(o,3) 
+        if d == 0:
+            d = 3
+
+        e = err = hdu[d].data.field(3*oi+1)
+        f = hdu[d].data.field(3*oi)
+        x = np.arange(f.size) 
+        w = (hdu[d].data.field(3*oi+2))
+    elif tplname.endswith('.npy'):
         w = np.load(tplname)[o,0]
         f = np.load(tplname)[o,1]
     else:
