@@ -94,7 +94,7 @@ class model:
             # telluric forward modelling
             atm = np.ones(len(self.atmj[0]))
             for aj in range(0,len(self.atmj),1):
-                atm *= (self.atmj[aj]**t[aj])
+                atm *= (self.atmj[aj]**np.abs(t[aj]))
             Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j * atm + cc[0]), mode='valid')
 
         # sampling to pixel
