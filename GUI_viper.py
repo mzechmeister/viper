@@ -51,6 +51,12 @@ def bt_start():
         str_arg += " -targ " + str(e_targ.get())
     if e_tag.get():
         str_arg += " -tag " + str(e_tag.get())
+    if e_flag.get() != '' and cb_flagfile.get():
+         str_arg += " -flagfile "+ str(e_flag.get())
+    if cb_nocell.get() == 1:
+        str_arg += " -nocell "
+ #   if cb_createtpl.get() == 1:
+  #      str_arg += " -createtpl "
 
     os.system("python3 viper.py '" + str_arg)
 
@@ -83,7 +89,7 @@ bg_frame = '#f1f1f1'	# bg color big frame
 bg_color = '#e6e1e1'	# bg color small frames
 
 win_width = 840		# width of GUI window
-win_high = 410		# height of GUI window
+win_high = 510		# height of GUI window
 
 win = Tk()
 win.title('Gui VIPER')
@@ -99,16 +105,16 @@ xs = 100
 xss = 70
 sp = 220
 sps = 170
-sl = 6
+sl = 7
 
 ###### FRAMES #######
 
 # options: solid, sunken, ridge, groove, raised
 # groove, ridge need bd=2 or more
-Frame(master=win,height=108,width=win_width-40,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20)
+Frame(master=win,height=138,width=win_width-40,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20)
 
-Frame(master=win,height=258,width=380,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20+112)
-Frame(master=win,height=223,width=414,bg=bg_frame,bd=2, relief='groove').place(x=405,y=20+112)
+Frame(master=win,height=318,width=380,bg=bg_frame,bd=2, relief='groove').place(x=20,y=50+112)
+Frame(master=win,height=223,width=414,bg=bg_frame,bd=2, relief='groove').place(x=405,y=50+112)
 
 
 ###### BUTTONS ######
@@ -136,6 +142,10 @@ e_dat.place(x=x0,y=2*lh,width=350)
 e_tpl = Entry(master=win)
 e_tpl.insert(0,'data/TLS/Deconv/HARPS*fits')
 e_tpl.place(x=x0+400,y=2*lh,width=350)
+
+e_flag = Entry(master=win)
+e_flag.insert(0,'')
+e_flag.place(x=x0+xs,y=4*lh,width=340)
 
 e_targ = Entry(master=win)
 e_targ.place(x=x0+sp+xss,y=3*lh,width=150)
@@ -209,8 +219,15 @@ combo_tell.place(x=x0+xss+0*sp,y=(sl+6)*lh,width=60)
 
 ttk.Style().configure("TCheckbutton",background =bg_frame,bd=0, highlightthickness=0)
 
-cb_demo = [IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar()]
+cb_flagfile = IntVar()
+ttk.Checkbutton(master=win, text=" ", variable=cb_flagfile).place(x=x0,y=4*lh)
 
+cb_nocell = IntVar()
+ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps,y=(sl+8)*lh)
+#cb_createtpl = IntVar()
+#ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0,y=(sl+8)*lh)
+
+cb_demo = [IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar()]
 ttk.Checkbutton(master=win, text="     raw data", variable=cb_demo[0]).place(x=x0+sp+sps,y=(sl+0)*lh)
 ttk.Checkbutton(master=win, text="     plot IP", variable=cb_demo[1]).place(x=x0+sp+sps,y=(sl+1)*lh)
 ttk.Checkbutton(master=win, text="     stellar tpl", variable=cb_demo[2]).place(x=x0+sp+sps,y=(sl+2)*lh)
@@ -238,11 +255,13 @@ ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=
 (Label(master=win,text='template file', font=(font_type,font_size,'bold'),background=bg_frame)).place(x=x0+400,y=lh)
 (Label(master=win,text='data files', font=(font_type,font_size,'bold'),background=bg_frame)).place(x=x0,y=lh)
 (Label(master=win,text='telescope:', background=bg_frame)).place(x=x0,y=3*lh)
+(Label(master=win,text='flag file:', background=bg_frame)).place(x=x0+20,y=4*lh)
 (Label(master=win,text='targ:', background=bg_frame)).place(x=x0+sp+30,y=3*lh)
 (Label(master=win,text='tag:', background=bg_frame)).place(x=x0+2*sp+30,y=3*lh)
 
-(Label(master=win,text='Options data reduction', font=(font_type,font_size,'bold'),background=bg_frame)).place(x=x0,y=5*lh-5)
-(Label(master=win,text='Options plotting data', font=(font_type,font_size,'bold'), background=bg_frame)).place(x=x0+sp+sps,y=5*lh-5)
+(Label(master=win,text='Options data reduction', font=(font_type,font_size,'bold'),background=bg_frame)).place(x=x0,y=(sl-1.2)*lh)
+(Label(master=win,text='Options plotting data', font=(font_type,font_size,'bold'), background=bg_frame)).place(x=x0+sp+sps,y=(sl-1.2)*lh)
+(Label(master=win,text='Advanced', font=(font_type,font_size,'bold'), background=bg_frame)).place(x=x0+0*sp,y=(sl+7)*lh)
 
 (Label(master=win,text='nset:', background=bg_frame)).place(x=x0,y=(sl+0)*lh)
 (Label(master=win,text='oset:', background=bg_frame)).place(x=x0,y=(sl+1)*lh)
