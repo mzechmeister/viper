@@ -162,6 +162,7 @@ if __name__ == "__main__":
     argopt('-lookres', nargs='?', help='Analyse the residuals', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
+    argopt('-nocell', help='Do the calibration without using the FTS', action='store_true')
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
     argopt('-oversampling', help='value for oversampling the template data', default=None, type=int)
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
@@ -629,6 +630,12 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 # using the supersampled log(wavelength) space with knot index j
 
 w_I2, f_I2, uj_full, iod_j_full = FTS(ftsname)
+
+if nocell:
+    # may find a better solution here
+    f_I2 = f_I2*0 + 1
+    iod_j_full = iod_j_full*0 + 1
+
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
 #### Telluric model ####
