@@ -63,12 +63,12 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     if tplname.endswith('.dat'):
         # echelle template
-        x, w, f, b, bjd, berv = Spectrum(tplname, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, targ=targ)
         w *= 1 + berv/3e5
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]

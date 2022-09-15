@@ -59,13 +59,13 @@ def Spectrum(filename, o=None, targ=None):
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
@@ -80,10 +80,10 @@ def Tpl(tplname, o=None, targ=None):
         f = hdu.data['flux']
     elif tplname.endswith('.dat'):
         import inst.inst_CES
-        x, w, f, b, bjd, berv = inst.inst_CES.Spectrum(tplname, targ=targ)
+        x, w, f, e, b, bjd, berv = inst.inst_CES.Spectrum(tplname, targ=targ)
         w *= 1 + berv/3e5
     elif tplname.endswith('.ddd'):
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)  # o =17 for CES
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)  # o =17 for CES
         w *= 1 + (berv*u.km/u.s/c).to_value('')
         from scipy.interpolate import CubicSpline
         uj = np.linspace(np.log(w[0]), np.log(w[-1]), 5*w.size)

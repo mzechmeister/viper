@@ -73,7 +73,7 @@ def Spectrum(filename='', o=None, targ=None):
     b[:flag_start[o-1]] |= 64
     b[flag_end[o-1]:] |= 64
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
@@ -82,7 +82,7 @@ def Tpl(tplname, o=None, targ=None):
         f = np.load(tplname)[o,1]
     else:
         # long 1d template
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)   
+        x, w, f, e b, bjd, berv = Spectrum(tplname, o=o, targ=targ)   
         w *= 1 + (berv*u.km/u.s/c).to_value('')
 
     return w, f

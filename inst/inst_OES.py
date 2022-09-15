@@ -45,10 +45,11 @@ def Spectrum(filename='', o=None, targ=None):
          w, f = w[o], f[o]
 
     x = np.arange(f.size) 
+    e = np.ones(f.size)
     b = 1 * np.isnan(f) # bad pixel map
  #   b[f>1.5] |= 4 # large flux
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
@@ -80,7 +81,7 @@ def Tpl(tplname, o=None, targ=None):
         w = airtovac(w)
         w *= 1 + (berv*u.km/u.s/c).to_value('')
     else:
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')
 
     return w, f
