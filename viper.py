@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
 def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
-    x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
+    x, w, f, e, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
 
     if telluric == 'mask':
