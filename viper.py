@@ -152,6 +152,7 @@ if __name__ == "__main__":
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
+    argopt('-flagfile', help='Use just good region as defined in flag file', default='', type=str)
     argopt('-iphs', nargs='?', help='Half size of the IP', default=50, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
     argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine', action='store_true')
@@ -204,6 +205,16 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         # divide dataset into chunks
         bp[:ibeg] |= flag.chunk
         bp[iend:] |= flag.chunk
+
+    #flagfile = 'lib/CRIRES/flag_file.dat'
+    if flagfile:
+        # using flag file for noisy regions
+        try:
+            flagf = np.genfromtxt(flagfile, dtype=None, names=True).view(np.recarray)
+            bp[:flagf.ok_s[np.argwhere(flagf.order==o).item()]] |= 64
+            bp[flagf.ok_e[np.argwhere(flagf.order==o).item()]:] |= 64
+        except:
+            print('selected flagfile or order in flag file are not available')
 
     if 1:
         # preclip upper outlier (cosmics)
