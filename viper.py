@@ -133,9 +133,7 @@ if __name__ == "__main__":
     FTS = Inst.FTS
     Tpl = Inst.Tpl
     Spectrum = Inst.Spectrum
-    if preargs.inst == 'CRIRES':
-        # as it is just available for CRIRES in the moment
-        Tell = Inst.Tell
+    Tell = Inst.Tell
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
@@ -206,7 +204,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         bp[:ibeg] |= flag.chunk
         bp[iend:] |= flag.chunk
 
-    #flagfile = 'lib/CRIRES/flag_file.dat'
+  #  flagfile = 'lib/CRIRES/flag_file.dat'
     if flagfile:
         # using flag file for noisy regions
         try:
@@ -351,7 +349,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             # do not fit for RV
             p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1],t=t0, c=cc, v0=vg, c0=c0, sig=sig[i_ok])
         v, a, b, *_ = p
-        s = [p[-2][0], *sg[1:]]
+        s = [p[-3][0], *sg[1:]]
 
     if o in lookguess:
         if demo:
@@ -657,7 +655,12 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 #telluric = 'add'
 if telluric == 'add':
     # add later: choice of molecules
-    molec = ['H2O','CH4','N2O','CO2']#,'CO','NO2']
+    if inst == 'CRIRES':
+        # NIR wavelength range
+        molec = ['H2O','CH4','N2O','CO2']#,'CO','NO2']
+    else:
+        # optical wavelength range
+        molec = ['H2O','O2']
     w_atm, f_atm = {}, {}	
     for mol in range(0, len(molec),1):
         w_atm[mol], f_atm[mol] = Tell(molec[mol])
