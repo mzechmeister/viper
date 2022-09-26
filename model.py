@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from scipy.special import erf
+from astropy.modeling.models import Voigt1D
 
 from gplot import *
 
@@ -88,7 +89,7 @@ class model:
         ui = np.log(np.poly1d(b[::-1])(i-self.icen))
 
         # IP convolution
-        if self.atmj == []:
+        if len(self.atmj) == 0:
             Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j + cc[0]), mode='valid')
         else:
             # telluric forward modelling
