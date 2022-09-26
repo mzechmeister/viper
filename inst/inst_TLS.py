@@ -83,5 +83,14 @@ def FTS(ftsname='lib/TLS/FTS/TLS_I2_FTS.fits', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
 
+def Tell(molec):
+      modelfile = 'lib/atmos/'+str(molec)+'.fits'
+      hdu = fits.open(modelfile, ignore_blank=True)
+      atm_model = hdu[1].data
+      w_atm = atm_model.field(0).astype(np.float64)
+      f_atm = atm_model.field(1).astype(np.float64)
+    
+      return w_atm, f_atm
+
 
 
