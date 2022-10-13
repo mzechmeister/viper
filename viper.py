@@ -217,7 +217,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     w_ok = w[i_ok]
     f_ok = f[i_ok]
 
-    modset['icen'] = icen = np.mean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
+    modset['icen'] = icen = np.nanmean(x_ok) + 18   # slight offset, then it converges for CES+TauCet
     modset['IP_hs'] = iphs
 
     if degar:
@@ -251,7 +251,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if demo & 1:
         # plot data, template, and iodine with some scaling
-        gplot(w_I2[s], f_I2[s]/np.median(f_I2[s]), 'w l lc 9,', w_tpl[o][s_s], f_tpl[o][s_s]/np.nanmedian(f_tpl[o][s_s]), 'w l lc 3,', w, f/np.nanmedian(f), 'w lp lc 1 pt 7 ps 0.5')
+        gplot(w_I2[s], f_I2[s]/np.nanmedian(f_I2[s]), 'w l lc 9,', w_tpl[o][s_s], f_tpl[o][s_s]/np.nanmedian(f_tpl[o][s_s]), 'w l lc 3,', w, f/np.nanmedian(f), 'w lp lc 1 pt 7 ps 0.5')
         pause('demo 1: raw input')
 
 
@@ -273,13 +273,13 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     if demo & 4:
        # plot again, now the stellar template can be interpolated
-       gplot(np.exp(uj), iod_j, S_star(uj)/np.median(S_star(uj)), 'w l lc 9, "" us 1:3 w l lc 3')
+       gplot(np.exp(uj), iod_j, S_star(uj)/np.nanmedian(S_star(uj)), 'w l lc 9, "" us 1:3 w l lc 3')
        pause('demo 4: stellar template evaluate at uj')
 
 
     # an initial parameter set
     v = vg   # a good guess for the stellar RV is needed
-    a0 = np.mean(f_ok) / np.mean(S_star(np.log(w_ok))) / np.mean(iod_j)
+    a0 = np.nanmean(f_ok) / np.nanmean(S_star(np.log(w_ok))) / np.nanmean(iod_j)
     a = ag = [a0] + [0]*dega
     if degar:   # rational polynom
         a += [5e-7]*degar   # a tiny scale hint (zero didn't iterate)
@@ -357,7 +357,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         resid = (f - smod)
         resid[bp != 0] = 0
 
-        bp[abs(resid) >= (kapsig*np.std(resid))] |= flag.clip
+        bp[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
         i_ok = np.where(bp == 0)[0]
         x_ok = x[i_ok]
         w_ok = w[i_ok]
@@ -396,7 +396,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         S_mod.show([v, best[0]], x_ok, f_ok, x2=x_ok)
         res = f_ok - fx
         np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
-        prms = np.std(res) / fx.mean() * 100
+        prms = np.nanstd(res) / fx.nanmean() * 100
         if o in look:
             pause()
         return v*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
@@ -423,7 +423,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             for vv,vguess in enumerate(vk):
                 if vguess not in v_all:
                     p, e_p = S_mod.fit(x_ok, f_ok, None, a, bg, s,t, v0 = vguess, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
-                    rms11 = np.std(f_ok - S_mod(x_ok, *p))
+                    rms11 = np.nanstd(f_ok - S_mod(x_ok, *p))
                     if stepRV == 'a':
                         rms1[vv] = rms11
          #           print('p:',rms1[vv],p)
@@ -488,17 +488,21 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         smod = S_mod(x, *p)
         resid = f - smod
 
-        bp[abs(resid) >= (kapsig*np.std(resid))] |= flag.clip
-        i_ok = np.where(bp == 0)[0]
-        x_ok = x[i_ok]
-        w_ok = w[i_ok]
-        f_ok = f[i_ok]
+        nr_k1 = np.count_nonzero(bp)
+        bp[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
+        nr_k2 = np.count_nonzero(bp)
+                
+        if nr_k1 != nr_k2:
+            i_ok = np.where(bp == 0)[0]
+            x_ok = x[i_ok]
+            w_ok = w[i_ok]
+            f_ok = f[i_ok]
 
-        if tplname:
-            p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
-        else:
+            if tplname:
+                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
+            else:
             # do not fit for velocity
-            p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
+                p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
 
     # overplot flagged and clipped data
     gplot+(x[bp != 0],w[bp != 0], f[bp != 0], 1*(bp[bp != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
@@ -506,7 +510,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     if infoprec:
         # estimate velocity precision limit from stellar information content 
         # without iodine cell (smoothed to a constant)
-        S_pure = model(S_star, uj, iod_j*0+np.mean(iod_j),atmj, IP, **modset)
+        S_pure = model(S_star, uj, iod_j*0+np.nanmean(iod_j),atmj, IP, **modset)
         dS = S_pure(x+0.1, *p) - S_pure(x, *p)    # flux gradient from finite difference
         du = 1000 * c * np.diff(w)*0.1 / w[:-1]   # [m/s] velocity differential from initial solution
         # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
@@ -533,7 +537,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         print(f'Total RV precision limit: {ev_total} m/s')
         if 1:
             # plot spectra for which precision limits were estimated
-            gplot2(x, f, bp, f' us 1:2:($3>0?9:1) lc var ps 0.5 t "data ({ev_total:.2f} m/s)",', x, iod_pure(x, *p)+np.mean(f)/2, bp, f' us 1:2:($3>0?9:2) w l lc var t "offset + IP x iod ({ev_iod:.2f} m/s)",', x, S_pure(x, *p), bp, f' us 1:2:($3>0?9:3) w l lc var t "IP x star ({ev_star:.2f} m/s)"')
+            gplot2(x, f, bp, f' us 1:2:($3>0?9:1) lc var ps 0.5 t "data ({ev_total:.2f} m/s)",', x, iod_pure(x, *p)+np.nanmean(f)/2, bp, f' us 1:2:($3>0?9:2) w l lc var t "offset + IP x iod ({ev_iod:.2f} m/s)",', x, S_pure(x, *p), bp, f' us 1:2:($3>0?9:3) w l lc var t "IP x star ({ev_star:.2f} m/s)"')
             #pause()
 
     # overplot FTS iodine spectrum
@@ -549,7 +553,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
     fmod = S_mod(x_ok, *p)
     res = f_ok - fmod
-    prms = np.std(res) / np.mean(fmod) * 100
+    prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(x_ok, res)), fmt="%s")
 
     if o in look:
@@ -687,8 +691,8 @@ for n,obsname in enumerate(obsnames):
         RV = rv[oo][0]
         e_RV = e_rv[oo][0]
     else:
-        RV = np.mean(rv[oo])
-        e_RV = np.std(rv[oo])/(oo.sum()-1)**0.5
+        RV = np.nanmean(rv[oo])
+        e_RV = np.nanstd(rv[oo])/(oo.sum()-1)**0.5
     print('RV:', RV,e_RV, bjd, berv)
 
     print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), filename, file=rvounit)
