@@ -57,7 +57,7 @@ def Spectrum(filename, o=None, targ=None):
     # Also the deconv could have a bad wavelength solution.
 
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
     '''
      hdr = hdu.header
 
@@ -83,17 +83,18 @@ def Spectrum(filename, o=None, targ=None):
             w, f = w[o], f[o]
 
         x = np.arange(f.size) 
+        e = np.ones(f.size)
         b = 1 * np.isnan(f) # bad pixel map
         b[f>1e6] |= 2 # large flux
         b[(5300>w) | (w>5343)] |= 4  # only for HARPS s1d template (this order misses)
 
-    return x, w, f, b, bjd, berv
+    return x, w, f, e, b, bjd, berv
 
 def Tpl(tplname, o=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
@@ -124,4 +125,13 @@ def FTS(ftsname='lib/TLS/FTS/TLS_I2_FTS.fits', dv=100):
     w, f = FTSfits(ftsname)
     return resample(w*(1-0/3e5),f, dv=dv)
 '''
+
+def Tell(molec):
+      modelfile = 'lib/atmos/'+str(molec)+'.fits'
+      hdu = fits.open(modelfile, ignore_blank=True)
+      atm_model = hdu[1].data
+      w_atm = atm_model.field(0).astype(np.float64)
+      f_atm = atm_model.field(1).astype(np.float64)
+    
+      return w_atm, f_atm
 

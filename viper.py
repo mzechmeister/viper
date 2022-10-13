@@ -133,9 +133,7 @@ if __name__ == "__main__":
     FTS = Inst.FTS
     Tpl = Inst.Tpl
     Spectrum = Inst.Spectrum
-    if preargs.inst == 'CRIRES':
-        # as it is just available for CRIRES in the moment
-        Tell = Inst.Tell
+    Tell = Inst.Tell
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
@@ -152,6 +150,7 @@ if __name__ == "__main__":
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
     argopt('-degc', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-demo', nargs='?', help='Demo plots. Use -8 to skip plots 1,2,4).', default=0, const=-1, type=int)
+    argopt('-flagfile', help='Use just good region as defined in flag file', default='', type=str)
     argopt('-iphs', nargs='?', help='Half size of the IP', default=50, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
     argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine', action='store_true')
@@ -162,6 +161,7 @@ if __name__ == "__main__":
     argopt('-lookres', nargs='?', help='Analyse the residuals', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
     argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
+    argopt('-nocell', help='Do the calibration without using the FTS', action='store_true')
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
     argopt('-oversampling', help='value for oversampling the template data', default=None, type=int)
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
@@ -180,7 +180,7 @@ if __name__ == "__main__":
 
 def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
-    x, w, f, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
+    x, w, f, e, bp, bjd, berv = Spectrum(obsname, o=o, targ=targ)
     i = np.arange(f.size)
 
     if telluric == 'mask':
@@ -203,6 +203,16 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         # divide dataset into chunks
         bp[:ibeg] |= flag.chunk
         bp[iend:] |= flag.chunk
+
+  #  flagfile = 'lib/CRIRES/flag_file.dat'
+    if flagfile:
+        # using flag file for noisy regions
+        try:
+            flagf = np.genfromtxt(flagfile, dtype=None, names=True).view(np.recarray)
+            bp[:flagf.ok_s[np.argwhere(flagf.order==o).item()]] |= 64
+            bp[flagf.ok_e[np.argwhere(flagf.order==o).item()]:] |= 64
+        except:
+            print('selected flagfile or order in flag file are not available')
 
     if 1:
         # preclip upper outlier (cosmics)
@@ -236,18 +246,20 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     uj = uj_full[sj]
     iod_j = iod_j_full[sj]
 
-    # telluric forward modelling
     if telluric == 'add':
-        atmj = {}
+        atmj = np.zeros((0,len(uj)))
         for at in range(0,len(molec),1):
             s_t = slice(*np.searchsorted(w_atm[at], [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
-            atmj[at] = np.interp(uj, np.log(w_atm[at][s_t]), f_atm[at][s_t])
+            atmi = np.interp(uj, np.log(w_atm[at][s_t]), f_atm[at][s_t])
+            # chose just present molecules in wavelength range
+            if np.nanstd(atmi) > 0.0001:
+                atmj = np.r_[atmj,[atmi]]
         # parameter to scale each telluric model:
         t = t0 = np.ones(len(atmj))
     else:
         atmj = []
-        t= t0 = []
+        t = t0 = []
 
     if demo & 1:
         # plot data, template, and iodine with some scaling
@@ -337,7 +349,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             # do not fit for RV
             p, _ = S_modg.fit(x_ok, f_ok, a=a, b=b, s=sg[0:1],t=t0, c=cc, v0=vg, c0=c0, sig=sig[i_ok])
         v, a, b, *_ = p
-        s = [p[-2][0], *sg[1:]]
+        s = [p[-3][0], *sg[1:]]
 
     if o in lookguess:
         if demo:
@@ -633,6 +645,12 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_p{}".format, ran
 # using the supersampled log(wavelength) space with knot index j
 
 w_I2, f_I2, uj_full, iod_j_full = FTS(ftsname)
+
+if nocell:
+    # may find a better solution here
+    f_I2 = f_I2*0 + 1
+    iod_j_full = iod_j_full*0 + 1
+
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
 #### Telluric model ####
@@ -640,7 +658,13 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 # in the moment just for CRIRES+
 #telluric = 'add'
 if telluric == 'add':
-    molec = ['H2O','CH4','N2O','CO2']
+    # add later: choice of molecules
+    if inst == 'CRIRES':
+        # NIR wavelength range
+        molec = ['H2O','CH4','N2O','CO2']#,'CO','NO2']
+    else:
+        # optical wavelength range
+        molec = ['H2O','O2']
     w_atm, f_atm = {}, {}	
     for mol in range(0, len(molec),1):
         w_atm[mol], f_atm[mol] = Tell(molec[mol])
