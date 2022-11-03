@@ -55,8 +55,8 @@ def bt_start():
          str_arg += " -flagfile "+ str(e_flag.get())
     if cb_nocell.get() == 1:
         str_arg += " -nocell "
- #   if cb_createtpl.get() == 1:
-  #      str_arg += " -createtpl "
+    if cb_createtpl.get() == 1:
+        str_arg += " -createtpl "
 
     os.system("python3 viper.py '" + str_arg)
 
@@ -224,8 +224,8 @@ ttk.Checkbutton(master=win, text=" ", variable=cb_flagfile).place(x=x0,y=4*lh)
 
 cb_nocell = IntVar()
 ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps,y=(sl+8)*lh)
-#cb_createtpl = IntVar()
-#ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0,y=(sl+8)*lh)
+cb_createtpl = IntVar()
+ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0,y=(sl+8)*lh)
 
 cb_demo = [IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar()]
 ttk.Checkbutton(master=win, text="     raw data", variable=cb_demo[0]).place(x=x0+sp+sps,y=(sl+0)*lh)
