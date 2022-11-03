@@ -9,6 +9,7 @@ import glob
 import importlib
 import os
 import time
+from collections import defaultdict
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -145,6 +146,7 @@ if __name__ == "__main__":
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks', default=1, type=int)
+    argopt('-createtpl', help='Removal of telluric features and combination of tpl files', action='store_true')
     argopt('-dega', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-degar', nargs='?', help='Rational polynomial degree of denominator for flux normalisation.', type=int)
     argopt('-degb', nargs='?', help='Polynomial degree for wavelength scale l(x).', default=3, type=int)
@@ -489,6 +491,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc , c0=c0, dx=0.1, sig=sig[i_ok])
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
+    elif createtpl:
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=False, notell= True)
     else:
         # do not fit for velocity
         p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
@@ -512,9 +516,24 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 
             if tplname:
                 p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
+            elif createtpl:
+                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=False, notell= True)
             else:
             # do not fit for velocity
                 p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
+
+    if createtpl:
+        S_tell = S_mod(x, *p)
+        S_tell /= np.nanmean(S_tell)
+
+        tf = f/S_tell
+        tf[S_tell<0.2] = 1
+        w1 = np.poly1d(p[2][::-1])(x-icen)
+
+        tpl_all[o,0][n] = w1 
+        tpl_all[o,1][n] = np.interp(w1 / (1+berv/c), w1, tf / np.nanmedian(tf))
+        tpl_all[o,2][n] = S_tell * 1./(e/np.nanmean(f))   #**2
+        tpl_all[o,2][n][S_tell<0.2] = 0.00001
 
 
     # overplot flagged and clipped data
@@ -618,7 +637,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         gplot.unset('multiplot')
         pause('lookpar', s)
 
-    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
+    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms, tpl_all
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
@@ -670,6 +689,9 @@ if telluric == 'add':
     for mol in range(0, len(molec),1):
         w_atm[mol], f_atm[mol] = Tell(molec[mol])
 
+# collect all file for createtpl function
+tpl_all = defaultdict(dict)
+
 ####  stellar template  ####
 if tplname:
     print('reading stellar template')
@@ -696,7 +718,7 @@ for n,obsname in enumerate(obsnames):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
             gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms, tpl_all = fit_chunk(o, ch, obsname=obsname, targ=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
@@ -724,6 +746,38 @@ for n,obsname in enumerate(obsnames):
     print(file=parunit)
     #vpr.plot_rvo(rv, e_rv)
 
+
+if createtpl:
+    wtpl_new = {}
+    tpl_new = {}
+    for o in orders:
+        gplot.reset()
+        gplot.key("title 'order: %s' noenhance" % (o))
+        wt = np.array(list(tpl_all[o,0].values())) 	# wavelength
+        ft = np.array(list(tpl_all[o,1].values()))	# data
+        mt = np.array(list(tpl_all[o,2].values()))	# weighting
+        mt[np.isnan(ft)] = np.nan
+        mt[ft<0] = np.nan
+
+        mt[ft>1.15] = np.nanmin(mt)/10.
+        tpl_new[o] = np.nansum(ft*mt,axis=0) / np.nansum(mt,axis=0)
+        wtpl_new[o] = np.nanmean(wt,axis=0)
+
+        # flag outlier points and spectra
+        for nn in range(0,len(ft),1):
+            mt[nn][np.abs(ft[nn]-tpl_new[o])>0.1] = np.nan
+
+        tpl_new[o] = np.nansum(ft*mt,axis=0) / np.nansum(mt,axis=0)
+
+        gplot(wtpl_new[o], tpl_new[o] - 1 ,'w l lc 7 t "combined tpl"')
+        for n in range(0,len(ft),1):
+            gplot+(wtpl_new[o], ft[n]/np.nanmean(ft[n]),'w l t "%s"' % (os.path.split(obsnames[n])[1])) 
+           #gplot+(wtpl_new[o],np.nanstd(ft,axis=0)+1.5,'w l t ""')
+        pause()
+
+    Inst.write_fits(wtpl_new, tpl_new, np.nanstd(ft,axis=0), obsnames, tag+'_tpl.fits')
+
+
 rvounit.close()
 
 T = time.time() - T
@@ -732,8 +786,9 @@ print("processing time total:       ", Tfmt(T))
 print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
-vpr.VPR(tag)   # to print info statistic
-vpr.plot_RV(tag+'.rvo.dat')
+if not createtpl:
+    vpr.VPR(tag)   # to print info statistic
+    vpr.plot_RV(tag+'.rvo.dat')
 
 pause('%s done.' % tag)
 
