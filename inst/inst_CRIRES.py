@@ -44,10 +44,9 @@ def Spectrum(filename='', o=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
 
-    oi = 5-int((o-1)/3)  
-    d = np.mod(o,3) 
-    if d == 0:
-        d = 3
+    oi, d = divmod(o-1, 3)
+    oi = 5 - oi	# order number (CRIRES+ definition)
+    d += 1		# detector number (1,2,3)
 
     e = err = hdu[d].data.field(3*oi+1)
     f = hdu[d].data.field(3*oi)
@@ -77,10 +76,9 @@ def Tpl(tplname, o=None, targ=None):
         hdu = fits.open(tplname, ignore_blank=True)
         hdr = hdu[0].header
 
-        oi = 5-int((o-1)/3)  
-        d = np.mod(o,3) 
-        if d == 0:
-            d = 3
+        oi, d = divmod(o-1, 3)
+        oi = 5 - oi	# order number (CRIRES+ definition)
+        d += 1		# detector number (1,2,3)
 
         e = err = hdu[d].data.field(3*oi+1)
         f = hdu[d].data.field(3*oi)
@@ -160,23 +158,22 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
     # write the template data to the file
     for o in range(1,19,1): 
         # data spread over 3 detectors, each having 6 orders
-        oi = 5-int((o-1)/3)  
-        d = np.mod(o,3) 
-        if d == 0:
-            d = 3
+        oi, d = divmod(o-1, 3)
+        oi = 5 - oi	# order number (CRIRES+ definition)
+        d += 1		# detector number (1,2,3)
 
         data = hdu[d].data
         cols = hdu[d].columns
 
         if o in list(tpl_all.keys()):
-            data[str(cols.names[3*oi])] = tpl_all[o]
-            data[str(cols.names[3*oi+1])] = e_all[o]
-            data[str(cols.names[3*oi+2])] = wtpl_all[o]
+            data[str(cols.names[3*oi])] = tpl_all[o]			# data
+            data[str(cols.names[3*oi+1])] = e_all[o]			# errors
+            data[str(cols.names[3*oi+2])] = wtpl_all[o]			# wavelength
         else:
             # writing zeros for non processed orders
             data[str(cols.names[3*oi])] = np.ones(2048)
-            data[str(cols.names[3*oi+1])] = np.zeros(2048)
-            data[str(cols.names[3*oi+2])] = (data.field(3*oi+2))*10
+            data[str(cols.names[3*oi+1])] = np.nan * np.ones(2048)
+            data[str(cols.names[3*oi+2])] = (data.field(3*oi+2))*10	 # [Angstrom]
 
     hdu.writeto(file_out, overwrite=True)  
     hdu.close()  
