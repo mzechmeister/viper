@@ -132,12 +132,12 @@ class model:
             self.show(p, x, f, v=v, **kwargs)
         return p, e_p
 
-    def show(self, p, x, y, v=None, res=True, x2=None, dx=None, notell=None):
+    def show(self, p, x, y, v=None, res=True, x2=None, dx=None, rel_fac=None):
         '''
         res: Show residuals.
         x2: Values for second x axis.
+        rel_fac: Factor for relative residuals.
         dx: Subpixel step size for the model [pixel].
-
         '''
         ymod = self(x, *p)
         if x2 is None:
@@ -160,19 +160,17 @@ class model:
             xx2 = np.poly1d(p[2][::-1])(xx-self.icen)
             yymod = self(xx, *p)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
+        if res or rel_fac:
+            # linear or relative residuals
+            col2 = rel_fac * np.mean(ymod) * (y/ymod - 1) if rel_fac else y - ymod
+            rms = np.std(col2)
+            prms = rms / np.mean(ymod) * 100
+            gplot.mxtics().mytics().my2tics()
         if res:
-            rms = np.std(y-ymod)
-            prms = rms / np.mean(ymod) * 100
-            gplot.mxtics().mytics().my2tics()
-            # overplot residuals
-            #gplot.y2range('[-0.2:2]').ytics('nomirr').y2tics()
-            #args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 axis x1y2 t 'res (%.3g \~ %.3g%%)', 0 lc 3 axis x1y2 t ''" % (rms, rms/np.mean(ymod)*100))
-            args += (",", x, y-ymod, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
-        if notell:	# plot telluic free spectrum
-            rms = np.std((y/ymod-1)*np.nanmean(y))
-            prms = rms / np.mean(ymod) * 100
-            gplot.mxtics().mytics().my2tics()
-            args += (",", x, (y/ymod-1)*np.nanmean(y), x2, "us lam?3:1:2 w l lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
+            args += (",", x, col2, x2, "us lam?3:1:2 w p pt 7 ps 0.5 lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
+        if rel_fac:
+            args += (",", x, col2, x2, "us lam?3:1:2 w l lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, rms/np.mean(ymod)*100))
+
         gplot(*args)
         return prms
 
