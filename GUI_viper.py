@@ -37,13 +37,13 @@ def bt_start():
         str_arg += " -telluric " + str(combo_tell.get())
     if e_kapsig.get():
         str_arg += " -kapsig "+ str(e_kapsig.get())
-    if cb_lookpar.get() == 1:
+    if cb_lookpar.get():
         str_arg += " -lookpar "
-    if cb_lookguess.get() == 1:
+    if cb_lookguess.get():
         str_arg += " -lookguess "
-    if cb_lookres.get() == 1:
+    if cb_lookres.get():
         str_arg += " -lookres "
-    if cb_infoprec.get() == 1:
+    if cb_infoprec.get():
         str_arg += " -infoprec "
     if e_overs.get():
         str_arg += " -oversampling "+ str(e_overs.get())
@@ -53,9 +53,9 @@ def bt_start():
         str_arg += " -tag " + str(e_tag.get())
     if e_flag.get() != '' and cb_flagfile.get():
          str_arg += " -flagfile "+ str(e_flag.get())
-    if cb_nocell.get() == 1:
+    if cb_nocell.get():
         str_arg += " -nocell "
-    if cb_createtpl.get() == 1:
+    if cb_createtpl.get():
         str_arg += " -createtpl "
 
     os.system("python3 viper.py '" + str_arg)
