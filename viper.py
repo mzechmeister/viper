@@ -487,12 +487,15 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
    #     p, e_p = S_mod.fit(x_ok, f_ok, rvs,a, bg, s, c=cc, c0=c0, dx=0.1)
         v = rvs      
 
-    if tplname:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc , c0=c0, dx=0.1, sig=sig[i_ok])
+    if createtpl:
+        res, rel_fac = False, 1
+    else:
+        res, rel_fac = True, 0
+
+    if tplname or createtpl:
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=res, rel_fac=rel_fac)
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
-    elif createtpl:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=False, notell= True)
     else:
         # do not fit for velocity
         p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s, t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
@@ -514,24 +517,25 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             w_ok = w[i_ok]
             f_ok = f[i_ok]
 
-            if tplname:
-                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok])
-            elif createtpl:
-                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=False, notell= True)
+            if tplname or createtpl:
+                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=res, rel_fac=rel_fac)
             else:
             # do not fit for velocity
                 p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
 
     if createtpl:
-        S_tell = S_mod(x, *p)
-        S_tell /= np.nanmean(S_tell)
+	# save telluric corrected spectrum
 
-        tf = f/S_tell
-        tf[S_tell<0.2] = 1
+        S_tell = S_mod(x, *p)		# modeled telluric spectrum
+        S_tell /= np.nanmean(S_tell)	
+
+        tf = f / S_tell			# telluric corrected spectrum
+        tf[S_tell<0.2] = np.nan
         w1 = np.poly1d(p[2][::-1])(x-icen)
 
-        tpl_all[o,0][n] = w1 
+        tpl_all[o,0][n] = w1   
         tpl_all[o,1][n] = np.interp(w1 / (1+berv/c), w1, tf / np.nanmedian(tf))
+
         tpl_all[o,2][n] = S_tell * 1./(e/np.nanmean(f))   #**2
         tpl_all[o,2][n][S_tell<0.2] = 0.00001
 
