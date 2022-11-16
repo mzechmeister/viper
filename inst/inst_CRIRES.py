@@ -1,4 +1,6 @@
 import numpy as np
+import os.path
+from datetime import datetime
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -17,7 +19,7 @@ import matplotlib.pyplot as plt
 
 location = crires = EarthLocation.from_geodetic(lat=-24.6268*u.deg, lon=-70.4045*u.deg, height=2648*u.m)
 
-oset = '0:18'
+oset = '1:19'
 
 #1.07
 # signal: 17394
@@ -42,10 +44,9 @@ def Spectrum(filename='', o=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
 
-    oi = 5-int((o-1)/3)  
-    d = np.mod(o,3) 
-    if d == 0:
-        d = 3
+    oi, d = divmod(o-1, 3)
+    oi = 5 - oi	# order number (CRIRES+ definition)
+    d += 1		# detector number (1,2,3)
 
     e = err = hdu[d].data.field(3*oi+1)
     f = hdu[d].data.field(3*oi)
@@ -75,10 +76,9 @@ def Tpl(tplname, o=None, targ=None):
         hdu = fits.open(tplname, ignore_blank=True)
         hdr = hdu[0].header
 
-        oi = 5-int((o-1)/3)  
-        d = np.mod(o,3) 
-        if d == 0:
-            d = 3
+        oi, d = divmod(o-1, 3)
+        oi = 5 - oi	# order number (CRIRES+ definition)
+        d += 1		# detector number (1,2,3)
 
         e = err = hdu[d].data.field(3*oi+1)
         f = hdu[d].data.field(3*oi)
@@ -109,6 +109,74 @@ def Tell(molec):
       return w_atm, f_atm
 
 
+def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
+
+    file_in = list_files[0]
+
+    # copy header from first fits file 
+    hdu = fits.open(file_in, ignore_blank=True)
+    hdr = hdu[0].header
+
+    if len(list_files) > 1:
+        # delete parts that vary for all observations
+        del hdr['DATE-OBS']
+        del hdr['UTC']
+        del hdr['LST']
+        del hdr['ARCFILE']
+        del hdr['ESO INS SENS*']
+        del hdr['ESO INS TEMP*']
+        del hdr['ESO INS1*']
+        del hdr['ESO DET*']
+        del hdr['ESO OBS*']
+        del hdr['ESO TPL*']
+        del hdr['ESO TEL*']
+        del hdr['ESO OCS MTRLGY*']
+        del hdr['ESO ADA*']
+        del hdr['ESO AOS*']
+        del hdr['ESO SEQ*']
+        del hdr['ESO PRO DATANCOM']
+        del hdr['ESO PRO REC1 PARAM*']
+        del hdr['ESO PRO REC1 RAW*']	
+
+        for hdri in hdu:
+            hdri.header['EXPTIME'] = 0
+
+    # file creation date 
+    now = datetime.now()
+    dt_string = now.strftime("%Y-%m-%dT%H:%M:%S")
+    hdr['DATE'] = dt_string
+
+    # save raw file informations in FITS header
+    hdr.set('ESO PRO REC2 ID', 'viper_create_tpl', 'Pipeline recipe', after='ESO PRO REC1 PIPE ID')
+
+    for i in range(0, len(list_files), 1):
+        pathi, filei = os.path.split(list_files[len(list_files)-i-1])
+        hdr.set('ESO PRO REC2 RAW'+str(len(list_files)-i)+' NAME', filei, 'File name', after='ESO PRO REC2 ID')
+
+    hdr.set('ESO PRO DATANCOM', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
+
+    # write the template data to the file
+    for o in range(1,19,1): 
+        # data spread over 3 detectors, each having 6 orders
+        oi, d = divmod(o-1, 3)
+        oi = 5 - oi	# order number (CRIRES+ definition)
+        d += 1		# detector number (1,2,3)
+
+        data = hdu[d].data
+        cols = hdu[d].columns
+
+        if o in list(tpl_all.keys()):
+            data[str(cols.names[3*oi])] = tpl_all[o]			# data
+            data[str(cols.names[3*oi+1])] = e_all[o]			# errors
+            data[str(cols.names[3*oi+2])] = wtpl_all[o]			# wavelength
+        else:
+            # writing zeros for non processed orders
+            data[str(cols.names[3*oi])] = np.ones(2048)
+            data[str(cols.names[3*oi+1])] = np.nan * np.ones(2048)
+            data[str(cols.names[3*oi+2])] = (data.field(3*oi+2))*10	 # [Angstrom]
+
+    hdu.writeto(file_out, overwrite=True)  
+    hdu.close()  
 
 
 
