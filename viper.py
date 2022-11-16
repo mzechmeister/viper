@@ -644,7 +644,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         gplot.unset('multiplot')
         pause('lookpar', s)
 
-    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms, sp_all
+    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
@@ -725,7 +725,7 @@ for n,obsname in enumerate(obsnames):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
             gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms, sp_all = fit_chunk(o, ch, obsname=obsname, targ=targ)
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
