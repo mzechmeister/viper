@@ -487,13 +487,9 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
    #     p, e_p = S_mod.fit(x_ok, f_ok, rvs,a, bg, s, c=cc, c0=c0, dx=0.1)
         v = rvs      
 
-    if createtpl:
-        res, rel_fac = False, 1
-    else:
-        res, rel_fac = True, 0
 
     if tplname or createtpl:
-        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=res, rel_fac=rel_fac)
+        p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s, t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
 #        S = lambda x, v, *abs: S_mod(x, v, abs[:1+dega], abs[1+dega:1+dega+1+degb], abs[1+dega+1+degb:])
 #        p, e_p = curve_fit(S, x_ok, f_ok, p0=[v]+a+[*bg]+s, epsfcn=1e-12)
     else:
@@ -518,7 +514,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             f_ok = f[i_ok]
 
             if tplname or createtpl:
-                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=res, rel_fac=rel_fac)
+                p, e_p = S_mod.fit(x_ok, f_ok, v, a, bg, s,t, c=cc, c0=c0, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
             else:
             # do not fit for velocity
                 p, e_p = S_mod.fit(x_ok, f_ok, a=a, b=bg, s=s,t=t0, c=cc, v0=0, c0=c0, dx=0.1, sig=sig[i_ok])
@@ -530,14 +526,21 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         S_tell /= np.nanmean(S_tell)	
 
         tf = f / S_tell			# telluric corrected spectrum
-        tf[S_tell<0.2] = np.nan
+        e = e / S_tell	
+
+        tf[S_tell<0.2] = np.nan		# remove regions with strong telluric lines
+        tf[tf<3*e] = np.nan
         w1 = np.poly1d(p[2][::-1])(x-icen)
+        tf = np.interp(w1 / (1+berv/c), w1, tf / np.nanmedian(tf))
 
-        tpl_all[o,0][n] = w1   
-        tpl_all[o,1][n] = np.interp(w1 / (1+berv/c), w1, tf / np.nanmedian(tf))
+        wt = S_tell * 1./(e/np.nanmedian(tf))**2 # downweighting by telluric spectrum and errors
+      #  wt[S_tell<0.2] = 0.00001		 # downweight deep telluric lines
+        wt = np.interp(w1 / (1+berv/c), w1, wt)
 
-        tpl_all[o,2][n] = S_tell * 1./(e/np.nanmean(f))   #**2
-        tpl_all[o,2][n][S_tell<0.2] = 0.00001
+        sp_all[o,0][n] = w1   		# updated wavelength
+        sp_all[o,1][n] = tf		# telluric corrected spectrum
+        sp_all[o,2][n] = wt		# weighting for combination of spectra 
+
 
 
     # overplot flagged and clipped data
@@ -641,7 +644,7 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
         gplot.unset('multiplot')
         pause('lookpar', s)
 
-    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms, tpl_all
+    return rvo, e_rvo, bjd.jd, berv, p, e_p, prms, sp_all
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
@@ -694,7 +697,7 @@ if telluric == 'add':
         w_atm[mol], f_atm[mol] = Tell(molec[mol])
 
 # collect all file for createtpl function
-tpl_all = defaultdict(dict)
+sp_all = defaultdict(dict)
 
 ####  stellar template  ####
 if tplname:
@@ -722,7 +725,7 @@ for n,obsname in enumerate(obsnames):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
             gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms, tpl_all = fit_chunk(o, ch, obsname=obsname, targ=targ)
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, p, e_p, prms, sp_all = fit_chunk(o, ch, obsname=obsname, targ=targ)
 #        try:
 #            rv[i_o], e_rv[i_o], bjd,berv, p, e_p  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
@@ -757,11 +760,11 @@ if createtpl:
     for o in orders:
         gplot.reset()
         gplot.key("title 'order: %s' noenhance" % (o))
-        wt = np.array(list(tpl_all[o,0].values())) 	# wavelength
-        ft = np.array(list(tpl_all[o,1].values()))	# data
-        mt = np.array(list(tpl_all[o,2].values()))	# weighting
-        mt[np.isnan(ft)] = np.nan
-        mt[ft<0] = np.nan
+        wt = np.array(list(sp_all[o,0].values())) 	# wavelength
+        ft = np.array(list(sp_all[o,1].values()))	# data
+        mt = np.array(list(sp_all[o,2].values()))	# weighting
+        mt[np.isnan(ft)] = 0
+        mt[ft<0] = 0
 
         mt[ft>1.15] = np.nanmin(mt)/10.
         tpl_new[o] = np.nansum(ft*mt,axis=0) / np.nansum(mt,axis=0)
