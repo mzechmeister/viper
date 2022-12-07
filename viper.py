@@ -716,6 +716,30 @@ else:
     # no template given; model pure iodine
     w_tpl, f_tpl = [w_I2[[0,-1]]]*100, [np.ones(2)]*100
 
+if telluric == 'add' and np.max(w_I2) < np.max(w_tpl[orders[-1]]):
+    # extend wavelength range for telluric modelling
+    # iodine ends around order 36 for TLS and OES
+    # at higher orders modelling with telluric lines instead of iodine possible
+
+    resol = int((np.max(w_tpl[orders[-1]]) - np.max(w_I2))/(w_I2[-1] - w_I2[-2]))
+    w_I2_ext = np.linspace(np.max(w_I2),np.max(w_tpl[orders[-1]]),num=resol)
+    f_I2_ext = np.ones(len(w_I2_ext))
+
+    w_I2 = np.append(w_I2,w_I2_ext)
+    f_I2 = np.append(f_I2,f_I2_ext)
+
+    u = np.log(w_I2)
+    uj_full = np.arange(u[0], u[-1], 100/3e8)
+    iod_j_full = np.interp(uj_full, u, f_I2)
+
+
+if 0:# (inst == 'TLS' or inst == 'OES') and orders[-1] > 35:
+    w_I2_long = np.linspace(4000,11000,num=len(w_I2)*2)
+    f_I2 = np.interp(w_I2_long,w_I2,f_I2)
+    iod_j_full = np.interp(np.log(w_I2_long),uj_full, iod_j_full)
+    w_I2 = w_I2_long
+    uj_full = np.log(w_I2_long)
+
 
 T = time.time()
 for n,obsname in enumerate(obsnames):
