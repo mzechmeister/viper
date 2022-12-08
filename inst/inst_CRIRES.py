@@ -175,7 +175,7 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
             data[str(cols.names[3*oi+1])] = np.nan * np.ones(2048)
             data[str(cols.names[3*oi+2])] = (data.field(3*oi+2))*10	 # [Angstrom]
 
-    hdu.writeto(file_out, overwrite=True)  
+    hdu.writeto(file_out+'_tpl.fits', overwrite=True)  
     hdu.close()  
 
 

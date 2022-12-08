@@ -45,7 +45,7 @@ def Spectrum(filename='', o=None, targ=None):
          w, f = w[o], f[o]
 
     x = np.arange(f.size) 
-    e = np.ones(f.size)
+    e = np.ones(f.size)*0.1
     b = 1 * np.isnan(f) # bad pixel map
  #   b[f>1.5] |= 4 # large flux
 
@@ -99,4 +99,21 @@ def Tell(molec):
     
       return w_atm, f_atm
 
+def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
+
+    file_in = list_files[0]
+
+    # copy header from first fits file 
+    hdu = fits.open(file_in, ignore_blank=True)[0]
+    f = hdu.data
+
+    # write the template data to the file
+    for o in range(1,49,1): 
+        if o in tpl_all:
+            f[o] = tpl_all[o]
+        else:
+            f[o] = np.ones(len(f[o]))
+
+    hdu.writeto(file_out+'.model', overwrite=True)  
+  #  hdu.close()  
 
