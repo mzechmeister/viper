@@ -522,7 +522,9 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
     if createtpl:
 	# save telluric corrected spectrum
 
-        S_tell = S_mod(x, *p)		# modeled telluric spectrum
+        S_tell = np.ones(len(x))*np.nan
+        S_tellm = S_mod(x, *p)		# modeled telluric spectrum    
+        S_tell[iset] = S_tellm[iset]	
         S_tell /= np.nanmean(S_tell)	
 
         tf = f / S_tell			# telluric corrected spectrum
@@ -716,13 +718,19 @@ else:
     # no template given; model pure iodine
     w_tpl, f_tpl = [w_I2[[0,-1]]]*100, [np.ones(2)]*100
 
-if telluric == 'add' and np.max(w_I2) < np.max(w_tpl[orders[-1]]):
+if createtpl:
+    w_tplo, f_tplo = Tpl(obsnames[-1], o=orders[-1], targ=targ)
+    wmax = np.max(w_tplo)
+else:
+    wmax = np.max(w_tpl[orders[-1]]) 
+
+if telluric == 'add' and (np.max(w_I2) < wmax):
     # extend wavelength range for telluric modelling
     # iodine ends around order 36 for TLS and OES
-    # at higher orders modelling with telluric lines instead of iodine possible
+    # at higher orders modelling with telluric lines instead of iodine is possible
 
-    resol = int((np.max(w_tpl[orders[-1]]) - np.max(w_I2))/(w_I2[-1] - w_I2[-2]))
-    w_I2_ext = np.linspace(np.max(w_I2),np.max(w_tpl[orders[-1]]),num=resol)
+    resol = int((wmax - np.max(w_I2))/(w_I2[-1] - w_I2[-2]))
+    w_I2_ext = np.linspace(np.max(w_I2),wmax,num=resol)
     f_I2_ext = np.ones(len(w_I2_ext))
 
     w_I2 = np.append(w_I2,w_I2_ext)
@@ -732,14 +740,8 @@ if telluric == 'add' and np.max(w_I2) < np.max(w_tpl[orders[-1]]):
     uj_full = np.arange(u[0], u[-1], 100/3e8)
     iod_j_full = np.interp(uj_full, u, f_I2)
 
-
-if 0:# (inst == 'TLS' or inst == 'OES') and orders[-1] > 35:
-    w_I2_long = np.linspace(4000,11000,num=len(w_I2)*2)
-    f_I2 = np.interp(w_I2_long,w_I2,f_I2)
-    iod_j_full = np.interp(np.log(w_I2_long),uj_full, iod_j_full)
-    w_I2 = w_I2_long
-    uj_full = np.log(w_I2_long)
-
+    if not tplname:
+            w_tpl, f_tpl = [w_I2[[0,-1]]]*100, [np.ones(2)]*100
 
 T = time.time()
 for n,obsname in enumerate(obsnames):
@@ -790,7 +792,7 @@ if createtpl:
         mt[np.isnan(ft)] = 0
         mt[ft<0] = 0
 
-        mt[ft>1.15] = np.nanmin(mt)/10.
+   #     mt[ft>1.15] = np.nanmin(mt)/10.
         tpl_new[o] = np.nansum(ft*mt,axis=0) / np.nansum(mt,axis=0)
         wtpl_new[o] = np.nanmean(wt,axis=0)
 
@@ -806,7 +808,7 @@ if createtpl:
            #gplot+(wtpl_new[o],np.nanstd(ft,axis=0)+1.5,'w l t ""')
         pause()
 
-    Inst.write_fits(wtpl_new, tpl_new, np.nanstd(ft,axis=0), obsnames, tag+'_tpl.fits')
+    Inst.write_fits(wtpl_new, tpl_new, np.nanstd(ft,axis=0), obsnames, tag)
 
 
 rvounit.close()
