@@ -96,6 +96,11 @@ class model:
             atm = np.ones(len(self.atmj[0]))
             for aj in range(0,len(self.atmj),1):
                 atm *= (self.atmj[aj]**np.abs(t[aj]))
+
+	    # variable telluric wavelength shift; one shift for all molecules
+            if len(t) == len(self.atmj)+1:
+                atm = np.interp(self.uj, self.uj-np.log(1+t[-1]/c), atm)
+
             Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j * atm + cc[0]), mode='valid')
 
         # sampling to pixel
