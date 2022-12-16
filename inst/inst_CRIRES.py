@@ -105,6 +105,9 @@ def Tell(molec):
       atm_model = hdu[1].data
       w_atm = atm_model.field(0).astype(np.float64)
       f_atm = atm_model.field(1).astype(np.float64)
+      # add wavelength shift, as synthetic telluric spectra are laboratory wavelengths
+      # shift was determined empirical on several observations
+      w_atm *= (1 + (-0.249/3e5))
     
       return w_atm, f_atm
 
