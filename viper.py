@@ -523,9 +523,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
 	# save telluric corrected spectrum
 
         S_tell = np.ones(len(x))*np.nan
-        S_tellm = S_mod(x, *p)		# modeled telluric spectrum    
-        S_tell[iset] = S_tellm[iset]	
-        S_tell /= np.nanmean(S_tell)	
+        S_tell[iset] = S_mod(x[iset], *p)		# modeled telluric spectrum    
+        S_tell /= np.nanmean(S_tell[iset])	
 
         tf = f / S_tell			# telluric corrected spectrum
         e = e / S_tell	
@@ -729,8 +728,7 @@ if telluric == 'add' and (np.max(w_I2) < wmax):
     # iodine ends around order 36 for TLS and OES
     # at higher orders modelling with telluric lines instead of iodine is possible
 
-    resol = int((wmax - np.max(w_I2))/(w_I2[-1] - w_I2[-2]))
-    w_I2_ext = np.linspace(np.max(w_I2),wmax,num=resol)
+    w_I2_ext = np.arange(np.max(w_I2), wmax, w_I2[-1]-w_I2[-2])[1:]
     f_I2_ext = np.ones(len(w_I2_ext))
 
     w_I2 = np.append(w_I2,w_I2_ext)
