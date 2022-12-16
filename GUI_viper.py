@@ -57,6 +57,8 @@ def bt_start():
         str_arg += " -nocell "
     if cb_createtpl.get():
         str_arg += " -createtpl "
+    if cb_tellshift.get():
+        str_arg += " -tellshift "
 
     os.system("python3 viper.py '" + str_arg)
 
@@ -89,7 +91,7 @@ bg_frame = '#f1f1f1'	# bg color big frame
 bg_color = '#e6e1e1'	# bg color small frames
 
 win_width = 840		# width of GUI window
-win_high = 510		# height of GUI window
+win_high = 550		# height of GUI window
 
 win = Tk()
 win.title('Gui VIPER')
@@ -113,7 +115,7 @@ sl = 7
 # groove, ridge need bd=2 or more
 Frame(master=win,height=138,width=win_width-40,bg=bg_frame,bd=2, relief='groove').place(x=20,y=20)
 
-Frame(master=win,height=318,width=380,bg=bg_frame,bd=2, relief='groove').place(x=20,y=50+112)
+Frame(master=win,height=358,width=380,bg=bg_frame,bd=2, relief='groove').place(x=20,y=50+112)
 Frame(master=win,height=223,width=414,bg=bg_frame,bd=2, relief='groove').place(x=405,y=50+112)
 
 
@@ -226,6 +228,8 @@ cb_nocell = IntVar()
 ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps,y=(sl+8)*lh)
 cb_createtpl = IntVar()
 ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0,y=(sl+8)*lh)
+cb_tellshift = IntVar()
+ttk.Checkbutton(master=win, text="     tell shift", variable=cb_tellshift).place(x=x0,y=(sl+9)*lh)
 
 cb_demo = [IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar(),IntVar()]
 ttk.Checkbutton(master=win, text="     raw data", variable=cb_demo[0]).place(x=x0+sp+sps,y=(sl+0)*lh)
