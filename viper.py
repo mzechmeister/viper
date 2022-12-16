@@ -170,6 +170,7 @@ if __name__ == "__main__":
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-telluric', help='mask: mask telluric; sig: downweigth tellurics; add: telluric forward modelling (just for CRIRES+)', default=None, type=str)
+    argopt('-tellshift', help='Variable telluric wavelength shift (one value for all selected molecules)', action='store_true')
     argopt('-tsig', help='(relative) sigma value for weighting tellurics', default=1, type=float)
     argopt('-vg', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
@@ -258,7 +259,8 @@ def fit_chunk(o, chunk, obsname, targ=None, tpltarg=None):
             if np.nanstd(atmi) > 0.0001:
                 atmj = np.r_[atmj,[atmi]]
         # parameter to scale each telluric model:
-        t = t0 = np.ones(len(atmj))
+	# add parameter for telluric position shift if selected
+        t = t0 = np.ones(len(atmj)+int(tellshift))
     else:
         atmj = []
         t = t0 = []
@@ -689,7 +691,7 @@ if telluric == 'add':
     # add later: choice of molecules
     if inst == 'CRIRES':
         # NIR wavelength range
-        molec = ['H2O','CH4','N2O','CO2']#,'CO','NO2']
+        molec = ['H2O','CH4','N2O','CO2','CO']#,'NO2']
     else:
         # optical wavelength range
         molec = ['H2O','O2']
