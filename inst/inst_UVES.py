@@ -16,10 +16,10 @@ location = paranal = EarthLocation.of_site('paranal')
 oset = '5:16'
 iset = '400:2000'
 
-pg = {'s': 300_000/220_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/220_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
 from pause import *
-def Spectrum(filename, o=None, targ=None):
+def Spectrum(filename, order=None, targ=None):
     offset = 0
     with open(filename) as hdu:
         while 1:
@@ -47,7 +47,7 @@ def Spectrum(filename, o=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
  
-    d = np.genfromtxt(filename, skip_header=offset+4096*o, dtype='i,f,f,f,i', names='ordpix,wave,flux,e_flux,flag', max_rows=4096)
+    d = np.genfromtxt(filename, skip_header=offset+4096*order, dtype='i,f,f,f,i', names='ordpix,wave,flux,e_flux,flag', max_rows=4096)
     w, f, e = d['wave'], d['flux'], d['e_flux']
     w = airtovac(w)
     #from pause import pause;    pause()
@@ -61,11 +61,11 @@ def Spectrum(filename, o=None, targ=None):
 
     return x, w, f, e, b, bjd, berv
 
-def Tpl(tplname, o=None, targ=None):
+def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
@@ -83,7 +83,7 @@ def Tpl(tplname, o=None, targ=None):
         x, w, f, e, b, bjd, berv = inst.inst_CES.Spectrum(tplname, targ=targ)
         w *= 1 + berv/3e5
     elif tplname.endswith('.ddd'):
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)  # o =17 for CES
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, order=order, targ=targ)  # o =17 for CES
         w *= 1 + (berv*u.km/u.s/c).to_value('')
         from scipy.interpolate import CubicSpline
         uj = np.linspace(np.log(w[0]), np.log(w[-1]), 5*w.size)
