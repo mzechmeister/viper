@@ -27,7 +27,7 @@ def bt_start():
     x = np.ones(len(cb_demo))*2    
     demo = (np.poly1d(ar_demo[::-1])(x))[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -dega "+e_dega.get()+" -degb "+e_degb.get()+" -degc "+e_degc.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -vg "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_dega.get()+" -deg_wave "+e_degb.get()+" -deg_bkg "+e_degc.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
@@ -59,6 +59,8 @@ def bt_start():
         str_arg += " -createtpl "
     if cb_tellshift.get():
         str_arg += " -tellshift "
+
+    print(str_arg)
 
     os.system("python3 viper.py '" + str_arg)
 
@@ -271,9 +273,9 @@ ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=
 (Label(master=win,text='oset:', background=bg_frame)).place(x=x0,y=(sl+1)*lh)
 (Label(master=win,text='chunks:', background=bg_frame)).place(x=x0,y=(sl+2)*lh)
 
-(Label(master=win,text='dega:', background=bg_frame)).place(x=x0+1*sp,y=(sl+3)*lh)
-(Label(master=win,text='degb:', background=bg_frame)).place(x=x0+1*sp,y=(sl+4)*lh)
-(Label(master=win,text='degc:', background=bg_frame)).place(x=x0+1*sp,y=(sl+5)*lh)
+(Label(master=win,text='deg_norm:', background=bg_frame)).place(x=x0+1*sp,y=(sl+3)*lh)
+(Label(master=win,text='deg_wave:', background=bg_frame)).place(x=x0+1*sp,y=(sl+4)*lh)
+(Label(master=win,text='deg_bkg:', background=bg_frame)).place(x=x0+1*sp,y=(sl+5)*lh)
 
 (Label(master=win,text='IP:', background=bg_frame)).place(x=x0+sp,y=(sl+0)*lh)
 (Label(master=win,text='iphs:', background=bg_frame)).place(x=x0+sp,y=(sl+1)*lh)
