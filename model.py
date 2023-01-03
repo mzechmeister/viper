@@ -79,7 +79,7 @@ class model:
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
-        self.S_star, self.lnwave_cell, self.lnspec_cell, self.spec_atm, self.IP = args
+        self.S_star, self.lnwave_cell, self.spec_cell, self.spec_atm, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.lnwave_cell[1] - self.lnwave_cell[0]  # sampling in uniform resampled Iod
         self.IP_hs = IP_hs
@@ -88,39 +88,40 @@ class model:
         self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, pixel, par_rv, par_norm, par_wave, par_ip, par_atm, par_bkg=[0]):
+    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
         # wavelength solution 
         #    lam(x) = b0 + b1 * x + b2 * x^2
-        lnwave_obs = np.log(np.poly1d(par_wave[::-1])(pixel-self.icen))
+        lnwave_obs = np.log(np.poly1d(coeff_wave[::-1])(pixel-self.icen))
 
         # IP convolution
         if len(self.spec_atm) == 0:
-            Sj_eff = np.convolve(self.IP(self.vk, *par_ip), self.S_star(self.lnwave_cell-par_rv/c) * (self.lnspec_cell + par_bkg[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_cell-rv/c) * (self.spec_cell + coeff_bkg[0]), mode='valid')
         else:
             # telluric forward modelling
             atm = np.ones(len(self.spec_atm[0]))
-            for aj in range(0,len(self.spec_atm),1):
-                atm *= (self.spec_atm[aj]**np.abs(par_atm[aj]))
+            for coeff_mol, sp in zip(coeff_atm, self.spec_atm):
+                atm *= sp**np.abs(coeff_mol)
 
 	    # variable telluric wavelength shift; one shift for all molecules
-            if len(par_atm) == len(self.spec_atm)+1:
-                atm = np.interp(self.lnwave_cell, self.lnwave_cell-np.log(1+par_atm[-1]/c), atm)
+            if len(coeff_atm) == len(self.spec_atm)+1:
+                atm = np.interp(self.lnwave_cell, self.lnwave_cell-np.log(1+coeff_atm[-1]/c), atm)
 
-            Sj_eff = np.convolve(self.IP(self.vk, *par_ip), self.S_star(self.lnwave_cell-par_rv/c) * (self.lnspec_cell * atm + par_bkg[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_cell-rv/c) * (self.spec_cell * atm + coeff_bkg[0]), mode='valid')
 
         # sampling to pixel
         Si_eff = np.interp(lnwave_obs, self.lnwave_cell_eff, Sj_eff)
 
         # flux normalisation
-        Si_mod = self.envelope(pixel-self.icen, par_norm) * Si_eff
-        #Si_mod = self.envelope((np.exp(lnwave_obs)-b[0]-par_norm[-1]), par_norm[:-1]) * Si_eff
+        Si_mod = self.envelope(pixel-self.icen, coeff_norm) * Si_eff
+        #Si_mod = self.envelope((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
+
  
-    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], par_rv0=None, par_norm0=[], par_wave0=[], par_ip0=[], par_atm0=[], par_bkg0=[], sig=[], **kwargs):
+    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], par0_rv=None, par0_norm=[], par0_wave=[], par0_ip=[], par0_atm=[], par0_bkg=[], sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
-        par_rv0 = () if par_rv0 is None else (par_rv0,)
+        par0_rv = () if par0_rv is None else (par0_rv,)
         par_rv = () if par_rv is None else (par_rv,)
         sv = slice(0, len(par_rv))
         sa = slice(sv.stop, sv.stop+len(par_norm))
@@ -128,23 +129,24 @@ class model:
         ss = slice(sb.stop, sb.stop+len(par_ip))
         st = slice(ss.stop, ss.stop+len(par_atm))
         sc = slice(st.stop, st.stop+len(par_bkg))
-        par_norm0 = tuple(par_norm0)
-        par_wave0 = tuple(par_wave0)
-        par_ip0 = tuple(par_ip0)
-        par_atm0 = tuple(par_atm0)
-        par_bkg0 = tuple(par_bkg0)
+        par0_norm = tuple(par0_norm)
+        par0_wave = tuple(par0_wave)
+        par0_ip = tuple(par0_ip)
+        par0_atm = tuple(par0_atm)
+        par0_bkg = tuple(par0_bkg)
 
-        S_model = lambda x, *params: self(x, *params[sv]+par_rv0, params[sa]+par_norm0, params[sb]+par_wave0, params[ss]+par_ip0, params[st]+par_atm0, params[sc]+par_bkg0)
+        S_model = lambda x, *params: self(x, *params[sv]+par0_rv, params[sa]+par0_norm, params[sb]+par0_wave, params[ss]+par0_ip, params[st]+par0_atm, params[sc]+par0_bkg)
 
         params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 
         par_rv = (*params[sv], *np.diag(e_params)[sv])
         params = tuple(params)
-        params = [*params[sv]+par_rv0, params[sa]+par_norm0, params[sb]+par_wave0, params[ss]+par_ip0, params[st]+par_atm0, params[sc]+par_bkg0]
+        params = [*params[sv]+par0_rv, params[sa]+par0_norm, params[sb]+par0_wave, params[ss]+par0_ip, params[st]+par0_atm, params[sc]+par0_bkg]
 
         if kwargs:
             self.show(params, pixel, spec_obs, par_rv=par_rv, **kwargs)
         return params, e_params
+
 
     def show(self, params, x, y, par_rv=None, res=True, x2=None, dx=None, rel_fac=None):
         '''
@@ -223,7 +225,7 @@ class model_bnd(model):
         if kwargs:
             self.base(**kwargs)
         starj = self.S_star(self.lnwave_cell-v/c)  # np.interp(self.lnwave_cell, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
-        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.lnspec_cell)[self.bnd], self.BBxjl, self.Bxk)
+        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.spec_cell)[self.bnd], self.BBxjl, self.Bxk)
         return _Axkl
 
     def IPxj(self, akl, **kwargs):
