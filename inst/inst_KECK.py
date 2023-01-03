@@ -90,11 +90,11 @@ def Spectrum(filename, order=None, targ=None):
 
     return x, w, f, e, b, bjd, berv
 
-def Tpl(tplname, oorder=None, targ=None):
+def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, oorder=oorder, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]

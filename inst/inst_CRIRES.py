@@ -46,32 +46,32 @@ def Spectrum(filename='', order=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
 
-    order_cr, detector = divmod(order-1, 3)
-    order_cr = 5 - order_cr		# order number (CRIRES+ definition)
+    order_drs, detector = divmod(order-1, 3)
+    order_drs = 5 - order_drs		# order number (CRIRES+ definition)
     detector += 1			# detector number (1,2,3)
 
-    e_obs = hdu[detector].data.field(3*order_cr+1)
-    spec_obs = hdu[detector].data.field(3*order_cr)
-    pixel = np.arange(spec_obs.size)
+    err = hdu[detector].data.field(3*order_drs+1)
+    spec = hdu[detector].data.field(3*order_drs)
+    pixel = np.arange(spec.size)
 
     setting = (hdu[0]).header['ESO INS WLEN ID']
     
     if str(setting) in ('K2148', 'K2166', 'K2192'):
 	# using an own wavelength solution instead of the one created by DRS
-        file_ws = np.genfromtxt(path+'wavesolution/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
-        coeff_ws = [file_ws.b1[order-1], file_ws.b2[order-1], file_ws.b3[order-1]]
-        wave_obs = np.poly1d(coeff_ws[::-1])(pixel)
+        file_wls = np.genfromtxt(path+'wavesolution_own/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
+        coeff_wls = [file_wls.b1[order-1], file_wls.b2[order-1], file_wls.b3[order-1]]
+        wave = np.poly1d(coeff_wls[::-1])(pixel)
 
         # using blaze function
-        blaze = np.load(path+str(setting)+'_blaze.npy')[order]
-        spec_obs /= blaze
+        blaze = np.load(path+str(setting)+'_blaze_own.npy')[order]
+        spec /= blaze
 
     else:
-        wave_obs = (hdu[detector].data.field(3*order_cr+2))*10
+        wave = (hdu[detector].data.field(3*order_drs+2))*10
 
-    flag_pixel = 1 * np.isnan(spec_obs)		# bad pixel map
+    flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
-    return pixel, wave_obs, spec_obs, e_obs, flag_pixel, bjd, berv
+    return pixel, wave, spec, err, flag_pixel, bjd, berv
 
 
 def Tpl(tplname, order=None, targ=None):
@@ -82,19 +82,19 @@ def Tpl(tplname, order=None, targ=None):
         hdu = fits.open(tplname, ignore_blank=True)
         hdr = hdu[0].header
 
-        order_cr, detector = divmod(order-1, 3)
-        order_cr = 5 - order_cr		# order number (CRIRES+ definition)
+        order_drs, detector = divmod(order-1, 3)
+        order_drs = 5 - order_drs		# order number (CRIRES+ definition)
         detector += 1			# detector number (1,2,3)
 
-        e_tpl = hdu[detector].data.field(3*order_cr+1)
-        spec_tpl = hdu[detector].data.field(3*order_cr)
-        pixel = np.arange(spec_tpl.size)
-        wave_tpl = (hdu[detector].data.field(3*order_cr+2))
+        err = hdu[detector].data.field(3*order_drs+1)
+        spec = hdu[detector].data.field(3*order_drs)
+        pixel = np.arange(spec.size)
+        wave = (hdu[detector].data.field(3*order_drs+2))
     else:
-        pixel, wave_tpl, spec_tpl, e_tpl, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave_tpl *= 1 + (berv*u.km/u.s/c).to_value('')
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')
 
-    return wave_tpl, spec_tpl
+    return wave, spec
 
 
 def FTS(ftsname=path+'FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=100):
@@ -165,22 +165,22 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
     # write the template data to the file
     for o in range(1, 19, 1):
         # data spread over 3 detectors, each having 6 orders
-        order_cr, detector = divmod(o-1, 3)
-        order_cr = 5 - order_cr		# order number (CRIRES+ definition)
+        order_drs, detector = divmod(o-1, 3)
+        order_drs = 5 - order_drs		# order number (CRIRES+ definition)
         detector += 1			# detector number (1,2,3)
 
         data = hdu[detector].data
         cols = hdu[detector].columns
 
         if o in list(tpl_all.keys()):
-            data[str(cols.names[3*order_cr])] = tpl_all[o]		# data
-            data[str(cols.names[3*order_cr+1])] = e_all[o]		# errors
-            data[str(cols.names[3*order_cr+2])] = wtpl_all[o]		# wavelength
+            data[str(cols.names[3*order_drs])] = tpl_all[o]		# data
+            data[str(cols.names[3*order_drs+1])] = e_all[o]		# errors
+            data[str(cols.names[3*order_drs+2])] = wtpl_all[o]		# wavelength
         else:
             # writing zeros for non processed orders
-            data[str(cols.names[3*order_cr])] = np.ones(2048)
-            data[str(cols.names[3*order_cr+1])] = np.nan * np.ones(2048)
-            data[str(cols.names[3*order_cr+2])] = (data.field(3*order_cr+2))*10	 # [Angstrom]
+            data[str(cols.names[3*order_drs])] = np.ones(2048)
+            data[str(cols.names[3*order_drs+1])] = np.nan * np.ones(2048)
+            data[str(cols.names[3*order_drs+2])] = (data.field(3*order_drs+2))*10	 # [Angstrom]
 
     hdu.writeto(file_out+'_tpl.fits', overwrite=True)
     hdu.close()

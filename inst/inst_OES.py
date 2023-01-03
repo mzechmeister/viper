@@ -37,30 +37,30 @@ def Spectrum(filename='', order=None, targ=None):
         berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
         berv = berv.to(u.km/u.s).value
 
-    spec_obs= hdu.data
-    spec_obs/= np.nanmean(spec_obs)
+    spec = hdu.data
+    spec /= np.nanmean(spec)
     gg = readmultispec(filename, reform=True, quiet=True)
-    wave_obs = gg['wavelen']
-    wave_obs = airtovac(wave_obs)
+    wave = gg['wavelen']
+    wave = airtovac(wave)
     if order is not None:
-         wave_obs, spec_obs= wave_obs[order], spec_obs[order]
+         wave, spec= wave[order], spec[order]
 
-    pixel = np.arange(spec_obs.size) 
-    e_obs = np.ones(spec_obs.size)*0.1
-    flag_pixel = 1 * np.isnan(spec_obs) # bad pixel map
+    pixel = np.arange(spec.size) 
+    err = np.ones(spec.size)*0.1
+    flag_pixel = 1 * np.isnan(spec) # bad pixel map
  #   b[f>1.5] |= 4 # large flux
 
-    return pixel, wave_obs, spec_obs, e_obs, flag_pixel, bjd, berv
+    return pixel, wave, spec, err, flag_pixel, bjd, berv
 
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]
-        spec_tpl= hdu.data
+        spec= hdu.data
         h = hdu.header
-        wave_tpl = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec_tpl.size) - h['CRPIX1'])
-        wave_tpl = airtovac(wave_tpl)
+        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
+        wave = airtovac(wave)
     elif tplname.endswith('1d.fits'):
         hdu = fits.open(tplname, ignore_blank=True)[0]
         hdr = hdu.header
@@ -76,17 +76,17 @@ def Tpl(tplname, order=None, targ=None):
             berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
             berv = berv.to(u.km/u.s).value
 
-        spec_tpl = hdu.data
-        spec_tpl /= np.nanmean(spec_tpl)
+        spec = hdu.data
+        spec /= np.nanmean(spec)
         gg = readmultispec(tplname, reform=True, quiet=True)
-        wave_tpl = gg['wavelen']
-        wave_tpl = airtovac(wave_tpl)
-        wave_tpl *= 1 + (berv*u.km/u.s/c).to_value('')
+        wave = gg['wavelen']
+        wave = airtovac(wave)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')
     else:
-        pixel, wave_tpl, spec_tpl, e_tpl, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave_tpl *= 1 + (berv*u.km/u.s/c).to_value('')
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')
 
-    return wave_tpl, spec_tpl
+    return wave, spec
 
 
 def FTS(ftsname='lib/oes.fits', dv=100):

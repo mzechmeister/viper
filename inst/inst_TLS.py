@@ -37,48 +37,48 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
 
-    spec_obs = hdu.data
+    spec = hdu.data
     gg = readmultispec(filename, reform=True, quiet=True)
-    wave_obs = gg['wavelen']
-    wave_obs = airtovac(wave_obs)
+    wave = gg['wavelen']
+    wave = airtovac(wave)
     if order is not None:
-         wave_obs, spec_obs = wave_obs[order], spec_obs[order]
+         wave, spec = wave[order], spec[order]
 
-    pixel = np.arange(spec_obs.size) 
-    e_obs = np.zeros(spec_obs.size)+0.1
-    flag_pixel = 1 * np.isnan(spec_obs) # bad pixel map
-    #b[spec_obs>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
-    flag_pixel[(5300<wave_obs) & (wave_obs<5343)] |= 256  # only for HARPS s1d template (this order misses)
+    pixel = np.arange(spec.size) 
+    err = np.zeros(spec.size)+0.1
+    flag_pixel = 1 * np.isnan(spec) # bad pixel map
+    #b[spec>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
+    flag_pixel[(5300<wave) & (wave<5343)] |= 256  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
 
-    return pixel, wave_obs, spec_obs, e_obs, flag_pixel, bjd, berv
+    return pixel, wave, spec, err, flag_pixel, bjd, berv
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        pixel, wave_tpl, spec_obs, e_tpl, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave_tpl *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits') or  tplname.endswith('.tpl.s1d.fits'):
         hdu = fits.open(tplname)[0]
-        spec_obs = hdu.data
+        spec = hdu.data
         h = hdu.header
-        wave_tpl = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec_obs.size) - h['CRPIX1'])
+        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
         if tplname.endswith('_s1d_A.fits'):
-            wave_tpl = airtovac(wave_tpl)
+            wave = airtovac(wave)
         else:
-            wave_tpl = np.exp(wave_tpl)
+            wave = np.exp(wave)
     elif tplname.endswith('PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'):
         from . import phoenix
-        wave_tpl, spec_tpl = phoenix.read(tplname)
+        wave, spec = phoenix.read(tplname)
     else:
         # long 1d template
         hdu = fits.open(tplname)
-        wave_tpl = hdu[1].data.field('Arg')
-        spec_tpl = hdu[1].data.field('Fun')
+        wave = hdu[1].data.field('Arg')
+        spec = hdu[1].data.field('Fun')
 
-    return wave_tpl, spec_obs
+    return wave, spec
 
 
 def FTS(ftsname='lib/TLS/FTS/TLS_I2_FTS.fits', dv=100):
