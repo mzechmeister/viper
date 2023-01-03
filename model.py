@@ -117,11 +117,11 @@ class model:
         return Si_mod
 
  
-    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], par0_rv=None, par0_norm=[], par0_wave=[], par0_ip=[], par0_atm=[], par0_bkg=[], sig=[], **kwargs):
+    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
-        par0_rv = () if par0_rv is None else (par0_rv,)
+        parfix_rv = () if parfix_rv is None else (parfix_rv,)
         par_rv = () if par_rv is None else (par_rv,)
         sv = slice(0, len(par_rv))
         sa = slice(sv.stop, sv.stop+len(par_norm))
@@ -129,19 +129,19 @@ class model:
         ss = slice(sb.stop, sb.stop+len(par_ip))
         st = slice(ss.stop, ss.stop+len(par_atm))
         sc = slice(st.stop, st.stop+len(par_bkg))
-        par0_norm = tuple(par0_norm)
-        par0_wave = tuple(par0_wave)
-        par0_ip = tuple(par0_ip)
-        par0_atm = tuple(par0_atm)
-        par0_bkg = tuple(par0_bkg)
+        parfix_norm = tuple(parfix_norm)
+        parfix_wave = tuple(parfix_wave)
+        parfix_ip = tuple(parfix_ip)
+        parfix_atm = tuple(parfix_atm)
+        parfix_bkg = tuple(parfix_bkg)
 
-        S_model = lambda x, *params: self(x, *params[sv]+par0_rv, params[sa]+par0_norm, params[sb]+par0_wave, params[ss]+par0_ip, params[st]+par0_atm, params[sc]+par0_bkg)
+        S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg)
 
         params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 
         par_rv = (*params[sv], *np.diag(e_params)[sv])
         params = tuple(params)
-        params = [*params[sv]+par0_rv, params[sa]+par0_norm, params[sb]+par0_wave, params[ss]+par0_ip, params[st]+par0_atm, params[sc]+par0_bkg]
+        params = [*params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg]
 
         if kwargs:
             self.show(params, pixel, spec_obs, par_rv=par_rv, **kwargs)
