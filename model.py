@@ -79,12 +79,12 @@ class model:
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
-        self.S_star, self.lnwave_cell, self.spec_cell, self.spec_atm, self.IP = args
+        self.S_star, self.lnwave_j, self.spec_cell_j, self.spec_atm, self.IP = args
         # convolving with IP will reduce the valid wavelength range
-        self.dx = self.lnwave_cell[1] - self.lnwave_cell[0]  # sampling in uniform resampled Iod
+        self.dx = self.lnwave_j[1] - self.lnwave_j[0]  # sampling in uniform resampled Iod
         self.IP_hs = IP_hs
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
-        self.lnwave_cell_eff = self.lnwave_cell[IP_hs:-IP_hs]
+        self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]
         self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
@@ -95,7 +95,7 @@ class model:
 
         # IP convolution
         if len(self.spec_atm) == 0:
-            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_cell-rv/c) * (self.spec_cell + coeff_bkg[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j + coeff_bkg[0]), mode='valid')
         else:
             # telluric forward modelling
             atm = np.ones(len(self.spec_atm[0]))
@@ -104,12 +104,12 @@ class model:
 
 	    # variable telluric wavelength shift; one shift for all molecules
             if len(coeff_atm) == len(self.spec_atm)+1:
-                atm = np.interp(self.lnwave_cell, self.lnwave_cell-np.log(1+coeff_atm[-1]/c), atm)
+                atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), atm)
 
-            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_cell-rv/c) * (self.spec_cell * atm + coeff_bkg[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * atm + coeff_bkg[0]), mode='valid')
 
         # sampling to pixel
-        Si_eff = np.interp(lnwave_obs, self.lnwave_cell_eff, Sj_eff)
+        Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
 
         # flux normalisation
         Si_mod = self.envelope(pixel-self.icen, coeff_norm) * Si_eff
@@ -204,8 +204,8 @@ class model_bnd(model):
         bg = self.IP
         # the initial trace
         lnwave_obs = np.log(np.poly1d(bg[::-1])(x-self.icen))
-        j = np.arange(self.lnwave_cell.size)
-        jx = np.interp(lnwave_obs, self.lnwave_cell, j)
+        j = np.arange(self.lnwave_j.size)
+        jx = np.interp(lnwave_obs, self.lnwave_j, j)
         # position of Gaussians
         vl = np.array([-1,0,1])[np.newaxis,np.newaxis,:]
         vl = np.array([-1.4,-0.7,0,0.7,1.4])[np.newaxis,np.newaxis,:]
@@ -215,7 +215,7 @@ class model_bnd(model):
         self.bnd = jx[:,np.newaxis].astype(int) + np.arange(-self.IP_hs, self.IP_hs+1)
 
         # base for multi-Gaussians
-        self.BBxjl = np.exp(-(self.lnwave_cell[self.bnd][...,np.newaxis]-lnwave_obs[:,np.newaxis,np.newaxis]+sig_k*vl)**2/sig_k**2)
+        self.BBxjl = np.exp(-(self.lnwave_j[self.bnd][...,np.newaxis]-lnwave_obs[:,np.newaxis,np.newaxis]+sig_k*vl)**2/sig_k**2)
 
         # base function for flux polynomial
         self.Bxk = np.vander(x-x.mean(), degk)[:,::-1]
@@ -224,8 +224,8 @@ class model_bnd(model):
     def Axk(self, v, **kwargs):
         if kwargs:
             self.base(**kwargs)
-        starj = self.S_star(self.lnwave_cell-v/c)  # np.interp(self.lnwave_cell, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
-        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.spec_cell)[self.bnd], self.BBxjl, self.Bxk)
+        starj = self.S_star(self.lnwave_j-v/c)  # np.interp(self.lnwave_j, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
+        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.spec_cell_j)[self.bnd], self.BBxjl, self.Bxk)
         return _Axkl
 
     def IPxj(self, akl, **kwargs):
