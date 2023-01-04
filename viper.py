@@ -194,9 +194,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     flag_obs[np.log(wave_obs) > np.log(lmax)-vcut/c] |= flag.out
 
     # using the supersampled log(wavelength) space with knot index j
-    sj = slice(*np.searchsorted(lnwave_cell_full, np.log([lmin, lmax])))
-    lnwave_cell = lnwave_cell_full[sj]
-    lnspec_cell = lnspec_cell_full[sj]
+    sj = slice(*np.searchsorted(lnwave_j_full, np.log([lmin, lmax])))
+    lnwave_j = lnwave_j_full[sj]
+    spec_cell_j = spec_cell_j_full[sj]
 
     ibeg, iend = np.where(flag_obs&1==0)[0][[0,-1]]   # the first and last pixel that is not trimmed
     len_ch = int((iend-ibeg)/chunks)
@@ -239,11 +239,11 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if telluric == 'add':
         # select present molecules for telluric forward modeling
-        specs_molec = np.zeros((0,len(lnwave_cell)))
+        specs_molec = np.zeros((0,len(lnwave_j)))
         for mol in range(0,len(molec),1):
             s_mol = slice(*np.searchsorted(wave_atm_all[mol], [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
-            spec_mol = np.interp(lnwave_cell, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
+            spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
             # chose just present molecules in wavelength range
             if np.nanstd(spec_mol) > 0.0001:
                 specs_molec = np.r_[specs_molec,[spec_mol]]
@@ -274,7 +274,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     IP = IPs[ip]
 
     # setup the model
-    S_mod = model(S_star, lnwave_cell, lnspec_cell, specs_molec, IP, **modset)
+    S_mod = model(S_star, lnwave_j, spec_cell_j, specs_molec, IP, **modset)
 
     if demo & 2:
         # plot the IP
@@ -283,8 +283,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if demo & 4:
        # plot again, now the stellar template can be interpolated
-       gplot(np.exp(lnwave_cell), lnspec_cell, S_star(lnwave_cell)/np.nanmedian(S_star(lnwave_cell)), 'w l lc 9, "" us 1:3 w l lc 3')
-       pause('demo 4: stellar template evaluate at lnwave_cell')
+       gplot(np.exp(lnwave_j), spec_cell_j, S_star(lnwave_j)/np.nanmedian(S_star(lnwave_j)), 'w l lc 9, "" us 1:3 w l lc 3')
+       pause('demo 4: stellar template evaluate at lnwave_j')
 
 
     # an initial parameter set
@@ -293,7 +293,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par_rv = rv_guess   
 
     # guess for normalization
-    parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(lnspec_cell)
+    parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
     par_norm = parguess_norm = [parfix_norm] + [0]*deg_norm
 
     if deg_norm_rat:   
@@ -354,7 +354,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if ip in ('sg', 'ag', 'bnd'):
         # prefit with Gaussian IP
-        S_modg = model(S_star, lnwave_cell, lnspec_cell, specs_molec, IPs['g'], **modset)
+        S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 
         if tplname:
             params, _ = S_modg.fit(pixel_ok, spec_obs_ok, par_rv=rv_guess, par_norm=par_norm, par_wave=par_wave, par_ip=par_ip_guess[0:1], par_atm=parfix_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, sig=sig[i_ok])
@@ -391,7 +391,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # Non parametric fit with band matrix
         # We step through velocity in 100 m/s step. At each step there is linear least square
         # fit for the 2D IP using band matrix.
-        S_mod = model_bnd(S_star, lnwave_cell, lnspec_cell, params[2], **modset)
+        S_mod = model_bnd(S_star, lnwave_j, spec_cell_j, params[2], **modset)
         opt = {'x': pixel_ok, 'sig_k': par_ip[0]/1.5/c}
         rr = S_mod.fit(spec_obs_ok, 0.1, **opt)
         fx = S_mod(pixel_ok, 0.1, rr[0])
@@ -562,7 +562,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if infoprec:
         # estimate velocity precision limit from stellar information content 
         # without iodine cell (smoothed to a constant)
-        S_pure = model(S_star, lnwave_cell, lnspec_cell*0+np.nanmean(lnspec_cell),specs_molec, IP, **modset)
+        S_pure = model(S_star, lnwave_j, spec_cell_j*0+np.nanmean(spec_cell_j),specs_molec, IP, **modset)
         dS = S_pure(pixel+0.1, *params) - S_pure(pixel, *params)    # flux gradient from finite difference
         du = 1000 * c * np.diff(wave_obs)*0.1 / wave_obs[:-1]   # [m/s] velocity differential from initial solution
         # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
@@ -578,7 +578,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         tpl_smooth = (tpl_smooth[wz:] - tpl_smooth[:-wz]) / wz 
         # gplot(spec_tpl[order], ',', tpl_smooth)
         S_smooth = lambda x: np.interp(x, np.log(wave_tpl[order][wz//2:-wz//2])-berv/c, tpl_smooth)
-        iod_pure = model(S_smooth, lnwave_cell, lnspec_cell,specs_molec, IP, **modset)
+        iod_pure = model(S_smooth, lnwave_j, spec_cell_j,specs_molec, IP, **modset)
         dS = iod_pure(pixel+0.1, *params) - iod_pure(pixel, *params)   # flux gradient from finite difference
         ev_iod = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
         print(f'Iodine RV precision limit: {ev_iod} m/s')
@@ -592,9 +592,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             #pause()
 
     # overplot FTS iodine spectrum
-    #gplot+(np.exp(lnwave_cell), lnspec_cell/lnspec_cell.max()*spec_obs_ok.max(), 'w l lc 9')
+    #gplot+(np.exp(lnwave_j), spec_cell_j/spec_cell_j.max()*spec_obs_ok.max(), 'w l lc 9')
     # overplot stellar spectrum
-    #gplot+(np.exp(lnwave_cell), S_star(lnwave_cell)/S_star(lnwave_cell).max()*spec_obs_ok.max(), 'w l lc 9')
+    #gplot+(np.exp(lnwave_j), S_star(lnwave_j)/S_star(lnwave_j).max()*spec_obs_ok.max(), 'w l lc 9')
 
     rvo, e_rvo = 1000*params[0], 1000*np.diag(e_params)[0]**0.5   # convert to m/s
     #prms = S_mod.show([params[0], params[1:1+1+deg_norm], params[2+deg_norm:2+deg_norm+1+deg_wave], params[3+deg_norm+deg_wave:]], pixel_ok, spec_obs_ok, dx=0.1)
@@ -684,12 +684,12 @@ print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_params{}".format
 
 # using the supersampled log(wavelength) space with knot index j
 
-wave_cell, spec_cell, lnwave_cell_full, lnspec_cell_full = FTS(ftsname)
+wave_cell, spec_cell, lnwave_j_full, spec_cell_j_full = FTS(ftsname)
 
 if nocell:
     # may find a better solution here
     spec_cell = spec_cell*0 + 1
-    lnspec_cell_full = lnspec_cell_full*0 + 1
+    spec_cell_j_full = spec_cell_j_full*0 + 1
 
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
 
@@ -746,9 +746,9 @@ if telluric == 'add' and (np.max(wave_cell) < wmax):
     wave_cell = np.append(wave_cell,wave_cell_ext)
     spec_cell = np.append(spec_cell,spec_cell_ext)
 
-    lnwave_cell = np.log(wave_cell)
-    lnwave_cell_full = np.arange(lnwave_cell[0], lnwave_cell[-1], 100/3e8)
-    lnspec_cell_full = np.interp(lnwave_cell_full, lnwave_cell, spec_cell)
+    lnwave_j = np.log(wave_cell)
+    lnwave_j_full = np.arange(lnwave_j[0], lnwave_j[-1], 100/3e8)
+    spec_cell_j_full = np.interp(lnwave_j_full, lnwave_j, spec_cell)
 
     if not tplname:
             wave_tpl, spec_tpl = [wave_cell[[0,-1]]]*100, [np.ones(2)]*100
