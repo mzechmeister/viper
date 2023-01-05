@@ -16,7 +16,7 @@ location = paranal = EarthLocation.of_site('paranal')
 oset = '5:16'
 iset = '400:2000'
 
-ip_guess = {'s': 300_000/220_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/220_000/ np.sqrt(np.log(256))}   # convert FHWM resolution to sigma
 
 from pause import *
 def Spectrum(filename, order=None, targ=None):
@@ -50,7 +50,13 @@ def Spectrum(filename, order=None, targ=None):
     d = np.genfromtxt(filename, skip_header=offset+4096*order, dtype='i,f,f,f,i', names='ordpix,wave,flux,e_flux,flag', max_rows=4096)
     w, f, e = d['wave'], d['flux'], d['e_flux']
     w = airtovac(w)
-    #from pause import pause;    pause()
+
+    # fix start guess for some nights (quick hack for the custom reduction)
+    if '24052000' in filename: w *= (1-1/3e5)
+    if '06082002' in filename: w *= (1+2/3e5)
+    if '11072002' in filename: w *= (1+2/3e5)
+    if '18092002' in filename: w *= (1+2/3e5)
+    if '19092002' in filename: w *= (1+2/3e5)
 
     x = np.arange(f.size)
     b = 1 * np.isnan(f) # bad pixel map
@@ -94,6 +100,7 @@ def Tpl(tplname, order=None, targ=None):
         hdu = fits.open(tplname)
         w = hdu[1].data.field('Arg')
         f = hdu[1].data.field('Fun')
+        w = airtovac(w)
 
     return w, f
 
