@@ -130,7 +130,7 @@ if __name__ == "__main__":
     FTS = Inst.FTS
     Tpl = Inst.Tpl
     Spectrum = Inst.Spectrum
-    Tell = Inst.Tell
+    Tell = getattr(Inst, 'Tell', None)
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
@@ -284,7 +284,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if demo & 4:
        # plot again, now the stellar template can be interpolated
        gplot(np.exp(lnwave_j), spec_cell_j, S_star(lnwave_j)/np.nanmedian(S_star(lnwave_j)), 'w l lc 9, "" us 1:3 w l lc 3')
-       pause('demo 4: stellar template evaluate at lnwave_j')
+       pause('demo 4: stellar template evaluated at lnwave_j')
 
 
     # an initial parameter set
