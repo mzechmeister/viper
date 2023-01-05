@@ -75,7 +75,7 @@ class model:
         # icen : Central pixel (to center polynomial for numeric reason).
 
         self.icen = icen
-        self.S_star, self.lnwave_j, self.spec_cell_j, self.spec_atm, self.IP = args
+        self.S_star, self.lnwave_j, self.spec_cell_j, self.fluxes_molec, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
         self.IP_hs = IP_hs
@@ -90,19 +90,19 @@ class model:
         lnwave_obs = np.log(np.poly1d(coeff_wave[::-1])(pixel-self.icen))
 
         # IP convolution
-        if len(self.spec_atm) == 0:
+        if len(self.fluxes_molec) == 0:
             Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j + coeff_bkg[0]), mode='valid')
         else:
             # telluric forward modelling
-            atm = np.ones(len(self.spec_atm[0]))
-            for coeff_mol, sp in zip(coeff_atm, self.spec_atm):
-                atm *= sp**np.abs(coeff_mol)
+            flux_atm = np.ones(len(self.fluxes_molec[0]))
+            for coeff_mol, flux_mol in zip(coeff_atm, self.fluxes_molec):
+                flux_atm *= flux_mol**np.abs(coeff_mol)
 
-	    # variable telluric wavelength shift; one shift for all molecules
-            if len(coeff_atm) == len(self.spec_atm)+1:
-                atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), atm)
+	        # variable telluric wavelength shift; one shift for all molecules
+            if len(coeff_atm) == len(self.fluxes_molec)+1:
+                flux_atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), flux_atm)
 
-            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * atm + coeff_bkg[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * flux_atm + coeff_bkg[0]), mode='valid')
 
         # sampling to pixel
         Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
