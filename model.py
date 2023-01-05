@@ -70,18 +70,18 @@ class model:
     The forward model.
 
     '''
-    def __init__(self, *args, envelope=poly, IP_hs=50, icen=0):
+    def __init__(self, *args, func_norm=poly, IP_hs=50, icen=0):
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
 
-	self.icen = icen
+        self.icen = icen
         self.S_star, self.lnwave_j, self.spec_cell_j, self.spec_atm, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
         self.IP_hs = IP_hs
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
         self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]    # valid grid
-        self.envelope = envelope
+        self.func_norm = func_norm
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
@@ -108,8 +108,8 @@ class model:
         Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
 
         # flux normalisation
-        Si_mod = self.envelope(pixel-self.icen, coeff_norm) * Si_eff
-        #Si_mod = self.envelope((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
+        Si_mod = self.func_norm(pixel-self.icen, coeff_norm) * Si_eff
+        #Si_mod = self.func_norm((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
     def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], sig=[], **kwargs):

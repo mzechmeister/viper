@@ -235,7 +235,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if deg_norm_rat:
         # rational polynomial
-        modset['envelope'] = lambda x, par_norm: pade(x, par_norm[:deg_norm+1], par_norm[deg_norm+1:])
+        modset['func_norm'] = lambda x, par_norm: pade(x, par_norm[:deg_norm+1], par_norm[deg_norm+1:])
 
     specs_molec = []
     par_atm = parfix_atm = []
@@ -322,7 +322,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     # set weighting parameter for tellurics
     sig = np.ones_like(spec_obs)
-    if telluric in('sig', 'add'):
+    if telluric in ('sig', 'add'):
         sig[mskatm(wave_obs) < 0.1] = tsig
 
     if demo & 8:
