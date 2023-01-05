@@ -78,7 +78,7 @@ def arg2range(arg):
 
 
 def SSRstat(vgrid, SSR, dk=1, plot='maybe', N=None):
-    '''   
+    '''
     Analyse chi2 peak.
 
     Parameters
@@ -109,7 +109,7 @@ def SSRstat(vgrid, SSR, dk=1, plot='maybe', N=None):
             # Then derive one sigma uncertainty from Delta chi^2 = 1.
             SSRmin = SSR[k] + a[0] - a[1] * a[1]/2./a[2] + a[2] * (a[1]/2./a[2]) **2
             e_v *= (SSRmin/N) **0.5
- 
+
 
     if (plot==1 and np.isnan(e_v)) or plot==2:
         gplot2.yrange('[*:%f]' % np.max(SSR))
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     preparser = argparse.ArgumentParser(add_help=False)
     preparser.add_argument('args', nargs='*')
     preparser.add_argument('-inst', help='Instrument', default='TLS', choices=insts)
-    preargs, _ =  preparser.parse_known_args()
+    preargs = preparser.parse_known_args()[0]
 
     Inst = importlib.import_module('inst.inst_'+preargs.inst)
     FTS = Inst.FTS
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine', action='store_true')
     argopt('-kapsig', help='Kappa sigma clipping value', default=None, type=float)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
-    argopt('-lookguess', nargs='?', help='Show inital model', default=[], const=':100', type=arg2range)
+    argopt('-lookguess', nargs='?', help='Show initial model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookres', nargs='?', help='Analyse the residuals', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
@@ -162,7 +162,7 @@ if __name__ == "__main__":
     argopt('-nexcl', nargs='*', help='Ignore spectra with string pattern', default=[], type=str)
     argopt('-nocell', help='Do the calibration without using the FTS', action='store_true')
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
-    argopt('-oversampling', help='value for oversampling the template data', default=None, type=int)
+    argopt('-oversampling', help='Oversampling factor for the template data', default=None, type=int)
     argopt('-stepRV', help='step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess)', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
@@ -172,7 +172,6 @@ if __name__ == "__main__":
     argopt('-rv_guess', help='RV guess', default=1., type=float)   # slightly offsetted
     argopt('-?', '-h', '-help', '--help',  help='show this help message and exit', action='help')
 
-    
     args = parser.parse_args()
     globals().update(vars(args))
 
@@ -185,7 +184,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         flag_obs[mskatm(wave_obs) > 0.1] |= flag.atm
         flag_obs[np.isnan(spec_obs)] |= flag.nan
 
-    # select common wavelength range 
+    # select common wavelength range
     lmin = max(wave_obs[iset][0], wave_tpl[order][0], wave_cell[0])
     lmax = min(wave_obs[iset][-1], wave_tpl[order][-1], wave_cell[-1])
 
@@ -199,7 +198,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     lnwave_j = lnwave_j_full[sj]
     spec_cell_j = spec_cell_j_full[sj]
 
-    ibeg, iend = np.where(flag_obs&1==0)[0][[0,-1]]   # the first and last pixel that is not trimmed
+    ibeg, iend = np.where(flag_obs&1==0)[0][[0, -1]]   # the first and last pixel that is not trimmed
     len_ch = int((iend-ibeg)/chunks)
     ibeg = ibeg + chunk*len_ch
     iend = ibeg + len_ch
@@ -238,22 +237,21 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # rational polynomial
         modset['envelope'] = lambda x, par_norm: pade(x, par_norm[:deg_norm+1], par_norm[deg_norm+1:])
 
+    specs_molec = []
+    par_atm = parfix_atm = []
     if telluric == 'add':
         # select present molecules for telluric forward modeling
-        specs_molec = np.zeros((0,len(lnwave_j)))
-        for mol in range(0,len(molec),1):
+        specs_molec = np.zeros((0, len(lnwave_j)))
+        for mol in range(len(molec)):
             s_mol = slice(*np.searchsorted(wave_atm_all[mol], [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
             spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
             # chose just present molecules in wavelength range
             if np.nanstd(spec_mol) > 0.0001:
-                specs_molec = np.r_[specs_molec,[spec_mol]]
+                specs_molec = np.r_[specs_molec, [spec_mol]]
         # parameter to scale each telluric model:
-	# add parameter for telluric position shift if selected
+        # add parameter for telluric position shift if selected
         par_atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
-    else:
-        specs_molec = []
-        par_atm = parfix_atm = []
 
 
     if demo & 1:
@@ -291,15 +289,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     # an initial parameter set
 
     # a good guess for the stellar RV is needed
-    par_rv = rv_guess   
+    par_rv = rv_guess
 
     # guess for normalization
     parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
     par_norm = parguess_norm = [parfix_norm] + [0]*deg_norm
 
-    if deg_norm_rat:   
+    if deg_norm_rat:
         # rational polynom
-        par_norm += [5e-7]*deg_norm_rat   # a tiny scale hint (zero didn't iterate)
+        par_norm += [5e-7] * deg_norm_rat   # a tiny scale hint (zero didn't iterate)
 
     # guess wavelength solution
     par_wave = par_wave_guess = np.polyfit(pixel_ok-icen, wave_obs_ok, deg_wave)[::-1]
@@ -313,18 +311,18 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if demo:
         par_norm = parguess_norm = [parfix_norm*1.3] + [0]*deg_norm
-      #  b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
+        # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
         par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-icen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
         par_ip = par_ip_guess = [par_ip[0]*1.5]
 
     if ip in ('sg', 'mg'):
-        par_ip += [2.]   # exponent of super gaussian 
+        par_ip += [2.]   # exponent of super Gaussian
     elif ip in ('ag',):
-        par_ip += [1.]   # skewness parameter (offset to get iterationss)
+        par_ip += [1.]   # skewness parameter (offset to get iterations)
 
     # set weighting parameter for tellurics
-    sig = np.ones(len(spec_obs)) 
-    if telluric in('sig','add'):
+    sig = np.ones_like(spec_obs)
+    if telluric in('sig', 'add'):
         sig[mskatm(wave_obs) < 0.1] = tsig
 
     if demo & 8:
@@ -379,7 +377,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # kappa sigma clipping of outliers
         params_guess = [rv_guess, par_norm, par_wave_guess, par_ip, par_atm, par_bkg+parfix_bkg]
         smod = S_mod(pixel, *params_guess)
-        resid = (spec_obs - smod)
+        resid = spec_obs - smod
         resid[flag_obs != 0] = 0
 
         flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
@@ -425,23 +423,23 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             pause()
         return par_rv*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
-    if stepRV in ['a','m']:
-        # calculating the best RV by going trough different fixed RVs
+    if stepRV in ['a', 'm']:
+        # calculating the best RV by going through different fixed RVs
         # finding best value for minimum in rms
-        # still some improvement/testing needed
-        rv_range = 0.5       
-        rms_start = [0,0,0]
+        # still some improvement/testing
+        rv_range = 0.5
+        rms_start = [0, 0, 0]
         rms_all = []
         v_all = []
         rounds = 0       # to make sure, it will not end in an endless loop
 
         if stepRV == 'm':
-           # fix step size in given range
-           # otherwise search minimum 
+            # fix step size in given range
+            # otherwise search minimum
             v_grid = np.arange(rv_guess-1, rv_guess+1, 0.1)
-           # v_grid = np.arange(-0.1, 0.3, 0.01)
+            # v_grid = np.arange(-0.1, 0.3, 0.01)
         elif stepRV == 'a':
-            v_grid = [rv_guess-rv_range,rv_guess,rv_guess+rv_range]
+            v_grid = [rv_guess-rv_range, rv_guess, rv_guess+rv_range]
 
         while rounds < 20:
             for vv,vguess in enumerate(v_grid):
@@ -450,24 +448,24 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
                     rms_start1 = np.nanstd(spec_obs_ok - S_mod(pixel_ok, *params))
                     if stepRV == 'a':
                         rms_start[vv] = rms_start1
-         #           print('p:',rms_start[vv],p)
+                    # print('p:', rms_start[vv], p)
                     v_all.append(vguess)
                     rms_all.append(rms_start1)
                 else:
-                    rms_start[vv] = rms_all[(np.argwhere(np.asarray(v_all)==vguess))[0][0]]  
- 
+                    rms_start[vv] = rms_all[(np.argwhere(np.asarray(v_all)==vguess))[0][0]]
+
             if (((3 <= np.argmin(rms_all) <= rounds-3) or (abs(v_grid[0]-v_grid[1]) < 0.03)) and (rounds >= 6)) or (stepRV == 'm'):
-            # fitting process is done
+                # fitting process is done
                 rounds = 20
             else:
-            # find the position of the current minimum and search further in this direction
+                # find the position of the current minimum and search further in this direction
                 ind = np.argsort(rms_start)
                 if ind[0] == 0:
-                    v_grid = [v_grid[0]-rv_range,v_grid[0],v_grid[1]]
+                    v_grid = [v_grid[0]-rv_range, v_grid[0], v_grid[1]]
                 elif ind[0] == 1:
-                    v_grid = [v_grid[ind[0]], (v_grid[ind[1]]+v_grid[ind[0]])/2 ,v_grid[ind[1]]]             
+                    v_grid = [v_grid[ind[0]], (v_grid[ind[1]]+v_grid[ind[0]])/2, v_grid[ind[1]]]
                 elif ind[0] == 2:
-                    v_grid = v_grid = [v_grid[1],v_grid[2],v_grid[2]+rv_range]    
+                    v_grid = v_grid = [v_grid[1], v_grid[2], v_grid[2]+rv_range]
 
                 rounds += 1
 
@@ -483,29 +481,29 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
              v_all = v_all[pmin-2:pmin+3]
 
         # polyfit through the rms values
-        v_gr = np.linspace(v_all[0],v_all[-1],100)
-        pol, resi, _, _, _ = np.polyfit(v_all,rms_all,2, w=1./np.sqrt(rms_all),full=True)
+        v_gr = np.linspace(v_all[0], v_all[-1], 100)
+        pol, resi, _, _, _ = np.polyfit(v_all, rms_all, 2, w=1./np.sqrt(rms_all), full=True)
         sp = np.poly1d(pol)(v_gr)
         rvs = v_gr[np.argmin(sp)]
 
         gplot.RV2title(", v=%.2f ± %.2f m/s" % (rvs*1000, resi*1000))
         gplot.xlabel('"RV [km/s]"')
         gplot.ylabel('"rms"')
-        gplot(v_gr, sp, 'w l lc 9 t "polynomial fit",', v_all ,rms_all, 'lc 3 ps 1 pt 2 t "curvefit"')  
-        #pause()   
+        gplot(v_gr, sp, 'w l lc 9 t "polynomial fit",', v_all, rms_all, 'lc 3 ps 1 pt 2 t "curvefit"')
+        # pause()
 
-   #     p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs,a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
-        par_rv = rvs      
+        # p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs, a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
+        par_rv = rvs
 
 
     if tplname or createtpl:
         params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
-#        params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
+        # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
         params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok])
         # prepend dummy parameter
-#        e_params = np.diag([np.nan, *np.diag(e_params)])
+        # e_params = np.diag([np.nan, *np.diag(e_params)])
 
     if kapsig:
         # kappa sigma clipping of outliers
@@ -515,7 +513,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         nr_k1 = np.count_nonzero(flag_obs)
         flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
         nr_k2 = np.count_nonzero(flag_obs)
-                
+
         # test if outliers were flagged
         if nr_k1 != nr_k2:
             i_ok = np.where(flag_obs == 0)[0]
@@ -531,61 +529,61 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if createtpl:
         # modeled telluric spectrum
-        spec_model = np.ones(len(pixel))*np.nan
-        spec_model[iset] = S_mod(pixel[iset], *params)		    
-        spec_model /= np.nanmean(spec_model[iset])	
+        spec_model = np.nan * np.empty_like(pixel)
+        spec_model[iset] = S_mod(pixel[iset], *params)
+        spec_model /= np.nanmean(spec_model[iset])
 
         # telluric corrected spectrum
-        spec_cor = spec_obs / spec_model		
-        err_cor = err_obs / spec_model	
+        spec_cor = spec_obs / spec_model
+        err_cor = err_obs / spec_model
 
         # remove regions with strong telluric lines
-        spec_cor[spec_model<0.2] = np.nan		
+        spec_cor[spec_model<0.2] = np.nan
         spec_cor[spec_cor<3*err_cor] = np.nan
 
         wave_model = np.poly1d(params[2][::-1])(pixel-icen)
         spec_cor = np.interp(wave_model/(1+berv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
 
         # downweighting by telluric spectrum and errors
-        weight = spec_model * 1./(err_cor/np.nanmedian(spec_cor))**2 
-       #  weight[spec_model<0.2] = 0.00001		 # downweight deep telluric lines
+        weight = spec_model / (err_cor/np.nanmedian(spec_cor))**2
+        # weight[spec_model<0.2] = 0.00001   # downweight deep telluric lines
         weight = np.interp(wave_model / (1+berv/c), wave_model, weight)
 
-	# save telluric corrected spectrum
-        spec_all[o,0][n] = wave_model   	# updated wavelength
-        spec_all[o,1][n] = spec_cor		# telluric corrected spectrum
-        spec_all[o,2][n] = weight		# weighting for combination of spectra 
+        # save telluric corrected spectrum
+        spec_all[o,0][n] = wave_model   # updated wavelength
+        spec_all[o,1][n] = spec_cor     # telluric corrected spectrum
+        spec_all[o,2][n] = weight       # weighting for combination of spectra
 
 
     # overplot flagged and clipped data
-    gplot+(pixel[flag_obs != 0],wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
+    gplot+(pixel[flag_obs != 0], wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     if infoprec:
-        # estimate velocity precision limit from stellar information content 
+        # estimate velocity precision limit from stellar information content
         # without iodine cell (smoothed to a constant)
-        S_pure = model(S_star, lnwave_j, spec_cell_j*0+np.nanmean(spec_cell_j),specs_molec, IP, **modset)
-        dS = S_pure(pixel+0.1, *params) - S_pure(pixel, *params)    # flux gradient from finite difference
+        S_pure = model(S_star, lnwave_j, spec_cell_j*0+np.nanmean(spec_cell_j), specs_molec, IP, **modset)
+        dS = S_pure(pixel+0.1, *params) - S_pure(pixel, *params)   # flux gradient from finite difference
         du = 1000 * c * np.diff(wave_obs)*0.1 / wave_obs[:-1]   # [m/s] velocity differential from initial solution
         # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
         varS = abs(spec_obs) + 5**2   # (5 = readout noise)
-        # RV precision Eq. (6) Butler+ 1996PASP..108..500B 
+        # RV precision Eq. (6) from Butler+ (1996PASP..108..500B)
         ev_star = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
         print(f'Stellar RV precision limit: {ev_star} m/s')
 
-        # estimate velocity precision limit for the iodine from its RV information content 
+        # estimate velocity precision limit for the iodine from its RV information content
         # now the star is smoothed
         tpl_smooth = np.cumsum(spec_tpl[order])
         wz = 1000   # window size
-        tpl_smooth = (tpl_smooth[wz:] - tpl_smooth[:-wz]) / wz 
+        tpl_smooth = (tpl_smooth[wz:] - tpl_smooth[:-wz]) / wz
         # gplot(spec_tpl[order], ',', tpl_smooth)
         S_smooth = lambda x: np.interp(x, np.log(wave_tpl[order][wz//2:-wz//2])-berv/c, tpl_smooth)
-        iod_pure = model(S_smooth, lnwave_j, spec_cell_j,specs_molec, IP, **modset)
+        iod_pure = model(S_smooth, lnwave_j, spec_cell_j, specs_molec, IP, **modset)
         dS = iod_pure(pixel+0.1, *params) - iod_pure(pixel, *params)   # flux gradient from finite difference
         ev_iod = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
         print(f'Iodine RV precision limit: {ev_iod} m/s')
 
         # total precision is the squared sum of both
-        # in practice it will be worse since more parameters are modelled
+        # in practice it will be worse, since more parameters are modelled
         ev_total = np.sqrt(ev_star**2 + ev_iod**2)
         print(f'Total RV precision limit: {ev_total} m/s')
         if 1:
@@ -609,7 +607,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
 
     if o in look:
-        pause('look %s:'% o,  rvo,'+/- %.2f' % e_rvo)  # globals().update(locals())
+        pause('look %s:'% o,  rvo, '+/- %.2f' % e_rvo)  # globals().update(locals())
 
     if o in lookres:
         gplot2.palette_defined('(0 "blue", 1 "green", 2 "red")')
@@ -653,7 +651,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_params[ss,ss]**0.5
         par_ip = params[3]
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *par_ip_guess), ' lc 9 ps 0.5 t "IP_{guess}", ', S_mod.vk, S_mod.IP(S_mod.vk,*params[3]), S_mod.IP(S_mod.vk,*[par_ip[0]-e_s, *par_ip[1:]]),  S_mod.IP(S_mod.vk, *[par_ip[0]+e_s, *par_ip[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *par_ip_guess), ' lc 9 ps 0.5 t "IP_{guess}", ',
+	      S_mod.vk, S_mod.IP(S_mod.vk, *params[3]), S_mod.IP(S_mod.vk, *[par_ip[0]-e_s, *par_ip[1:]]), S_mod.IP(S_mod.vk, *[par_ip[0]+e_s, *par_ip[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause('lookpar', par_ip)
 
@@ -673,14 +672,14 @@ if targname:
 orders = np.r_[oset]
 print(orders)
 
-rv = np.nan * np.empty((chunks*len(orders)))
-e_rv = np.nan * np.empty((chunks*len(orders)))
+rv = np.nan * np.empty(chunks*len(orders))
+e_rv = np.nan * np.empty(chunks*len(orders))
 
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
 # file header
-print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)),()), 'filename', file=rvounit)
-print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_params{}".format, range(10))),()), 'prms', file=parunit)
+print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)), ()), 'filename', file=rvounit)
+print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_params{}".format, range(10))), ()), 'prms', file=parunit)
 
 
 ####  FTS  ####
@@ -702,12 +701,12 @@ if telluric == 'add':
     # add later: choice of molecules
     if inst == 'CRIRES':
         # NIR wavelength range
-        molec = ['H2O','CH4','N2O','CO2','CO']#,'NO2']
+        molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO'] #, 'NO2']
     else:
         # optical wavelength range
-        molec = ['H2O','O2']
-    wave_atm_all, specs_molec_all = {}, {}	
-    for mol in range(0, len(molec),1):
+        molec = ['H2O', 'O2']
+    wave_atm_all, specs_molec_all = {}, {}
+    for mol in range(len(molec)):
         wave_atm_all[mol], specs_molec_all[mol] = Tell(molec[mol])
 
 # collect all spectra for createtpl function
@@ -721,63 +720,63 @@ if tplname:
     for order in orders:
         wave_tplo, spec_tplo = Tpl(tplname, order=order, targ=targ)
         if oversampling:
-            us = np.linspace(np.log(wave_tplo[0]),np.log(wave_tplo[-1]), oversampling*wave_tplo.size)
+            us = np.linspace(np.log(wave_tplo[0]), np.log(wave_tplo[-1]), oversampling*wave_tplo.size)
             spec_tplo = np.nan_to_num(spec_tplo)
-            fs = CubicSpline(np.log(wave_tplo),spec_tplo)(us)
+            fs = CubicSpline(np.log(wave_tplo), spec_tplo)(us)
             wave_tpl[order], spec_tpl[order] = np.exp(us), fs
         else:
             wave_tpl[order], spec_tpl[order] = wave_tplo, spec_tplo
 else:
     # no template given; model pure iodine
-    wave_tpl, spec_tpl = [wave_cell[[0,-1]]]*100, [np.ones(2)]*100
+    wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*100, [np.ones(2)]*100
 
 
 if createtpl:
     wave_tplo, spec_tplo = Tpl(obsnames[-1], order=orders[-1], targ=targ)
     wmax = np.max(wave_tplo)
 else:
-    wmax = np.max(wave_tpl[orders[-1]]) 
+    wmax = np.max(wave_tpl[orders[-1]])
 
-if telluric == 'add' and (np.max(wave_cell) < wmax):
+if telluric == 'add' and (wave_cell[-1] < wmax):
     # extend wavelength range for telluric modelling
     # iodine ends around order 36 for TLS and OES
     # at higher orders modelling with telluric lines instead of iodine is possible
 
-    wave_cell_ext = np.arange(np.max(wave_cell), wmax, wave_cell[-1]-wave_cell[-2])[1:]
-    spec_cell_ext = np.ones(len(wave_cell_ext))
+    wave_cell_ext = np.arange(wave_cell[-1], wmax, wave_cell[-1]-wave_cell[-2])[1:]
+    spec_cell_ext = np.ones_like(wave_cell_ext)
 
-    wave_cell = np.append(wave_cell,wave_cell_ext)
-    spec_cell = np.append(spec_cell,spec_cell_ext)
+    wave_cell = np.append(wave_cell, wave_cell_ext)
+    spec_cell = np.append(spec_cell, spec_cell_ext)
 
     lnwave_j = np.log(wave_cell)
     lnwave_j_full = np.arange(lnwave_j[0], lnwave_j[-1], 100/3e8)
     spec_cell_j_full = np.interp(lnwave_j_full, lnwave_j, spec_cell)
 
     if not tplname:
-            wave_tpl, spec_tpl = [wave_cell[[0,-1]]]*100, [np.ones(2)]*100
+        wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*100, [np.ones(2)]*100
 
 T = time.time()
-for n,obsname in enumerate(obsnames):
+for n, obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print("%2d/%d"% (n+1,N), obsname)
     for i_o, o in enumerate(orders):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
             gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd,berv, params, e_params, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
+            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd, berv, params, e_params, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
 #        try:
-#            rv[i_o], e_rv[i_o], bjd,berv, p, e_params  = fit_chunk(o, obsname=obsname)
+#            rv[i_o], e_rv[i_o], bjd, berv, p, e_params  = fit_chunk(o, obsname=obsname)
 #        except Exception as e:
 #            if repr(e) == 'BdbQuit()':
 #               exit()
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-            print(bjd, o, ch, *sum(zip(params, np.diag(e_params)),()), prms, file=parunit)
+            print(bjd, o, ch, *sum(zip(params, np.diag(e_params)), ()), prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
-            os.system('cp res.dat res/%03d_%03d.dat' % (n,o))
-        #    pause()
+            os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
+        # pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
@@ -786,9 +785,9 @@ for n,obsname in enumerate(obsnames):
     else:
         RV = np.nanmean(rv[oo])
         e_RV = np.nanstd(rv[oo])/(oo.sum()-1)**0.5
-    print('RV:', RV,e_RV, bjd, berv)
+    print('RV:', RV, e_RV, bjd, berv)
 
-    print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv),()), filename, file=rvounit)
+    print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv), ()), filename, file=rvounit)
     print(file=parunit)
     #vpr.plot_rvo(rv, e_rv)
 
@@ -800,29 +799,29 @@ if createtpl:
     for order in orders:
         gplot.reset()
         gplot.key("title 'order: %s' noenhance" % (o))
-        wave_t = np.array(list(spec_all[o,0].values())) 	# wavelength
-        spec_t = np.array(list(spec_all[o,1].values()))		# data
-        weight_t = np.array(list(spec_all[o,2].values()))	# weighting
+        wave_t = np.array(list(spec_all[o,0].values()))     # wavelength
+        spec_t = np.array(list(spec_all[o,1].values()))     # data
+        weight_t = np.array(list(spec_all[o,2].values()))   # weighting
         weight_t[np.isnan(spec_t)] = 0
         weight_t[spec_t<0] = 0
+        # weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
 
-   #     weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         wave_tpl_new[order] = np.nanmean(wave_t, axis=0)
 
         # flag outlier points and spectra
-        for nn in range(0,len(spec_t),1):
+        for nn in range(len(spec_t)):
             weight_t[nn][np.abs(spec_t[nn]-spec_tpl_new[order])>0.1] = np.nan
 
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
 
         gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
-        for n in range(0, len(spec_t), 1):
-            gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1])) 
-           #gplot+(wave_tpl_new[order],np.nanstd(spec_t,axis=0)+1.5,'w l t ""')
+        for n in range(len(spec_t)):
+            gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
+            #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         pause()
 
-    Inst.write_fits(wave_tpl_new, spec_tpl_new, np.nanstd(spec_t,axis=0), obsnames, tag)
+    Inst.write_fits(wave_tpl_new, spec_tpl_new, np.nanstd(spec_t, axis=0), obsnames, tag)
 
 
 rvounit.close()
