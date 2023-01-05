@@ -678,9 +678,8 @@ e_rv = np.nan * np.empty(chunks*len(orders))
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
 # file header
-print('BJD', 'RV', 'e_RV', 'BERV', *sum(zip(map("rv{}".format, orders), map("e_rv{}".format, orders)), ()), 'filename', file=rvounit)
-print('BJD', 'o', *sum(zip(map("p{}".format, range(10)), map("e_params{}".format, range(10))), ()), 'prms', file=parunit)
-
+print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, orders), 'filename', file=rvounit)
+print('BJD order chunk', *map("p{0} e_params{0}".format, range(10)), 'prms', file=parunit)
 
 ####  FTS  ####
 
@@ -758,7 +757,7 @@ if telluric == 'add' and (wave_cell[-1] < wmax):
 T = time.time()
 for n, obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
-    print("%2d/%d"% (n+1,N), obsname)
+    print(f"{n+1:3d}/{N}", filename)
     for i_o, o in enumerate(orders):
         for ch in np.arange(chunks):
             gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
@@ -836,5 +835,5 @@ if not createtpl:
     vpr.VPR(tag)   # to print info statistic
     vpr.plot_RV(tag+'.rvo.dat')
 
-pause('%s done.' % tag)
+pause(tag, 'done.')
 
