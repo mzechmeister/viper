@@ -10,56 +10,51 @@ c = 3e5   # [km/s] speed of light
 # IP sampling in velocity space
 # index k for IP space
 def IP(vk, s=2.2):
-    IP_k = np.exp(-(vk/s)**2/2)   # Gauss IP
-    #IP_k += 0.07*np.exp(-((vk+1.)/s)**2)   # an asymmetry Gauss IP
+    """Gaussian IP"""
+    IP_k = np.exp(-(vk/s)**2/2)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
-
 
 def IP_sg(vk, s=2.2, e=2.):
-    # super Gaussian
-    IP_k = np.exp(-abs(vk/s)**e)   # Gauss IP
+    """super Gaussian"""
+    IP_k = np.exp(-abs(vk/s)**e)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
-
 
 def IP_ag(vk, s=2.2, a=0):
     '''
     Asymmetric (skewed) Gaussian.
-    
+
     Example
     -------
-    >>> vk = np.arange(-50, 50+1) 
-    >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100),', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
+    >>> vk = np.arange(-50, 50+1)
+    >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100), ', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
 
     '''
     b = a / np.sqrt(1+a**2) * np.sqrt(2/np.pi)
     ss = s / np.sqrt(1-b**2)    # readjust scale parameter to have same variance as unskewed Gaussian
     vk = (vk + ss*b) / ss       # recenter to have zero mean
-    IP_k = np.exp(-vk**2/2) * (1+erf(a/np.sqrt(2)*vk))  # Gauss IP * erf
+    IP_k = np.exp(-vk**2/2) * (1+erf(a/np.sqrt(2)*vk))   # Gauss IP * erf
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
-
 
 def IP_mg(vk, s0=2, a1=0.1):
-    ''' IP for multiple, zero-centered Gaussians. '''
-    #print(s)
+    """IP for multiple, zero-centered Gaussians."""
     s1 = 4 * s0   # width of second Gaussian with fixed relative width
-    a1 = a1 /10   # relative ampitude
-    IP_k = np.exp(-(vk/s0)**2)   # Gauss IP
-    IP_k += a1*np.exp(-(vk/s1)**2)   # Gauss IP
-    IP_k = IP_k.clip(0,None)
+    a1 = a1 / 10  # relative ampitude
+    IP_k = np.exp(-(vk/s0)**2)         # main Gaussian
+    IP_k += a1 * np.exp(-(vk/s1)**2)   # a satellite Gaussian
+    IP_k = IP_k.clip(0, None)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
 
-IPs = {'g':IP, 'sg': IP_sg, 'ag': IP_ag, 'mg':IP_mg, 'bnd': 'bnd'}
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'mg': IP_mg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
     # redefine polynomial for argument order and adjacent coefficients
     return np.polyval(a[::-1], x)
-
 
 def pade(x, a, b):
     '''
@@ -72,24 +67,25 @@ def pade(x, a, b):
 
 class model:
     '''
-    The forward model
+    The forward model.
 
     '''
     def __init__(self, *args, envelope=poly, IP_hs=50, icen=0):
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
-        self.icen = icen
+
+	self.icen = icen
         self.S_star, self.lnwave_j, self.spec_cell_j, self.spec_atm, self.IP = args
         # convolving with IP will reduce the valid wavelength range
-        self.dx = self.lnwave_j[1] - self.lnwave_j[0]  # sampling in uniform resampled Iod
+        self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
         self.IP_hs = IP_hs
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
-        self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]
+        self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]    # valid grid
         self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
-        # wavelength solution 
+        # wavelength solution
         #    lam(x) = b0 + b1 * x + b2 * x^2
         lnwave_obs = np.log(np.poly1d(coeff_wave[::-1])(pixel-self.icen))
 
@@ -116,7 +112,6 @@ class model:
         #Si_mod = self.envelope((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
- 
     def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], sig=[], **kwargs):
         '''
         Generic fit wrapper.
@@ -137,7 +132,7 @@ class model:
 
         S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg)
 
-        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
+        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg], sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 
         par_rv = (*params[sv], *np.diag(e_params)[sv])
         params = tuple(params)
@@ -146,7 +141,6 @@ class model:
         if kwargs:
             self.show(params, pixel, spec_obs, par_rv=par_rv, **kwargs)
         return params, e_params
-
 
     def show(self, params, x, y, par_rv=None, res=True, x2=None, dx=None, rel_fac=None):
         '''
@@ -164,10 +158,10 @@ class model:
         gplot.put("if (!exists('lam')) {lam=1}")
 
         gplot.key('horizontal')
-        gplot.xlabel('lam?"Vaccum wavelength [Å]":"Pixel x"')
+        gplot.xlabel('lam?"Vacuum wavelength [Å]":"Pixel x"')
         gplot.ylabel('"flux"')
         # toggle between pixel and wavelength with shortcut "$"
-        gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vaccum wavelength [Å]\\":\\"Pixel x\\"; replot"')
+        gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vacuum wavelength [Å]\\":\\"Pixel x\\"; replot"')
         args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "S_i",',
           '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
         prms = np.nan   # percentage prms
@@ -207,8 +201,8 @@ class model_bnd(model):
         j = np.arange(self.lnwave_j.size)
         jx = np.interp(lnwave_obs, self.lnwave_j, j)
         # position of Gaussians
-        vl = np.array([-1,0,1])[np.newaxis,np.newaxis,:]
-        vl = np.array([-1.4,-0.7,0,0.7,1.4])[np.newaxis,np.newaxis,:]
+        vl = np.array([-1, 0, 1])[np.newaxis,np.newaxis,:]
+        vl = np.array([-1.4, -0.7, 0, 0.7, 1.4])[np.newaxis,np.newaxis,:]
         #vl = np.array([0])[np.newaxis,np.newaxis,:]
 
         # bnd -- lists all j's contributing to x
@@ -232,20 +226,20 @@ class model_bnd(model):
         if kwargs:
             self.base(**kwargs)
         # sum all Gaussians
-        IPxj = np.einsum('xjl,xk,kl->xj', self.BBxjl, self.Bxk, akl.reshape(self.Bxk.shape[1],-1)) #.reshape(AAxkl[0].shape))
+        IPxj = np.einsum('xjl,xk,kl->xj', self.BBxjl, self.Bxk, akl.reshape(self.Bxk.shape[1], -1)) #.reshape(AAxkl[0].shape))
         return IPxj
 
     def fit(self, f, v, **kwargs):
         Axkl = self.Axk(v, **kwargs)
-        return np.linalg.lstsq(Axkl.reshape((len(Axkl),-1)), f, rcond=1e-32)
+        return np.linalg.lstsq(Axkl.reshape((len(Axkl), -1)), f, rcond=1e-32)
 
     def __call__(self, x, v, ak, **kwargs):
         Axkl = self.Axk(v, **kwargs)
-#        dl = np.array([0.5,2,0.5])   # amplitude of Gaussian
+        # dl = np.array([0.5, 2, 0.5])   # amplitude of Gaussian
         #ak = np.array([1, 0, 0, 0, 0])
         #fx = Axk @ ak
-#        fx = AAxkl.reshape((len(AAxkl),-1)) @ aakl
-        fx = Axkl.reshape((len(Axkl),-1)) @ ak
+        # fx = AAxkl.reshape((len(AAxkl), -1)) @ aakl
+        fx = Axkl.reshape((len(Axkl), -1)) @ ak
         return fx
 
 
