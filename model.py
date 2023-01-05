@@ -10,15 +10,15 @@ c = 3e5   # [km/s] speed of light
 # IP sampling in velocity space
 # index k for IP space
 def IP(vk, s=2.2):
-    IP_k = np.exp(-(vk/s)**2/2)   # Gauss IP
-    #IP_k += 0.07*np.exp(-((vk+1.)/s)**2)   # an asymmetry Gauss IP
+    """Gauss IP"""
+    IP_k = np.exp(-(vk/s)**2/2)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
 
 def IP_sg(vk, s=2.2, e=2.):
-    # super Gaussian
-    IP_k = np.exp(-abs(vk/s)**e)   # Gauss IP
+    """super Gaussian"""
+    IP_k = np.exp(-abs(vk/s)**e)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
@@ -42,8 +42,7 @@ def IP_ag(vk, s=2.2, a=0):
 
 
 def IP_mg(vk, s0=2, a1=0.1):
-    ''' IP for multiple, zero-centered Gaussians. '''
-    #print(s)
+    """IP for multiple, zero-centered Gaussians."""
     s1 = 4 * s0   # width of second Gaussian with fixed relative width
     a1 = a1 /10   # relative ampitude
     IP_k = np.exp(-(vk/s0)**2)   # Gauss IP
@@ -57,7 +56,7 @@ IPs = {'g':IP, 'sg': IP_sg, 'ag': IP_ag, 'mg':IP_mg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
-    # redefine polynomial for argument order and adjacent coefficients
+    """Redefine polynomial for argument order and adjacent coefficients."""
     return np.polyval(a[::-1], x)
 
 
@@ -164,10 +163,10 @@ class model:
         gplot.put("if (!exists('lam')) {lam=1}")
 
         gplot.key('horizontal')
-        gplot.xlabel('lam?"Vaccum wavelength [Å]":"Pixel x"')
+        gplot.xlabel('lam?"Vacuum wavelength [Å]":"Pixel x"')
         gplot.ylabel('"flux"')
         # toggle between pixel and wavelength with shortcut "$"
-        gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vaccum wavelength [Å]\\":\\"Pixel x\\"; replot"')
+        gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vacuum wavelength [Å]\\":\\"Pixel x\\"; replot"')
         args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "S_i",',
           '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
         prms = np.nan   # percentage prms
