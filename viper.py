@@ -158,7 +158,8 @@ if __name__ == "__main__":
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookres', nargs='?', help='Analyse the residuals', default=[], const=':100', type=arg2range)
     argopt('-nset', help='index for spectrum', default=':', type=arg2slice)
-    argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
+    #argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
+    argopt('-nexcl', nargs='*', help='Ignore spectra with string pattern', default=[], type=str)
     argopt('-nocell', help='Do the calibration without using the FTS', action='store_true')
     argopt('-oset', help='index for order', default=oset, type=arg2slice)
     argopt('-oversampling', help='value for oversampling the template data', default=None, type=int)
@@ -660,7 +661,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
-obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
+#obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
+obsnames = [x for x in obsnames if not any(pat in os.path.basename(x) for pat in nexcl)]
+
 N = len(obsnames)
 if not N: pause('no files: ', obspath)
 
