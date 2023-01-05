@@ -16,16 +16,17 @@ location = tls = EarthLocation.from_geodetic(lat=50.980111*u.deg, lon=11.711167*
 
 oset = '18:30'
 iset = '380:1700'
-#iset = '0:2048'
 
-pg = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+# convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   
 
-def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
+
+def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
 
     dateobs = hdr['DATE-OBS']
-    exptime = hdr.get('EXP_TIME',hdr.get('EXPOSURE'))   # 20211018_guenther_TCEcell_0063.fits EXPOSURE (no exptime)
+    exptime = hdr.get('EXP_TIME', hdr.get('EXPOSURE'))   # 20211018_guenther_TCEcell_0063.fits EXPOSURE (no exptime)
     ra = hdr.get('RA', np.nan)                          # 20211018_guenther_TCEcell_0184.fits no RA
     de = hdr.get('DEC', np.nan)
 
@@ -36,48 +37,48 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', o=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
 
-    f = hdu.data
+    spec = hdu.data
     gg = readmultispec(filename, reform=True, quiet=True)
-    w = gg['wavelen']
-    w = airtovac(w)
-    if o is not None:
-         w, f = w[o], f[o]
+    wave = gg['wavelen']
+    wave = airtovac(wave)
+    if order is not None:
+         wave, spec = wave[order], spec[order]
 
-    x = np.arange(f.size) 
-    e = np.zeros(f.size)+0.1
-    b = 1 * np.isnan(f) # bad pixel map
-    #b[f>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
-    b[(5300<w) & (w<5343)] |= 256  # only for HARPS s1d template (this order misses)
+    pixel = np.arange(spec.size) 
+    err = np.zeros(spec.size)+0.1
+    flag_pixel = 1 * np.isnan(spec) # bad pixel map
+    #b[spec>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
+    flag_pixel[(5300<wave) & (wave<5343)] |= 256  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
     # Also the deconv could have a bad wavelength solution.
 
-    return x, w, f,e, b, bjd, berv
+    return pixel, wave, spec, err, flag_pixel, bjd, berv
 
-def Tpl(tplname, o=None, targ=None):
+def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
-        w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits') or  tplname.endswith('.tpl.s1d.fits'):
         hdu = fits.open(tplname)[0]
-        f = hdu.data
+        spec = hdu.data
         h = hdu.header
-        w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
+        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
         if tplname.endswith('_s1d_A.fits'):
-            w = airtovac(w)
+            wave = airtovac(wave)
         else:
-            w = np.exp(w)
+            wave = np.exp(wave)
     elif tplname.endswith('PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'):
         from . import phoenix
-        w, f = phoenix.read(tplname)
+        wave, spec = phoenix.read(tplname)
     else:
         # long 1d template
         hdu = fits.open(tplname)
-        w = hdu[1].data.field('Arg')
-        f = hdu[1].data.field('Fun')
+        wave = hdu[1].data.field('Arg')
+        spec = hdu[1].data.field('Fun')
 
-    return w, f
+    return wave, spec
 
 
 def FTS(ftsname='lib/TLS/FTS/TLS_I2_FTS.fits', dv=100):

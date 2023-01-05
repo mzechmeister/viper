@@ -13,10 +13,10 @@ location = lasilla = EarthLocation.of_site('lasilla')
 
 oset = '0:1'
 
-pg = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
 
-def Spectrum(filename, o=None, targ=None, chksize=4000):
+def Spectrum(filename, order=None, targ=None, chksize=4000):
     with open(filename) as myfile:
         hdr = [next(myfile) for x in range(21)]
     # PX#   WAVELENGTH          FLUX           ERROR         MASK (0/1/6)
@@ -36,9 +36,9 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
         ax[4+512*7] = 0.971
         x = np.cumsum(ax) - 1
 
-    if o is not None:
-        o = slice(o*chksize, (o+1)*chksize)
-        x, w, f, e_f, m = x[o], w[o], f[o], e_f[o], m[o]
+    if order is not None:
+        order = slice(order*chksize, (order+1)*chksize)
+        x, w, f, e_f, m = x[order], w[order], f[order], e_f[order], m[order]
 
     b = 1 * np.isnan(f) # bad pixel map
     #b[f>1.5] |= 2 # large flux
@@ -65,7 +65,7 @@ def Spectrum(filename, o=None, targ=None, chksize=4000):
     bjd = midtime.tdb
     return x, w, f, e, b, bjd, berv
 
-def Tpl(tplname, o=None, targ=None):
+def Tpl(tplname, order=None, targ=None):
     if tplname.endswith('.dat'):
         # echelle template
         x, w, f, e, b, bjd, berv = Spectrum(tplname, targ=targ)

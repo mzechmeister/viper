@@ -27,7 +27,7 @@ def bt_start():
     x = np.ones(len(cb_demo))*2    
     demo = (np.poly1d(ar_demo[::-1])(x))[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -dega "+e_dega.get()+" -degb "+e_degb.get()+" -degc "+e_degc.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -vg "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
@@ -60,11 +60,13 @@ def bt_start():
     if cb_tellshift.get():
         str_arg += " -tellshift "
 
+    print(str_arg)
+
     os.system("python3 viper.py '" + str_arg)
 
    # doesn't work as subprocess
-   # os.system("python3 viper.py 'data/CRIRES/Ross619/210*' data/CRIRES/model/Ross619_19.fits -inst CRIRES -dega 2 -degb 2 -nset :2 -oset 10")
-  #  subprocess.Popen(["./viper.py","'data/CRIRES/Ross619/210*'", "data/CRIRES/model/Ross619_19.fits -inst CRIRES -dega 2 -degb 2 -nset :2 -oset 10 -test 1"])
+   # os.system("python3 viper.py 'data/CRIRES/Ross619/210*' data/CRIRES/model/Ross619_19.fits -inst CRIRES -deg_norm 2 -deg_wave 2 -nset :2 -oset 10")
+  #  subprocess.Popen(["./viper.py","'data/CRIRES/Ross619/210*'", "data/CRIRES/model/Ross619_19.fits -inst CRIRES -deg_norm 2 -deg_wave 2 -nset :2 -oset 10 -test 1"])
   
     print('---Finished viper.py---')
     
@@ -167,17 +169,17 @@ e_ch = Entry(master=win)
 e_ch.insert(0,'1')
 e_ch.place(x=x0+xss,y=(sl+2)*lh,width=60)
 
-e_dega = Entry(master=win)
-e_dega.insert(0,'3')
-e_dega.place(x=x0+xss+1*sp,y=(sl+3)*lh,width=50)
+e_deg_norm = Entry(master=win)
+e_deg_norm.insert(0,'3')
+e_deg_norm.place(x=x0+xss+1*sp,y=(sl+3)*lh,width=50)
 
-e_degb = Entry(master=win)
-e_degb.insert(0,'3')
-e_degb.place(x=x0+xss+1*sp,y=(sl+4)*lh,width=50)
+e_deg_wave = Entry(master=win)
+e_deg_wave.insert(0,'3')
+e_deg_wave.place(x=x0+xss+1*sp,y=(sl+4)*lh,width=50)
 
-e_degc = Entry(master=win)
-e_degc.insert(0,'1')
-e_degc.place(x=x0+xss+1*sp,y=(sl+5)*lh,width=50)
+e_deg_bkg = Entry(master=win)
+e_deg_bkg.insert(0,'1')
+e_deg_bkg.place(x=x0+xss+1*sp,y=(sl+5)*lh,width=50)
 
 e_tsig = Entry(master=win)
 e_tsig.insert(0,'1')
@@ -271,9 +273,9 @@ ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=
 (Label(master=win,text='oset:', background=bg_frame)).place(x=x0,y=(sl+1)*lh)
 (Label(master=win,text='chunks:', background=bg_frame)).place(x=x0,y=(sl+2)*lh)
 
-(Label(master=win,text='dega:', background=bg_frame)).place(x=x0+1*sp,y=(sl+3)*lh)
-(Label(master=win,text='degb:', background=bg_frame)).place(x=x0+1*sp,y=(sl+4)*lh)
-(Label(master=win,text='degc:', background=bg_frame)).place(x=x0+1*sp,y=(sl+5)*lh)
+(Label(master=win,text='deg_norm:', background=bg_frame)).place(x=x0+1*sp,y=(sl+3)*lh)
+(Label(master=win,text='deg_wave:', background=bg_frame)).place(x=x0+1*sp,y=(sl+4)*lh)
+(Label(master=win,text='deg_bkg:', background=bg_frame)).place(x=x0+1*sp,y=(sl+5)*lh)
 
 (Label(master=win,text='IP:', background=bg_frame)).place(x=x0+sp,y=(sl+0)*lh)
 (Label(master=win,text='iphs:', background=bg_frame)).place(x=x0+sp,y=(sl+1)*lh)

@@ -17,11 +17,11 @@ location = keck = EarthLocation.of_site('Keck Observatory')
 oset = '5:16'
 iset = '500:2000'
 
-pg = {'s': 300_000/87_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/87_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
-def Spectrum(filename, o=None, targ=None):
-    if o is not None:
-         filename = filename.replace('_flux.fits.gz', '')[:-2]+"%02i_flux.fits.gz" % o
+def Spectrum(filename, order=None, targ=None):
+    if order is not None:
+         filename = filename.replace('_flux.fits.gz', '')[:-2]+"%02i_flux.fits.gz" % order
 
     hdu = fits.open(filename, ignore_blank=True)
     hdr = hdu[0].header
@@ -79,8 +79,8 @@ def Spectrum(filename, o=None, targ=None):
         berv = 0.
         w, f = np.loadtxt(filename).T
 
-        if 0 and o is not None:
-            w, f = w[o], f[o]
+        if 0 and order is not None:
+            w, f = w[order], f[order]
 
         x = np.arange(f.size) 
         e = np.ones(f.size)
@@ -90,11 +90,11 @@ def Spectrum(filename, o=None, targ=None):
 
     return x, w, f, e, b, bjd, berv
 
-def Tpl(tplname, o=None, targ=None):
+def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     if tplname.endswith('.model'):
         # echelle template
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, o=o, targ=targ)
+        x, w, f, e, b, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits'):
         hdu = fits.open(tplname)[0]

@@ -15,11 +15,13 @@ def IP(vk, s=2.2):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+
 def IP_sg(vk, s=2.2, e=2.):
     # super Gaussian
     IP_k = np.exp(-abs(vk/s)**e)   # Gauss IP
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
+
 
 def IP_ag(vk, s=2.2, a=0):
     '''
@@ -50,11 +52,14 @@ def IP_mg(vk, s0=2, a1=0.1):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+
 IPs = {'g':IP, 'sg': IP_sg, 'ag': IP_ag, 'mg':IP_mg, 'bnd': 'bnd'}
+
 
 def poly(x, a):
     # redefine polynomial for argument order and adjacent coefficients
     return np.polyval(a[::-1], x)
+
 
 def pade(x, a, b):
     '''
@@ -74,81 +79,87 @@ class model:
         # IP_hs: Half size of the IP (number of sampling knots).
         # icen : Central pixel (to center polynomial for numeric reason).
         self.icen = icen
-        self.S_star, self.uj, self.iod_j, self.atmj, self.IP = args
+        self.S_star, self.lnwave_j, self.spec_cell_j, self.spec_atm, self.IP = args
         # convolving with IP will reduce the valid wavelength range
-        self.dx = self.uj[1] - self.uj[0]  # sampling in uniform resampled Iod
+        self.dx = self.lnwave_j[1] - self.lnwave_j[0]  # sampling in uniform resampled Iod
         self.IP_hs = IP_hs
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
-        self.uj_eff = self.uj[IP_hs:-IP_hs]
+        self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]
         self.envelope = envelope
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, i, v, a, b, s,t, cc=[0]):
+    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
         # wavelength solution 
         #    lam(x) = b0 + b1 * x + b2 * x^2
-        ui = np.log(np.poly1d(b[::-1])(i-self.icen))
+        lnwave_obs = np.log(np.poly1d(coeff_wave[::-1])(pixel-self.icen))
 
         # IP convolution
-        if len(self.atmj) == 0:
-            Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j + cc[0]), mode='valid')
+        if len(self.spec_atm) == 0:
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j + coeff_bkg[0]), mode='valid')
         else:
             # telluric forward modelling
-            atm = np.ones(len(self.atmj[0]))
-            for aj in range(0,len(self.atmj),1):
-                atm *= (self.atmj[aj]**np.abs(t[aj]))
+            atm = np.ones(len(self.spec_atm[0]))
+            for coeff_mol, sp in zip(coeff_atm, self.spec_atm):
+                atm *= sp**np.abs(coeff_mol)
 
 	    # variable telluric wavelength shift; one shift for all molecules
-            if len(t) == len(self.atmj)+1:
-                atm = np.interp(self.uj, self.uj-np.log(1+t[-1]/c), atm)
+            if len(coeff_atm) == len(self.spec_atm)+1:
+                atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), atm)
 
-            Sj_eff = np.convolve(self.IP(self.vk, *s), self.S_star(self.uj-v/c) * (self.iod_j * atm + cc[0]), mode='valid')
+            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * atm + coeff_bkg[0]), mode='valid')
 
         # sampling to pixel
-        Si_eff = np.interp(ui, self.uj_eff, Sj_eff)
+        Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
 
         # flux normalisation
-        Si_mod = self.envelope(i-self.icen, a) * Si_eff
-        #Si_mod = self.envelope((np.exp(ui)-b[0]-a[-1]), a[:-1]) * Si_eff
+        Si_mod = self.envelope(pixel-self.icen, coeff_norm) * Si_eff
+        #Si_mod = self.envelope((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
+
  
-    def fit(self, x, f, v=None, a=[], b=[], s=[],t=[], c=[], v0=None, a0=[], b0=[], s0=[],t0=[], c0=[],sig=[], **kwargs):
+    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
-        v0 = () if v0 is None else (v0,)
-        v = () if v is None else (v,)
-        sv = slice(0, len(v))
-        sa = slice(sv.stop, sv.stop+len(a))
-        sb = slice(sa.stop, sa.stop+len(b))
-        ss = slice(sb.stop, sb.stop+len(s))
-        st = slice(ss.stop, ss.stop+len(t))
-        sc = slice(st.stop, st.stop+len(c))
-        a0 = tuple(a0)
-        b0 = tuple(b0)
-        s0 = tuple(s0)
-        t0 = tuple(t0)
-        c0 = tuple(c0)
-        S = lambda x, *p: self(x, *p[ sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[st]+t0, p[sc]+c0)
-        p, e_p = curve_fit(S, x, f, p0=[*v, *a, *b, *s,*t, *c],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
-        v = (*p[sv], *np.diag(e_p)[sv])
-        p = tuple(p)
-        p = [*p[sv]+v0, p[sa]+a0, p[sb]+b0, p[ss]+s0, p[st]+t0, p[sc]+c0]
-        if kwargs:
-            self.show(p, x, f, v=v, **kwargs)
-        return p, e_p
+        parfix_rv = () if parfix_rv is None else (parfix_rv,)
+        par_rv = () if par_rv is None else (par_rv,)
+        sv = slice(0, len(par_rv))
+        sa = slice(sv.stop, sv.stop+len(par_norm))
+        sb = slice(sa.stop, sa.stop+len(par_wave))
+        ss = slice(sb.stop, sb.stop+len(par_ip))
+        st = slice(ss.stop, ss.stop+len(par_atm))
+        sc = slice(st.stop, st.stop+len(par_bkg))
+        parfix_norm = tuple(parfix_norm)
+        parfix_wave = tuple(parfix_wave)
+        parfix_ip = tuple(parfix_ip)
+        parfix_atm = tuple(parfix_atm)
+        parfix_bkg = tuple(parfix_bkg)
 
-    def show(self, p, x, y, v=None, res=True, x2=None, dx=None, rel_fac=None):
+        S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg)
+
+        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg],sigma=sig, absolute_sigma=False, epsfcn=1e-12)
+
+        par_rv = (*params[sv], *np.diag(e_params)[sv])
+        params = tuple(params)
+        params = [*params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg]
+
+        if kwargs:
+            self.show(params, pixel, spec_obs, par_rv=par_rv, **kwargs)
+        return params, e_params
+
+
+    def show(self, params, x, y, par_rv=None, res=True, x2=None, dx=None, rel_fac=None):
         '''
         res: Show residuals.
         x2: Values for second x axis.
         rel_fac: Factor for relative residuals.
         dx: Subpixel step size for the model [pixel].
         '''
-        ymod = self(x, *p)
+        ymod = self(x, *params)
         if x2 is None:
-            x2 = np.poly1d(p[2][::-1])(x-self.icen)
-        if v:
-            gplot.RV2title(", v=%.2f ± %.2f m/s" % (v[0]*1000, np.sqrt(v[1])*1000))
+            x2 = np.poly1d(params[2][::-1])(x-self.icen)
+        if par_rv:
+            gplot.RV2title(", v=%.2f ± %.2f m/s" % (par_rv[0]*1000, np.sqrt(par_rv[1])*1000))
 
         gplot.put("if (!exists('lam')) {lam=1}")
 
@@ -162,8 +173,8 @@ class model:
         prms = np.nan   # percentage prms
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
-            xx2 = np.poly1d(p[2][::-1])(xx-self.icen)
-            yymod = self(xx, *p)
+            xx2 = np.poly1d(params[2][::-1])(xx-self.icen)
+            yymod = self(xx, *params)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         if res or rel_fac:
             # linear or relative residuals
@@ -192,9 +203,9 @@ class model_bnd(model):
         self.x = x
         bg = self.IP
         # the initial trace
-        ui = np.log(np.poly1d(bg[::-1])(x-self.icen))
-        j = np.arange(self.uj.size)
-        jx = np.interp(ui, self.uj, j)
+        lnwave_obs = np.log(np.poly1d(bg[::-1])(x-self.icen))
+        j = np.arange(self.lnwave_j.size)
+        jx = np.interp(lnwave_obs, self.lnwave_j, j)
         # position of Gaussians
         vl = np.array([-1,0,1])[np.newaxis,np.newaxis,:]
         vl = np.array([-1.4,-0.7,0,0.7,1.4])[np.newaxis,np.newaxis,:]
@@ -204,7 +215,7 @@ class model_bnd(model):
         self.bnd = jx[:,np.newaxis].astype(int) + np.arange(-self.IP_hs, self.IP_hs+1)
 
         # base for multi-Gaussians
-        self.BBxjl = np.exp(-(self.uj[self.bnd][...,np.newaxis]-ui[:,np.newaxis,np.newaxis]+sig_k*vl)**2/sig_k**2)
+        self.BBxjl = np.exp(-(self.lnwave_j[self.bnd][...,np.newaxis]-lnwave_obs[:,np.newaxis,np.newaxis]+sig_k*vl)**2/sig_k**2)
 
         # base function for flux polynomial
         self.Bxk = np.vander(x-x.mean(), degk)[:,::-1]
@@ -213,8 +224,8 @@ class model_bnd(model):
     def Axk(self, v, **kwargs):
         if kwargs:
             self.base(**kwargs)
-        starj = self.S_star(self.uj-v/c)  # np.interp(self.uj, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
-        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.iod_j)[self.bnd], self.BBxjl, self.Bxk)
+        starj = self.S_star(self.lnwave_j-v/c)  # np.interp(self.lnwave_j, np.log(tpl_w)-berv/3e5, tpl_f/np.median(tpl_f))
+        _Axkl = np.einsum('xj,xjl,xk->xkl', (starj*self.spec_cell_j)[self.bnd], self.BBxjl, self.Bxk)
         return _Axkl
 
     def IPxj(self, akl, **kwargs):
@@ -236,7 +247,6 @@ class model_bnd(model):
 #        fx = AAxkl.reshape((len(AAxkl),-1)) @ aakl
         fx = Axkl.reshape((len(Axkl),-1)) @ ak
         return fx
-
 
 
 def show_model(x, y, ymod, res=True):
