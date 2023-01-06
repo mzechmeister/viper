@@ -797,10 +797,10 @@ if createtpl:
     spec_tpl_new = {}
     for order in orders:
         gplot.reset()
-        gplot.key("title 'order: %s' noenhance" % (o))
-        wave_t = np.array(list(spec_all[o,0].values()))     # wavelength
-        spec_t = np.array(list(spec_all[o,1].values()))     # data
-        weight_t = np.array(list(spec_all[o,2].values()))   # weighting
+        gplot.key("title 'order: %s' noenhance" % (order))
+        wave_t = np.array(list(spec_all[order,0].values()))     # wavelength
+        spec_t = np.array(list(spec_all[order,1].values()))     # data
+        weight_t = np.array(list(spec_all[order,2].values()))   # weighting
         weight_t[np.isnan(spec_t)] = 0
         weight_t[spec_t<0] = 0
         # weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
