@@ -364,7 +364,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_rv, par_norm, par_wave, *_ = params
         par_ip = [params[-3][0], *par_ip_guess[1:]]
 
-    if o in lookguess:
+    if order in lookguess:
         if demo:
             par_wave_guess = par_wave
             par_norm = [parfix_norm]
@@ -419,7 +419,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         res = spec_obs_ok - fx
         np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
         prms = np.nanstd(res) / fx.nanmean() * 100
-        if o in look:
+        if order in look:
             pause()
         return par_rv*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
 
@@ -607,10 +607,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
 
-    if o in look:
+    if order in look:
         pause('look %s:'% o,  rvo, '+/- %.2f' % e_rvo)  # globals().update(locals())
 
-    if o in lookres:
+    if order in lookres:
         gplot2.palette_defined('(0 "blue", 1 "green", 2 "red")')
         gplot2.var(j=1, lab_ddS='"Finite second derivative 2S(i) - S(i+1) - S(i-1)"')
         # shortcut "j" allows to toggle between flux and second derivative
@@ -639,7 +639,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     e_lam = np.einsum('ji,jk,ki->i', X, e_params[sb:ss,sb:ss], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
-    if o in lookpar:
+    if order in lookpar:
         # compare the wavelength solutions
         #show_model(i, np.poly1d(b[::-1])(i), np.poly1d(par_wave_guess[::-1])(i), res=True)
         gplot.reset()
