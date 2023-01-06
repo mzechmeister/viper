@@ -378,7 +378,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         params_guess = [rv_guess, par_norm, par_wave_guess, par_ip, par_atm, par_bkg+parfix_bkg]
         smod = S_mod(pixel, *params_guess)
         resid = spec_obs - smod
-        resid[flag_obs != 0] = 0
+        resid[flag_obs != 0] = np.nan
 
         flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
         i_ok = np.where(flag_obs == 0)[0]
@@ -509,6 +509,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # kappa sigma clipping of outliers
         smod = S_mod(pixel, *params)
         resid = spec_obs - smod
+	resid[flag_obs != 0] = np.nan
 
         nr_k1 = np.count_nonzero(flag_obs)
         flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
