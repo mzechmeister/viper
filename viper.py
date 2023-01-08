@@ -509,7 +509,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # kappa sigma clipping of outliers
         smod = S_mod(pixel, *params)
         resid = spec_obs - smod
-	resid[flag_obs != 0] = np.nan
+        resid[flag_obs != 0] = np.nan
 
         nr_k1 = np.count_nonzero(flag_obs)
         flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
@@ -678,8 +678,11 @@ e_rv = np.nan * np.empty(chunks*len(orders))
 
 rvounit = open(tag+'.rvo.dat', 'w')
 parunit = open(tag+'.par.dat', 'w')
-# file header
-print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, orders), 'filename', file=rvounit)
+
+# file headers
+colnums = orders if chunks == 1 else [f'{order}-{ch}' for order in orders for ch in range(chunks)]
+
+print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, colnums), 'filename', file=rvounit)
 print('BJD order chunk', *map("p{0} e_params{0}".format, range(10)), 'prms', file=parunit)
 
 ####  FTS  ####
