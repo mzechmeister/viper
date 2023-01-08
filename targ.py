@@ -3,7 +3,7 @@ import urllib.request as urllib2
 import os
 import sys
 
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, Distance
 import astropy.units as u
 
 # python version for the shell query
@@ -73,10 +73,13 @@ class Targ:
             self.query()
             self.tofile(csv)
          self.assignAttr(self.line)
-      if self.pmra and self.plx:
-         self.sa = 22.98 * ((self.pmra/1000)**2+(self.pmde/1000)**2) / self.plx
 
-      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr)
+      dist = Distance(parallax=self.plx*u.mas)
+      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
+
+      if self.pmra and self.plx:
+         # astropy only handles " source at infinite distance
+         self.sc.sa = self.sa = 22.98 * ((self.pmra/1000)**2+(self.pmde/1000)**2) / self.plx
 
    def fromfile(self, filename):
       '''Restore info from a file.'''
@@ -117,5 +120,3 @@ if __name__ == "__main__":
    targ = Targ(name)
    #targ = Targ('gj699', fromfilename='bla')
    print(targ.sa, targ.pmra, targ.pmde, targ.plx)
-
-

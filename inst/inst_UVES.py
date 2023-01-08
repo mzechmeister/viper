@@ -43,8 +43,15 @@ def Spectrum(filename, order=None, targ=None):
     targdrs = SkyCoord(ra=ra, dec=de, unit=(u.deg,u.deg))
     if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime/2 * u.s
+    targ.obstime = midtime
+
+    sa = 0
+    if targ.sa:
+        sa = targ.sa * (midtime-Time('J2000.0')).to_value('yr') * u.m/u.s  # [m/s]
+
+    targ = targ.apply_space_motion(new_obstime=midtime)
     berv = targ.radial_velocity_correction(obstime=midtime, location=paranal)
-    berv = berv.to(u.km/u.s).value
+    berv = (berv-sa).to(u.km/u.s).value
     bjd = midtime.tdb
  
     d = np.genfromtxt(filename, skip_header=offset+4096*order, dtype='i,f,f,f,i', names='ordpix,wave,flux,e_flux,flag', max_rows=4096)
