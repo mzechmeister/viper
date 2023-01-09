@@ -152,7 +152,7 @@ if __name__ == "__main__":
     argopt('-iphs', nargs='?', help='Half size of the IP', default=50, type=int)
     argopt('-iset', help='maximum', default=iset, type=arg2slice)
     argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine', action='store_true')
-    argopt('-kapsig', help='Kappa sigma clipping value', default=None, type=float)
+    argopt('-kapsig', nargs='*', help='Kappa sigma clipping value', default=[0], type=float)
     argopt('-look', nargs='?', help='See final fit of chunk', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show initial model', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk', default=[], const=':100', type=arg2range)
@@ -373,14 +373,14 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         pause('lookguess')
 
 
-    if kapsig:
-        # kappa sigma clipping of outliers
+    if kapsig[0]:
+        # first kappa sigma clipping of outliers
         params_guess = [rv_guess, par_norm, par_wave_guess, par_ip, par_atm, par_bkg+parfix_bkg]
         smod = S_mod(pixel, *params_guess)
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
-        flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
+        flag_obs[abs(resid) >= (kapsig[0]*np.nanstd(resid))] |= flag.clip
         i_ok = np.where(flag_obs == 0)[0]
         pixel_ok = pixel[i_ok]
         wave_obs_ok = wave_obs[i_ok]
@@ -505,14 +505,14 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # prepend dummy parameter
         # e_params = np.diag([np.nan, *np.diag(e_params)])
 
-    if kapsig:
-        # kappa sigma clipping of outliers
+    if kapsig[-1]:
+        # second kappa sigma clipping of outliers
         smod = S_mod(pixel, *params)
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
         nr_k1 = np.count_nonzero(flag_obs)
-        flag_obs[abs(resid) >= (kapsig*np.nanstd(resid))] |= flag.clip
+        flag_obs[abs(resid) >= (kapsig[-1]*np.nanstd(resid))] |= flag.clip
         nr_k2 = np.count_nonzero(flag_obs)
 
         # test if outliers were flagged
