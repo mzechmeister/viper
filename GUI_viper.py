@@ -11,6 +11,8 @@ from tkinter import ttk
 from gplot import *
 import numpy as np
 
+viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
+
 gplot.colors('classic')
 gplot2 = Gplot()
 g = Gplot()
@@ -62,7 +64,7 @@ def bt_start():
 
     print(str_arg)
 
-    os.system("python3 viper.py '" + str_arg)
+    os.system("python3 "+viperdir+"viper.py '" + str_arg)
 
    # doesn't work as subprocess
    # os.system("python3 viper.py 'data/CRIRES/Ross619/210*' data/CRIRES/model/Ross619_19.fits -inst CRIRES -deg_norm 2 -deg_wave 2 -nset :2 -oset 10")
@@ -260,7 +262,7 @@ ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=
 
 Label(master=win, text='template file', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+400,y=lh)
 Label(master=win, text='data files', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=lh)
-Label(master=win, text='telescope:', background=bg_frame).place(x=x0, y=3*lh)
+Label(master=win, text='spectrograph:', background=bg_frame).place(x=x0, y=3*lh)
 Label(master=win, text='flag file:', background=bg_frame).place(x=x0+20, y=4*lh)
 Label(master=win, text='targ:', background=bg_frame).place(x=x0+sp+30, y=3*lh)
 Label(master=win, text='tag:', background=bg_frame).place(x=x0+2*sp+30, y=3*lh)
