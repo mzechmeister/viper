@@ -86,7 +86,8 @@ class VPR():
             ofilter = [int(o) in olist for o in orders_all]
             self.onames = self.onames[ofilter]
             self.orders = self.orders[ofilter]
-            self.chunks = self.chunks[ofilter]
+            if self.chunks is not None:
+                self.chunks = self.chunks[ofilter]
 
         # remove columns not in oset; keep BJD, etc. and other orders
         self.A = self.Afull[[col for col in colnames if col.endswith(tuple(self.onames)) or not col.startswith(('e_rv', 'rv'))]]
