@@ -9,6 +9,8 @@ import numpy as np
 from pause import pause
 from gplot import gplot
 
+gplot.bar(0.5)
+
 def plot_RV(file):
     gplot.mxtics().mytics()
     gplot.xlabel("'BJD - 2 450 000'")
@@ -25,7 +27,7 @@ def plot_rvo(rv=None, e_rv=None, file=None):
         rv, e_rv = mat[3::2], mat[4::2]
 
     ii = np.isfinite(e_rv)
-    RV = np.mean(rv[ii]) 
+    RV = np.mean(rv[ii])
     e_RV = np.std(rv[ii])/(ii.sum()-1)**0.5
 
     gplot.xlabel('"Order index"')
@@ -45,8 +47,8 @@ def plot_cmp(vpr, vprcmp):
         gplot.mxtics().mytics()
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
-        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 1 t "%s [o=%s] rms=%.2f m/s" noenh' % (vprcmp.tag, vprcmp.oset, vprcmp.rms))
-        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "%s [o=%s] rms=%.2f m/s" noenh' % (vpr.tag, vpr.oset, vpr.rms))
+        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#55FF0000" t "%s [o=%s] rms=%.2f m/s" noenh' % (vprcmp.tag, str(vprcmp.oset).replace('\n',''), vprcmp.rms))
+        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s" noenh' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms))
         pause('RV time serie')
 
 class VPR():
@@ -63,34 +65,42 @@ class VPR():
            gplot.put(gp)
 
         try:
-            self.Afull = np.genfromtxt(file, dtype=None, names=True, encoding=None).view(np.recarray)
+            self.Afull = np.genfromtxt(file, dtype=None, names=True,
+            deletechars='',   # to keep the dash for chunks
+            encoding=None).view(np.recarray)
         except:
-            self.Afull = np.genfromtxt(file, dtype=None, names=True).view(np.recarray)
+            self.Afull = np.genfromtxt(file, dtype=None,
+            deletechars='',   # to keep the dash for chunks
+            names=True).view(np.recarray)
 
         if sort:
             self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
 
+        onames_full = self.onames = np.array([col for col in colnames if col.startswith('rv')], dtype='O')
+        orders_full, chunks_full = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_full]).T, None][0:2]
+        self.orders = orders_full
+        self.chunks = chunks_full
         if oset is not None:
-            self.orders = np.r_[oset]
-            onames = tuple(f"rv{o}" for o in self.orders)
-        else:
-            onames = tuple(col for col in colnames if col.startswith('rv'))
-            self.orders = np.array([int(o[2:]) for o in onames])
+            self.oset = olist = np.r_[oset]
+            ofilter = [int(o) in olist for o in orders_full]
+            self.onames = self.onames[ofilter]
+            self.orders = self.orders[ofilter]
+            self.chunks = self.chunks[ofilter]
 
-        # remove columns not in oset
-        self.A = self.Afull[[col for col in colnames if not col.startswith(('e_rv', 'rv')) or col.endswith(onames)]]
+        # remove columns not in oset; keep BJD, etc. and other orders
+        self.A = self.Afull[[col for col in colnames if col.endswith(tuple(self.onames)) or not col.startswith(('e_rv', 'rv'))]]
 
         mat = np.genfromtxt(file, skip_header=1)
         self.full_rv, self.full_e_rv = mat.T[4:-1:2], mat.T[5::2]
 
-        self.rv = np.array(self.A[list(onames)].tolist()).T
-        self.e_rv = np.array(self.A[list("e_"+o for o in onames)].tolist()).T
+        self.rv = np.array(self.A[self.onames].tolist()).T
+        self.e_rv = np.array(self.A["e_"+self.onames].tolist()).T
 
         # recompute mean RV
         self.BJD = self.A.BJD
         self.RV = np.mean(self.rv, axis=0)
-        self.e_RV = np.std(self.rv, axis=0) / (len(onames)-1)**0.5
+        self.e_RV = np.std(self.rv, axis=0) / (len(self.onames)-1)**0.5
 
         if cen:
             off = np.nanmedian(self.RV)
@@ -108,10 +118,11 @@ class VPR():
             # Offsets are hints for systematics in wavelength solutions (template or fts-iod)
             self.rv -= RVo[:,None]
             self.RV = np.mean(self.rv, axis=0)
-            self.e_RV = np.std(self.rv, axis=0) / (len(onames)-1)**0.5
+            self.e_RV = np.std(self.rv, axis=0) / (len(self.onames)-1)**0.5
             self.info()
 
     def info(self):
+        print('Number of chunks:', self.orders.size)
         self.rms = np.std(self.RV)
         print('rms(RV) [m/s]:     ', self.rms)
         print('median(e_RV) [m/s]:', np.median(self.e_RV))
@@ -140,13 +151,23 @@ class VPR():
         stat_o = np.percentile(A.rv-A.RV, [17,50,83], axis=1)
         med_e_rvo = np.median(A.e_rv, axis=1)
 
-        gplot('for [n=1:N]', self.orders, (A.rv-A.RV).T, self.e_rv.T,
-            'us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
-            '"" us ($1-0.25+0.5*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",',
-            '"" us ($1-0.25+0.5*n/N):(column(1+n)):(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
+        Nch = 1
+        gap = 0.4   # plot gaps between orders and chunks
+        gapch = 0
+        if self.chunks is not None:
+            Nch = self.chunks.max() + 1
+            gapch = 0.2 / (Nch-1)
+        chksz = (1 - gap - (Nch-1) *gapch) / Nch
+        xpos = self.orders - 0.5 + 0.5*gap + (0 if self.chunks is None else self.chunks * (chksz+gapch))
+
+        gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
+            f'us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
             A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n",' +
-            '"" us 1:2:3 every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}",',             self.orders, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc 3 pt 4 t "order stat",' +
+            '"" us 1:2:3 every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}",',
+            xpos+chksz/2, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc 3 pt 4 t "order stat",' +
             ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
             '"" us 1:4:(sprintf(" %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
         print("Use '()[]^$' in gnuplot window to go through epochs n.")
@@ -212,6 +233,7 @@ if __name__ == "__main__":
         if tagcmp: args['tag'] = tagcmp
         if cmposet: args['oset'] = cmposet
         if cmpocen: args['ocen'] = cmpocen
+        print()
         vprcmp = VPR(**args)
         plot_cmp(vpr, vprcmp)
     elif args['oset'] is None and not args['cen']:
