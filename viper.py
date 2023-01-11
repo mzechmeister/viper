@@ -140,7 +140,7 @@ if __name__ == "__main__":
     argopt('tplname', help='Filename of template', nargs='?', type=str)
     argopt('-inst', help='Instrument', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
-    argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=['g', 'ag', 'sg', 'mg', 'bnd'], type=str)
+    argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, bnd: bandmatrix)', default='g', choices=IPs.keys(), type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks', default=1, type=int)
     argopt('-createtpl', help='Removal of telluric features and combination of tpl files', action='store_true')
     argopt('-deg_norm', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)

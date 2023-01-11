@@ -38,18 +38,37 @@ def IP_ag(vk, s=2.2, a=0):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-def IP_mg(vk, s0=2, a1=0.1):
-    """IP for multiple, zero-centered Gaussians."""
-    s1 = 4 * s0   # width of second Gaussian with fixed relative width
-    a1 = a1 / 10  # relative ampitude
+def IP_mcg(vk, s0=2, a1=0.1):
+    """IP for multiple, central Gaussians."""
+    s1 = 4 * s0    # width of second Gaussian with fixed relative width
+    a1 = a1 / 10   # relative ampitude
     IP_k = np.exp(-(vk/s0)**2)         # main Gaussian
-    IP_k += a1 * np.exp(-(vk/s1)**2)   # a satellite Gaussian
+    IP_k += a1 * np.exp(-(vk/s1)**2)   # background Gaussian
     IP_k = IP_k.clip(0, None)
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+def IP_mg(vk, *a):
+    """IP for multiple uniformly spaced Gaussians ("Gaussian spline")."""
+    s = 0.9        # fixed (yet hardcoded) width for all Gaussians (should be smaller than inst resolution)
+    dx = s         # spacing of between Gaussians
+    na = len(a) + 1
+    mid = len(a) // 2
+    a = [*a[:mid], 1, *a[mid:]]   # insert unit amplitude for central Gaussian
+    xl = np.arange(na)            # knot numbers
+    # center of infinite long and infinite oversampled IP (easy, since sigma is the same)
+    xm = np.dot(xl, a) / sum(a)
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'mg': IP_mg, 'bnd': 'bnd'}
+    xc = (dx * (xl-xm))[:,np.newaxis]   # knot positions, recentered for zero mean IP
+    IP_k = np.exp(-((vk-xc)/s)**2)      # matrix of displaced Gaussian base functions
+    IP_k = np.dot(a, IP_k)              # multiply with amplitudes and sum up
+    # IP_k = IP_k.clip(0, None)         # should we allow for negative IP values?
+    IP_k /= IP_k.sum()                  # normalise IP
+    # np.dot(IP_k,vk) / np.sum(IP_k)    # mean of the discrete, truncated IP should be ~0
+    # gplot(IP_k)
+    return IP_k
+
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
