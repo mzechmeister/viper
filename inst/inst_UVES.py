@@ -50,7 +50,7 @@ def Spectrum(filename, order=None, targ=None):
         sa = targ.sa * (midtime-Time('J2000.0')).to_value('yr') * u.m/u.s  # [m/s]
 
     targ = targ.apply_space_motion(new_obstime=midtime)
-    berv = targ.radial_velocity_correction(obstime=midtime, location=paranal)
+    berv = targ.radial_velocity_correction(location=paranal)
     berv = (berv-sa).to(u.km/u.s).value
     bjd = midtime.tdb
  
