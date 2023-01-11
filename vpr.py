@@ -77,13 +77,13 @@ class VPR():
             self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
 
-        onames_full = self.onames = np.array([col for col in colnames if col.startswith('rv')], dtype='O')
-        orders_full, chunks_full = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_full]).T, None][0:2]
-        self.orders = orders_full
-        self.chunks = chunks_full
+        onames_all = self.onames = np.array([col for col in colnames if col.startswith('rv')], dtype='O')
+        orders_all, chunks_all = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_all]).T, None][0:2]
+        self.orders = orders_all
+        self.chunks = chunks_all
         if oset is not None:
             self.oset = olist = np.r_[oset]
-            ofilter = [int(o) in olist for o in orders_full]
+            ofilter = [int(o) in olist for o in orders_all]
             self.onames = self.onames[ofilter]
             self.orders = self.orders[ofilter]
             self.chunks = self.chunks[ofilter]
