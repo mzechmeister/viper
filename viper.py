@@ -143,7 +143,7 @@ if __name__ == "__main__":
     argopt('tplname', help='Filename of template.', nargs='?', type=str)
     argopt('-inst', help='Instrument.', default='TLS', choices=insts)
     argopt('-fts', help='Filename of template.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
-    argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
+    argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, bg: biGaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks.', default=1, type=int)
     argopt('-createtpl', help='Removal of telluric features and combination of tpl files.', action='store_true')
     argopt('-deg_bkg', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
@@ -322,6 +322,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_ip += [2.]   # exponent of super Gaussian
     elif ip in ('ag',):
         par_ip += [1.]   # skewness parameter (offset to get iterations)
+    elif ip in ('bg',):
+        par_ip += [par_ip[-1]]   # symmetric biGaussian
 
     # set weighting parameter for tellurics
     sig = np.ones_like(spec_obs)
@@ -354,7 +356,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         pause('demo 64: S_par_norm_wave_rv')
 
 
-    if ip in ('sg', 'ag', 'bnd'):
+    if ip in ('sg', 'ag', 'bg', 'bnd'):
         # prefit with Gaussian IP
         S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 

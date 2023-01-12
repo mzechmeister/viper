@@ -38,6 +38,15 @@ def IP_ag(vk, s=2.2, a=0):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
+def IP_bg(vk, s1=2., s2=2.):
+    """BiGaussian"""
+    # center of half-normal distribution Gaussians:   x1 = s1 * sqrt(2/pi)
+    xc = np.sqrt(2/np.pi) * (-s1**2 + s2**2) / (s1+s2)   # area weights are the reciproke of the normalisation factors w1 = 1 / (sqrt(2/pi)*s1)
+    vck = vk + xc               # to recenter the distribution
+    IP_k = np.exp(-0.5*(vck/np.where(vck<0, s1, s2))**2)
+    IP_k /= IP_k.sum()          # normalise IP
+    return IP_k
+
 def IP_mcg(vk, s0=2, a1=0.1):
     """IP for multiple, central Gaussians."""
     s1 = 4 * s0    # width of second Gaussian with fixed relative width
@@ -68,7 +77,7 @@ def IP_mg(vk, *a):
     # gplot(IP_k)
     return IP_k
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
