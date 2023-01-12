@@ -113,7 +113,7 @@ class model:
             for coeff_mol, flux_mol in zip(coeff_atm, self.fluxes_molec):
                 flux_atm *= flux_mol**np.abs(coeff_mol)
 
-	        # variable telluric wavelength shift; one shift for all molecules
+            # variable telluric wavelength shift; one shift for all molecules
             if len(coeff_atm) == len(self.fluxes_molec)+1:
                 flux_atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), flux_atm)
 
