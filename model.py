@@ -51,7 +51,7 @@ def IP_mcg(vk, s0=2, a1=0.1):
 def IP_mg(vk, *a):
     """IP for multiple uniformly spaced Gaussians ("Gaussian spline")."""
     s = 0.9        # fixed (yet hardcoded) width for all Gaussians (should be smaller than inst resolution)
-    dx = s         # spacing of between Gaussians
+    dx = s         # spacing between Gaussians
     na = len(a) + 1
     mid = len(a) // 2
     a = [*a[:mid], 1, *a[mid:]]   # insert unit amplitude for central Gaussian
@@ -89,11 +89,11 @@ class model:
     The forward model.
 
     '''
-    def __init__(self, *args, func_norm=poly, IP_hs=50, icen=0):
+    def __init__(self, *args, func_norm=poly, IP_hs=50, xcen=0):
         # IP_hs: Half size of the IP (number of sampling knots).
-        # icen : Central pixel (to center polynomial for numeric reason).
+        # xcen: Central pixel (to center polynomial for numeric reason).
 
-        self.icen = icen
+        self.xcen = xcen
         self.S_star, self.lnwave_j, self.spec_cell_j, self.fluxes_molec, self.IP = args
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
@@ -104,10 +104,6 @@ class model:
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
-        # wavelength solution
-        #    lam(x) = b0 + b1 * x + b2 * x^2
-        lnwave_obs = np.log(np.poly1d(coeff_wave[::-1])(pixel-self.icen))
-
         # IP convolution
         if len(self.fluxes_molec) == 0:
             Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j + coeff_bkg[0]), mode='valid')
@@ -123,11 +119,15 @@ class model:
 
             Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * flux_atm + coeff_bkg[0]), mode='valid')
 
+        # wavelength relation
+        #    lam(x) = b0 + b1 * x + b2 * x^2
+        lnwave_obs = np.log(poly(coeff_wave)(pixel-self.xcen))
+
         # sampling to pixel
         Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
 
         # flux normalisation
-        Si_mod = self.func_norm(pixel-self.icen, coeff_norm) * Si_eff
+        Si_mod = self.func_norm(pixel-self.xcen, coeff_norm) * Si_eff
         #Si_mod = self.func_norm((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
@@ -170,7 +170,7 @@ class model:
         '''
         ymod = self(x, *params)
         if x2 is None:
-            x2 = np.poly1d(params[2][::-1])(x-self.icen)
+            x2 = np.poly1d(params[2][::-1])(x-self.xcen)
         if par_rv:
             gplot.RV2title(", v=%.2f ± %.2f m/s" % (par_rv[0]*1000, np.sqrt(par_rv[1])*1000))
 
@@ -186,7 +186,7 @@ class model:
         prms = np.nan   # percentage prms
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
-            xx2 = np.poly1d(params[2][::-1])(xx-self.icen)
+            xx2 = np.poly1d(params[2][::-1])(xx-self.xcen)
             yymod = self(xx, *params)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         if res or rel_fac:
@@ -216,7 +216,7 @@ class model_bnd(model):
         self.x = x
         bg = self.IP
         # the initial trace
-        lnwave_obs = np.log(np.poly1d(bg[::-1])(x-self.icen))
+        lnwave_obs = np.log(np.poly1d(bg[::-1])(x-self.xcen))
         j = np.arange(self.lnwave_j.size)
         jx = np.interp(lnwave_obs, self.lnwave_j, j)
         # position of Gaussians

@@ -230,7 +230,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     wave_obs_ok = wave_obs[i_ok]
     spec_obs_ok = spec_obs[i_ok]
 
-    modset['icen'] = icen = np.nanmean(pixel_ok) + 18   # slight offset, then it converges for CES+TauCet
+    modset['xcen'] = xcen = np.nanmean(pixel_ok) + 18   # slight offset, then it converges for CES+TauCet
     modset['IP_hs'] = iphs
 
     if deg_norm_rat:
@@ -300,7 +300,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_norm += [5e-7] * deg_norm_rat   # a tiny scale hint (zero didn't iterate)
 
     # guess wavelength solution
-    par_wave = par_wave_guess = np.polyfit(pixel_ok-icen, wave_obs_ok, deg_wave)[::-1]
+    par_wave = par_wave_guess = np.polyfit(pixel_ok-xcen, wave_obs_ok, deg_wave)[::-1]
 
     # guess additional background
     par_bkg_guess = [0] #* deg_bkg
@@ -312,7 +312,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if demo:
         par_norm = parguess_norm = [parfix_norm*1.3] + [0]*deg_norm
         # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
-        par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-icen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
+        par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
         par_ip = par_ip_guess = [par_ip[0]*1.5]
 
     if ip in ('sg', 'mg'):
@@ -542,7 +542,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_cor[spec_model<0.2] = np.nan
         spec_cor[spec_cor<3*err_cor] = np.nan
 
-        wave_model = np.poly1d(params[2][::-1])(pixel-icen)
+        wave_model = np.poly1d(params[2][::-1])(pixel-xcen)
         spec_cor = np.interp(wave_model/(1+berv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
 
         # downweighting by telluric spectrum and errors
@@ -627,15 +627,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     ss = sb + deg_wave+1
     # error estimation
     # uncertainty in continuum
-    xl = np.log(np.poly1d(params[2][::-1])(pixel-icen))
-    Cg = np.poly1d(parguess_norm[::-1])(pixel-icen)      # continuum guess
-    Cp = np.poly1d(params[1][::-1])(pixel-icen)    # best continuum
+    xl = np.log(np.poly1d(params[2][::-1])(pixel-xcen))
+    Cg = np.poly1d(parguess_norm[::-1])(pixel-xcen)      # continuum guess
+    Cp = np.poly1d(params[1][::-1])(pixel-xcen)    # best continuum
     X = np.vander(xl, deg_norm+1)[:,::-1].T
     e_Cp = np.einsum('ji,jk,ki->i', X, e_params[sa:sb,sa:sb], X)**0.5
     # uncertainty in wavelength solution
     X = np.vander(xl, deg_wave+1)[:,::-1].T
-    lam_g = np.poly1d(par_wave_guess[::-1])(pixel-icen)
-    lam = np.poly1d(params[2][::-1])(pixel-icen)
+    lam_g = np.poly1d(par_wave_guess[::-1])(pixel-xcen)
+    lam = np.poly1d(params[2][::-1])(pixel-xcen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_params[sb:ss,sb:ss], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
