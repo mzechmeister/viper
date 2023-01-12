@@ -121,7 +121,7 @@ class model:
 
         # wavelength relation
         #    lam(x) = b0 + b1 * x + b2 * x^2
-        lnwave_obs = np.log(poly(coeff_wave)(pixel-self.xcen))
+        lnwave_obs = np.log(poly(pixel-self.xcen, coeff_wave))
 
         # sampling to pixel
         Si_eff = np.interp(lnwave_obs, self.lnwave_j_eff, Sj_eff)
