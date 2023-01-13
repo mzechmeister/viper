@@ -140,12 +140,14 @@ class VPR():
         A = self
         gplot.var(n=n, N=len(self.rv.T))
         gplot.key('title "%s" noenhance'%self.tag)
-        gplot.bind('")" "n = n>=N? N : n+1; repl"')
-        gplot.bind('"(" "n = n<=1? 1 : n-1; repl"')
-        gplot.bind('"]" "n = n+10>N? N : n+10; repl"')
-        gplot.bind('"[" "n = n-10<1? 1 : n-10; repl"')
-        gplot.bind('"^" "n = 1; repl"')
-        gplot.bind('"$" "n = N; repl"')
+        # print filename on terminal with carriage return and some trailing space
+        gplot.macro('''; markspec = "repl; system('printf \\"\\r'.n.': '.spectrum.'       \\"')"''')
+        gplot.bind('")" "n = n>=N? N : n+1; @markspec"')
+        gplot.bind('"(" "n = n<=1? 1 : n-1;  @markspec"')
+        gplot.bind('"]" "n = n+10>N? N : n+10; @markspec"')
+        gplot.bind('"[" "n = n-10<1? 1 : n-10; @markspec"')
+        gplot.bind('"^" "n = 1; @markspec"')
+        gplot.bind('"$" "n = N; @markspec"')
         gplot.xlabel("'order o'")
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
@@ -167,12 +169,12 @@ class VPR():
             f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
             A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n",' +
-            '"" us 1:2:3 every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t "RV_{".n."}",',
+            '"" us 1:2:(spectrum=strcol(4), $3) every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t spectrum." RV_{".n."}",',
             xpos+chksz/2, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc 3 pt 4 t "order stat",' +
             ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
             '"" us 1:4:(sprintf(" %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
-        print("Use '()[]^$' in gnuplot window to go through epochs n.")
-        pause('rv order dispersion')
+        print("Use '()[]^$' in gnuplot window to go through epochs n. Press Enter in terminal to quit.")
+        pause('rv order dispersion\n')
 
 def plot_res(folder, o=[1], n=[1]):
     '''
