@@ -16,7 +16,7 @@ def plot_RV(file):
     gplot.xlabel("'BJD - 2 450 000'")
     gplot.ylabel("'RV [m/s]'")
     gplot.key("title '%s' noenhance" % file)
-    gplot('"%s" us ($1-2450000):"RV":(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", strcol("filename"),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):"RV":"e_RV" w e pt 7 lc 7' % file)
+    gplot('"%s" us ($1-2450000):"RV":(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", strcol("filename"),$0+1,$1,$2,$3)) with labels hypertext point pt 0 t"", "" us ($1-2450000):"RV":"e_RV" w e pt 7 lc "#77000000"' % file)
     pause()
 
 def plot_rvo(rv=None, e_rv=None, file=None):
@@ -133,7 +133,7 @@ class VPR():
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
         gplot.key("title '%s' noenhance" % (self.tag))
-        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % str(self.oset).replace('\n',''))
+        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc "#77000000" t "orders = %s"' % str(self.oset).replace('\n',''))
         pause('RV time serie')
 
     def plot_rv(self, o=None, n=1):
@@ -163,14 +163,15 @@ class VPR():
         chksz = (1 - gap - (Nch-1) *gapch) / Nch
         xpos = self.orders - 0.5 + 0.5*gap + (0 if self.chunks is None else self.chunks * (chksz+gapch))
 
+        gplot.put("replace(x, s1, s2) = (i=strstrt(x, s1), i ? x[1:i-1].s2.replace(x[i+1:], s1, s2) : x)")
         gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
             f'us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
-            f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{{".n.",o}} -- RV_{{".n."}}",',
-            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "red" t "RV_{{".n.",o}} -- RV_{{".n."}}",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
             A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
-            '"" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n",' +
-            '"" us 1:2:(spectrum=strcol(4), $3) every ::n-1::n-1 w e lc 1 pt 7 axis x2y1 t spectrum." RV_{".n."}",',
-            xpos+chksz/2, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc 3 pt 4 t "order stat",' +
+            '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
+            'spectrum="", "" us 1:2:(spectrum=strcol(4), $3) every ::n-1::n-1 w e lc "red" pt 7 axis x2y1 t replace(spectrum, "_", "\\\\_")." RV_{".n."}",',
+            xpos+chksz/2, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
             ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
             '"" us 1:4:(sprintf(" %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
         print("Use '()[]^$' in gnuplot window to go through epochs n. Press Enter in terminal to quit.")
