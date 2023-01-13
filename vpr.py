@@ -133,7 +133,7 @@ class VPR():
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
         gplot.key("title '%s' noenhance" % (self.tag))
-        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % self.oset)
+        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc 7 t "orders = %s"' % str(self.oset).replace('\n',''))
         pause('RV time serie')
 
     def plot_rv(self, o=None, n=1):
@@ -163,7 +163,7 @@ class VPR():
 
         gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
             f'us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
-            f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{".n.",o} -- RV_{".n."}",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc 1 t "RV_{{".n.",o}} -- RV_{{".n."}}",',
             f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f +/- %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc 1 t "",',
             A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f +/- %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc 7 pt 7 axis x2y1 t "RV_n",' +
