@@ -29,7 +29,7 @@ def bt_start():
     x = 2 * np.ones(len(cb_demo))
     demo = np.poly1d(ar_demo[::-1])(x)[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() 
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() +" -molec "+e_molec.get() 
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
@@ -108,8 +108,8 @@ win.configure(background=bg_color)
 x0 = 40     # positions start left
 lh = 30     # line height
 xs = 100
-xss = 70
-sp = 220
+xss = 80
+sp = 210
 sps = 170
 sl = 7
 
@@ -121,7 +121,7 @@ Frame(master=win, height=138, width=win_width-40, bg=bg_frame, bd=2, relief='gro
 
 Frame(master=win, height=378, width=380, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
 Frame(master=win, height=223, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112)
-
+Frame(master=win, height=115, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112+228)
 
 ###### BUTTONS ######
 
@@ -207,6 +207,10 @@ e_overs = Entry(master=win)
 e_overs.insert(0, '1')
 e_overs.place(x=x0+xss+0*sp, y=(sl+4)*lh, width=60)
 
+e_molec = Entry(master=win)
+e_molec.insert(0, 'all')
+e_molec.place(x=x0+380, y=(sl+8.5)*lh, width=250)
+
 ###### COMBOBOXES ######
 
 combo_inst = ttk.Combobox(master=win, values=['TLS', 'CRIRES', 'CES', 'KECK', 'UVES', 'OES'])
@@ -274,6 +278,8 @@ Label(master=win, text='tag:', background=bg_frame).place(x=x0+2*sp+30, y=3*lh)
 Label(master=win, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=(sl-1.2)*lh)
 Label(master=win, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl-1.2)*lh)
 Label(master=win, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+0*sp, y=(sl+8)*lh)
+Label(master=win, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl+6.5)*lh)
+Label(master=win, text='Optical: H2O O2; NIR: H2O CH4 N2O CO2 CO', background=bg_frame).place(x=x0+sp+sps, y=(sl+7.5)*lh)
 
 Label(master=win, text='nset:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
 Label(master=win, text='oset:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
