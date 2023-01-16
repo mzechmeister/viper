@@ -173,6 +173,7 @@ if __name__ == "__main__":
     argopt('-tellshift', help='Variable telluric wavelength shift (one value for all selected molecules).', action='store_true')
     argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling).', default=None, type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
+    argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
     argopt('-?', '-h', '-help', '--help',  help='Show this help message and exit.', action='help')
 
     args = parser.parse_args()
@@ -192,7 +193,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     lmax = min(wave_obs[iset][-1], wave_tpl[order][-1], wave_cell[-1])
 
     # trim the observation to a range valid for the model
-    vcut = 100   # [km/s]
+  #  vcut = 100   # [km/s]
     flag_obs[np.log(wave_obs) < np.log(lmin)+vcut/c] |= flag.out
     flag_obs[np.log(wave_obs) > np.log(lmax)-vcut/c] |= flag.out
 
