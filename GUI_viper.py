@@ -225,7 +225,7 @@ combo_stepRV = ttk.Combobox(master=win, values=['', 'a', 'm'])
 combo_stepRV.set('')
 combo_stepRV.place(x=x0+xss+0*sp, y=(sl+5)*lh, width=60)
 
-combo_tell = ttk.Combobox(master=win, values=['', 'add', 'mask', 'sig'])
+combo_tell = ttk.Combobox(master=win, values=['', 'add', 'add2', 'mask', 'sig'])
 combo_tell.set('')
 combo_tell.place(x=x0+xss+0*sp, y=(sl+6)*lh, width=60)
 
