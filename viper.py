@@ -172,7 +172,7 @@ if __name__ == "__main__":
     argopt('-tag', help='Output tag for filename.', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-tellshift', help='Variable telluric wavelength shift (one value for all selected molecules).', action='store_true')
-    argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling).', default=None, type=str)
+    argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default=None, type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
     argopt('-?', '-h', '-help', '--help',  help='Show this help message and exit.', action='help')
@@ -244,7 +244,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     specs_molec = []
     par_atm = parfix_atm = []
-    if telluric == 'add':
+    if 'add' in telluric:
+        molec_pres = []		# present molecules in given wavelength range
         # select present molecules for telluric forward modeling
         specs_molec = np.zeros((0, len(lnwave_j)))
         for mol in range(len(molec)):
@@ -254,10 +255,20 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             # chose just present molecules in wavelength range
             if np.nanstd(spec_mol) > 0.0001:
                 specs_molec = np.r_[specs_molec, [spec_mol]]
+                molec_pres.append(molec[mol])
+
+        if telluric == 'add2' and len(molec) > 1:
+            # use combined coeff for all non-water tellurics instead of one for each molecule
+            # water tellurics grow with airmass and pwv
+            # non-water telluics grow with airmass and dpened on seasonal changes
+            if 'H2O' in molec_pres:
+                specs_molec = [specs_molec[np.asarray(molec_pres)=='H2O'][0], np.prod(specs_molec[np.asarray(molec_pres)!='H2O'],axis=0)]
+            else:
+                specs_molec = np.prod(specs_molec[np.asarray(molec_pres)!='H2O'],axis=0)
+
         # parameter to scale each telluric model:
         # add parameter for telluric position shift if selected
         par_atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
-
 
     if demo & 1:
         # pre-look raw input
@@ -707,7 +718,7 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 
 #### Telluric model ####
 
-if telluric == 'add':
+if 'add' in telluric:
     # read in telluric spectra for wavelength range of the instrument   
     wave_atm_all, specs_molec_all, molec = Tell(molec)
 
