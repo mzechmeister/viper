@@ -102,18 +102,27 @@ def FTS(ftsname=path+'FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=10
     return resample(*FTSfits(ftsname), dv=dv)
 
 
-def Tell(molec):
-    modelfile = path+'atmos/stdAtmos_crires_'+str(molec)+'.fits'
-    hdu = fits.open(modelfile, ignore_blank=True)
-    atm_model = hdu[1].data
-    wave_atm = atm_model.field(0).astype(np.float64)
-    spec_atm = atm_model.field(1).astype(np.float64)
-    # add wavelength shift
-    # synthetic telluric spectra (molecfit) are laboratory wavelengths
-    # shift was determined empirical on several observations
-    wave_atm *= (1 + (-0.249/3e5))
+def Tell(molec=['all']):
 
-    return wave_atm, spec_atm
+      if molec[0] == 'all':
+           molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO']
+
+      wave_atm_all, specs_molec_all = {}, {}
+      for mol in range(len(molec)):
+          modelfile = path+'atmos/stdAtmos_crires_'+str(molec[mol])+'.fits'
+          hdu = fits.open(modelfile, ignore_blank=True)
+          atm_model = hdu[1].data
+          wave_atm = atm_model.field(0).astype(np.float64)
+          spec_atm = atm_model.field(1).astype(np.float64)
+
+          # add wavelength shift
+          # synthetic telluric spectra (molecfit) are laboratory wavelengths
+          # shift was determined empirical from several observations
+          wave_atm *= (1 + (-0.249/3e5))
+
+          wave_atm_all[mol], specs_molec_all[mol] = w_atm, f_atm
+    
+      return wave_atm_all, specs_molec_all, molec
 
 
 def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
