@@ -29,7 +29,7 @@ def bt_start():
     x = 2 * np.ones(len(cb_demo))
     demo = np.poly1d(ar_demo[::-1])(x)[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get()  
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() 
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
@@ -95,7 +95,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 840     # width of GUI window
-win_high = 550      # height of GUI window
+win_high = 570      # height of GUI window
 
 win = Tk()
 win.title('Gui VIPER')
@@ -119,7 +119,7 @@ sl = 7
 # groove, ridge need bd=2 or more
 Frame(master=win, height=138, width=win_width-40, bg=bg_frame, bd=2, relief='groove').place(x=20, y=20)
 
-Frame(master=win, height=358, width=380, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
+Frame(master=win, height=378, width=380, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
 Frame(master=win, height=223, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112)
 
 
@@ -173,19 +173,19 @@ e_ch.place(x=x0+xss, y=(sl+2)*lh, width=60)
 
 e_deg_norm = Entry(master=win)
 e_deg_norm.insert(0, '3')
-e_deg_norm.place(x=x0+xss+1*sp, y=(sl+3)*lh, width=50)
+e_deg_norm.place(x=x0+xss+1*sp, y=(sl+4)*lh, width=50)
 
 e_deg_wave = Entry(master=win)
 e_deg_wave.insert(0, '3')
-e_deg_wave.place(x=x0+xss+1*sp, y=(sl+4)*lh, width=50)
+e_deg_wave.place(x=x0+xss+1*sp, y=(sl+5)*lh, width=50)
 
 e_deg_bkg = Entry(master=win)
 e_deg_bkg.insert(0, '1')
-e_deg_bkg.place(x=x0+xss+1*sp, y=(sl+5)*lh, width=50)
+e_deg_bkg.place(x=x0+xss+1*sp, y=(sl+6)*lh, width=50)
 
 e_tsig = Entry(master=win)
 e_tsig.insert(0, '1')
-e_tsig.place(x=x0+xss+1*sp, y=(sl+6)*lh, width=50)
+e_tsig.place(x=x0+xss+0*sp, y=(sl+7)*lh, width=50)
 
 e_iphs = Entry(master=win)
 e_iphs.insert(0, '50')
@@ -194,6 +194,10 @@ e_iphs.place(x=x0+xss+sp, y=(sl+1)*lh, width=50)
 e_vg = Entry(master=win)
 e_vg.insert(0, '1')
 e_vg.place(x=x0+xss+sp, y=(sl+2)*lh, width=50)
+
+e_vcut = Entry(master=win)
+e_vcut.insert(0, '100')
+e_vcut.place(x=x0+xss+sp, y=(sl+3)*lh, width=50)
 
 e_kapsig = Entry(master=win)
 e_kapsig.insert(0, '4.5')
@@ -209,7 +213,7 @@ combo_inst = ttk.Combobox(master=win, values=['TLS', 'CRIRES', 'CES', 'KECK', 'U
 combo_inst.set('TLS')
 combo_inst.place(x=x0+xs, y=3*lh, width=100)
 
-combo_ip = ttk.Combobox(master=win, values=['g', 'ag', 'sg', 'mg', 'bnd'])
+combo_ip = ttk.Combobox(master=win, values=['g', 'ag', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
 combo_ip.set('g')
 combo_ip.place(x=x0+xss+sp, y=(sl+0)*lh, width=50)
 
@@ -229,11 +233,11 @@ cb_flagfile = IntVar()
 ttk.Checkbutton(master=win, text=" ", variable=cb_flagfile).place(x=x0, y=4*lh)
 
 cb_nocell = IntVar()
-ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps, y=(sl+8)*lh)
+ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps, y=(sl+9)*lh)
 cb_createtpl = IntVar()
-ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0, y=(sl+8)*lh)
+ttk.Checkbutton(master=win, text="     create tpl", variable=cb_createtpl).place(x=x0, y=(sl+9)*lh)
 cb_tellshift = IntVar()
-ttk.Checkbutton(master=win, text="     tell shift", variable=cb_tellshift).place(x=x0, y=(sl+9)*lh)
+ttk.Checkbutton(master=win, text="     tell shift", variable=cb_tellshift).place(x=x0, y=(sl+10)*lh)
 
 cb_demo = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
 ttk.Checkbutton(master=win, text="     raw data", variable=cb_demo[0]).place(x=x0+sp+sps, y=(sl+0)*lh)
@@ -269,26 +273,27 @@ Label(master=win, text='tag:', background=bg_frame).place(x=x0+2*sp+30, y=3*lh)
 
 Label(master=win, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=(sl-1.2)*lh)
 Label(master=win, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl-1.2)*lh)
-Label(master=win, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+0*sp, y=(sl+7)*lh)
+Label(master=win, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+0*sp, y=(sl+8)*lh)
 
 Label(master=win, text='nset:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
 Label(master=win, text='oset:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
 Label(master=win, text='chunks:', background=bg_frame).place(x=x0, y=(sl+2)*lh)
 
-Label(master=win,text='deg_norm:', background=bg_frame).place(x=x0+1*sp, y=(sl+3)*lh)
-Label(master=win,text='deg_wave:', background=bg_frame).place(x=x0+1*sp, y=(sl+4)*lh)
-Label(master=win,text='deg_bkg:', background=bg_frame).place(x=x0+1*sp, y=(sl+5)*lh)
-
 Label(master=win,text='IP:', background=bg_frame).place(x=x0+sp, y=(sl+0)*lh)
 Label(master=win,text='iphs:', background=bg_frame).place(x=x0+sp, y=(sl+1)*lh)
-Label(master=win,text='vguess:', background=bg_frame).place(x=x0+sp, y=(sl+2)*lh)
+Label(master=win,text='rvguess:', background=bg_frame).place(x=x0+sp, y=(sl+2)*lh)
+Label(master=win,text='vcut:', background=bg_frame).place(x=x0+1*sp, y=(sl+3)*lh)
+
+Label(master=win,text='deg_norm:', background=bg_frame).place(x=x0+1*sp, y=(sl+4)*lh)
+Label(master=win,text='deg_wave:', background=bg_frame).place(x=x0+1*sp, y=(sl+5)*lh)
+Label(master=win,text='deg_bkg:', background=bg_frame).place(x=x0+1*sp, y=(sl+6)*lh)
 
 Label(master=win,text='kapsig:', background=bg_frame).place(x=x0+0*sp, y=(sl+3)*lh)
 Label(master=win,text='oversampl:', background=bg_frame).place(x=x0+0*sp, y=(sl+4)*lh)
 Label(master=win,text='stepRV:', background=bg_frame).place(x=x0+0*sp, y=(sl+5)*lh)
 
 Label(master=win,text='telluric:', background=bg_frame).place(x=x0+0*sp, y=(sl+6)*lh)
-Label(master=win,text='tsig:', background=bg_frame).place(x=x0+1*sp, y=(sl+6)*lh)
+Label(master=win,text='tsig:', background=bg_frame).place(x=x0+0*sp, y=(sl+7)*lh)
 
 
 ###### MAIN ######
