@@ -161,6 +161,7 @@ if __name__ == "__main__":
     argopt('-lookpar', nargs='?', help='See parameter of chunk.', default=[], const=':100', type=arg2range)
     argopt('-lookres', nargs='?', help='Analyse the residuals.', default=[], const=':100', type=arg2range)
     #argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
+    argopt('-molec', nargs='*', help='Molecular specifies; all: Automatic selection of all present molecules.', default='all', type=str)
     argopt('-nexcl', nargs='*', help='Ignore spectra with string pattern.', default=[], type=str)
     argopt('-nocell', help='Do the calibration without using the FTS.', action='store_true')
     argopt('-nset', help='Index for spectrum.', default=':', type=arg2slice)
@@ -707,16 +708,9 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 #### Telluric model ####
 
 if telluric == 'add':
-    # add later: choice of molecules
-    if inst == 'CRIRES':
-        # NIR wavelength range
-        molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO'] #, 'NO2']
-    else:
-        # optical wavelength range
-        molec = ['H2O', 'O2']
-    wave_atm_all, specs_molec_all = {}, {}
-    for mol in range(len(molec)):
-        wave_atm_all[mol], specs_molec_all[mol] = Tell(molec[mol])
+    # read in telluric spectra for wavelength range of the instrument   
+    wave_atm_all, specs_molec_all, molec = Tell(molec)
+
 
 # collect all spectra for createtpl function
 spec_all = defaultdict(dict)
