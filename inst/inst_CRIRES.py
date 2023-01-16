@@ -112,13 +112,13 @@ def Tell(molec=['all']):
           modelfile = path+'atmos/stdAtmos_crires_'+str(molec[mol])+'.fits'
           hdu = fits.open(modelfile, ignore_blank=True)
           atm_model = hdu[1].data
-          wave_atm = atm_model.field(0).astype(np.float64)
-          spec_atm = atm_model.field(1).astype(np.float64)
+          w_atm = atm_model.field(0).astype(np.float64)
+          f_atm = atm_model.field(1).astype(np.float64)
 
           # add wavelength shift
           # synthetic telluric spectra (molecfit) are laboratory wavelengths
           # shift was determined empirical from several observations
-          wave_atm *= (1 + (-0.249/3e5))
+          w_atm *= (1 + (-0.249/3e5))
 
           wave_atm_all[mol], specs_molec_all[mol] = w_atm, f_atm
     
