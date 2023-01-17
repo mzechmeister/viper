@@ -133,7 +133,10 @@ class VPR():
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
         gplot.key("title '%s' noenhance" % (self.tag))
-        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us ($1-2450000):2:3 w e pt 7 lc "#77000000" t "orders = %s"' % str(self.oset).replace('\n',''))
+        gplot.var(cx=1)
+        gplot.bind('''"$" "cx = !cx; set xlabel cx? 'BJD - 2 450 000' : 'observation number';  repl"''')
+
+        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us (cx?$1-2450000:$0+1):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us (cx?$1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "orders = %s"' % str(self.oset).replace('\n',''))
         pause('RV time serie')
 
     def plot_rv(self, o=None, n=1):
@@ -243,7 +246,7 @@ def run(cmd=None):
         vprcmp = VPR(**args)
         if 'rv' in tasks:
             plot_cmp(vpr, vprcmp)
-    elif args['oset'] is None and not args['cen']:
+    elif args['oset'] is None and not args['cen'] and not args['ocen']:
         if 'rv' in tasks:
             plot_RV(vpr.file)
     else:
