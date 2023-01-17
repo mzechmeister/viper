@@ -14,7 +14,7 @@ vpr.pause = print
 
 ###### FUNCIONS BUTTONS ######
 
-def bt_start(args='-plot rv'):
+def bt_start(args='-plot rv', cmp=False):
     print('---Starting vpr.py with choosen parameters---')
 
     if cb_plot_rv.get():
@@ -31,9 +31,9 @@ def bt_start(args='-plot rv'):
         if e_sort.get():
             str_arg += " -sort "+str(e_sort.get())
 
-        if cb_cmp.get():
-            str_arg += " -cmp "
-            str_arg += " "+e_rvo2.get()
+        if cmp:
+            if e_rvo2.get():
+               str_arg += " -cmp "+e_rvo2.get()
             if e_oset2.get():
                 str_arg += " -cmposet "+e_oset2.get()
             if cb_cmpocen.get():
@@ -190,9 +190,6 @@ ttk.Checkbutton(master=win, text="", variable=cb_plot_res, command=reset_rv).pla
 cb_cen = IntVar()
 ttk.Checkbutton(master=win, text="     center RVs to zero median", variable=cb_cen).place(x=x0, y=(sl+1)*lh)
 
-cb_cmp = IntVar()
-ttk.Checkbutton(master=win, text="     compare two time series (select rvo file 2)", variable=cb_cmp).place(x=x0, y=(sl+2)*lh)
-
 call_vpr = bt_start
 
 b_go = ttk.Button(master=win, text='Plot BJD-RV', command = call_vpr)
@@ -200,6 +197,10 @@ b_go.place(x=+20, y=win_high-50, width=110)
 
 b_go = ttk.Button(master=win, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
 b_go.place(x=+20+110+10, y=win_high-50, width=110)
+
+b_go = ttk.Button(master=win, text='Compare', command = lambda: call_vpr(cmp=True))
+b_go.place(x=+20+2*(110+10)+20, y=win_high-50, width=110)
+
 
 ###### LABELS ######
 
@@ -226,6 +227,6 @@ Label(master=win, text='oset:', background=bg_frame).place(x=x0+385, y=(sl+2)*lh
 ###### MAIN ######
 if sys.argv[1:]:
     e_rvo1.delete(0, END)
-    e_rvo1.insert(0, sys.argv[1:])
+    e_rvo1.insert(0, sys.argv[1])
 
 win.mainloop()
