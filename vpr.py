@@ -203,8 +203,8 @@ def plot_res(folder, o=[1], n=[1]):
     # gplot+('A us (NaN):(int(nbeg==nend?$1:0)/3.):yticlabel(2) t ""')
     pause('residuals stacked: o=%s' % o)
 
-if __name__ == "__main__":
 
+def run(cmd=None):
     parser = argparse.ArgumentParser(description='Analyse viper RVs', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
@@ -219,7 +219,7 @@ if __name__ == "__main__":
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
 
-    args = vars(parser.parse_args())
+    args = vars(parser.parse_args(cmd))
 
     resopt = args.pop('res')
     if resopt is not None:
@@ -246,3 +246,5 @@ if __name__ == "__main__":
         vpr.plot_RV()
     vpr.plot_rv(n=1)
 
+if __name__ == "__main__":
+    run()

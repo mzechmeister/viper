@@ -8,15 +8,12 @@ import subprocess
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
-from gplot import *
-import numpy as np
 
-viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
+# viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
-gplot.colors('classic')
-gplot2 = Gplot()
-g = Gplot()
-
+import sys
+import vpr
+vpr.pause = print
 
 ###### FUNCIONS BUTTONS ######
 
@@ -54,12 +51,9 @@ def bt_start():
         if e_nset_r.get():
             str_arg += " -nset "+e_nset_r.get()
 
-
-
-
-    print(str_arg)
-
-    os.system("python3 "+viperdir+"vpr.py " + str_arg)
+    print("option string:", str_arg)
+    vpr.run(str_arg.split())
+    # os.system("python3 "+viperdir+"vpr.py " + str_arg)
 
     print('---Finished vpr.py---')
 
@@ -227,5 +221,8 @@ Label(master=win, text='oset:', background=bg_frame).place(x=x0+385, y=(sl+2)*lh
 
 
 ###### MAIN ######
+if sys.argv[1:]:
+    e_rvo1.delete(0, END)
+    e_rvo1.insert(0, sys.argv[1:])
 
 win.mainloop()
