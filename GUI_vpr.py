@@ -17,7 +17,7 @@ vpr.pause = print
 
 ###### FUNCIONS BUTTONS ######
 
-def bt_start():
+def bt_start(args='-plot rv'):
     print('---Starting vpr.py with choosen parameters---')
 
     if cb_plot_rv.get():
@@ -42,7 +42,6 @@ def bt_start():
             if cb_cmpocen.get():
                 str_arg += " -cmpocen"
 
-
     elif cb_plot_res.get():
         str_arg = "-res "+str(e_dir.get())
 
@@ -51,8 +50,12 @@ def bt_start():
         if e_nset_r.get():
             str_arg += " -nset "+e_nset_r.get()
 
+    if args:
+        str_arg += " " + args
+
     print("option string:", str_arg)
     vpr.run(str_arg.split())
+
     # os.system("python3 "+viperdir+"vpr.py " + str_arg)
 
     print('---Finished vpr.py---')
@@ -195,8 +198,13 @@ ttk.Checkbutton(master=win, text="     center RVs to zero median", variable=cb_c
 cb_cmp = IntVar()
 ttk.Checkbutton(master=win, text="     compare two time series (select rvo file 2)", variable=cb_cmp).place(x=x0, y=(sl+2)*lh)
 
+call_vpr = bt_start
 
+b_go = ttk.Button(master=win, text='Plot BJD-RV', command = call_vpr)
+b_go.place(x=+20, y=win_high-50, width=110)
 
+b_go = ttk.Button(master=win, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
+b_go.place(x=+20+110+10, y=win_high-50, width=110)
 
 ###### LABELS ######
 

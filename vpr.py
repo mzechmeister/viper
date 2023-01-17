@@ -216,6 +216,7 @@ def run(cmd=None):
     argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
+    argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo'])
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
 
@@ -230,6 +231,7 @@ def run(cmd=None):
     tagcmp = args.pop('cmp')
     cmposet = args.pop('cmposet')
     cmpocen = args.pop('cmpocen')
+    tasks = args.pop('tasks')
 
     vpr = VPR(**args)
 
@@ -239,12 +241,17 @@ def run(cmd=None):
         if cmpocen: args['ocen'] = cmpocen
         print()
         vprcmp = VPR(**args)
-        plot_cmp(vpr, vprcmp)
+        if 'rv' in tasks:
+            plot_cmp(vpr, vprcmp)
     elif args['oset'] is None and not args['cen']:
-        plot_RV(vpr.file)
+        if 'rv' in tasks:
+            plot_RV(vpr.file)
     else:
-        vpr.plot_RV()
-    vpr.plot_rv(n=1)
+        if 'rv' in tasks:
+            vpr.plot_RV()
+
+    if 'rvo' in tasks:
+        vpr.plot_rv(n=1)
 
 if __name__ == "__main__":
     run()
