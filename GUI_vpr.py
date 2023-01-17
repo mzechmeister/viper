@@ -1,15 +1,12 @@
+#! /usr/bin/env python3
 # -*- coding: iso-8859-1 -*-
 
-# GUI to start viper.py, showing most important options
+# GUI to run vpr.py, showing most important options
 
-#import gplot, gnuplot.funcutils
 import os
-import subprocess
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
-
-# viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
 import sys
 import vpr
@@ -29,8 +26,8 @@ def bt_start(args='-plot rv'):
             str_arg += " -ocen "
         if e_oset1.get():
             str_arg += " -oset "+e_oset1.get()
-    #    if e_nset.get():
-     #       str_arg += " -nset "+str(e_nset.get())
+        # if e_nset.get():
+        #     str_arg += " -nset "+str(e_nset.get())
         if e_sort.get():
             str_arg += " -sort "+str(e_sort.get())
 
@@ -55,8 +52,6 @@ def bt_start(args='-plot rv'):
 
     print("option string:", str_arg)
     vpr.run(str_arg.split())
-
-    # os.system("python3 "+viperdir+"vpr.py " + str_arg)
 
     print('---Finished vpr.py---')
 
@@ -178,10 +173,10 @@ e_oset_r.place(x=x0+xss+400, y=(sl+2)*lh, width=100)
 ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)
 
 cb_ocen = IntVar()
-ttk.Checkbutton(master=win, text="     centre orders rvo 1", variable=cb_ocen).place(x=x0, y=4*lh)
+ttk.Checkbutton(master=win, text="     center orders rvo 1", variable=cb_ocen).place(x=x0, y=4*lh)
 
 cb_cmpocen = IntVar()
-ttk.Checkbutton(master=win, text="     centre orders rvo 2", variable=cb_cmpocen).place(x=x0+400, y=4*lh)
+ttk.Checkbutton(master=win, text="     center orders rvo 2", variable=cb_cmpocen).place(x=x0+400, y=4*lh)
 
 # Plot RV
 cb_plot_rv = IntVar()

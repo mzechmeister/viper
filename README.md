@@ -8,8 +8,10 @@ git clone https://github.com/mzechmeister/viper.git
 
 Create shortcuts:
 ```bash
-ln -s $PWD/viper.py ~/bin/viper
-ln -s $PWD/vpr.py ~/bin/vpr
+ln -s $PWD/viper/viper.py ~/bin/viper
+ln -s $PWD/viper/vpr.py ~/bin/vpr
+ln -s $PWD/viper/GUI_viper.py ~/bin/viper_gui
+ln -s $PWD/viper/GUI_vpr.py ~/bin/vpr_gui
 ```
 
 To run:
