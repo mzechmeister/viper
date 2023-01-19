@@ -14,10 +14,10 @@ vpr.pause = print
 
 ###### FUNCIONS BUTTONS ######
 
-def bt_start(args='-plot rv', cmp=False):
+def bt_start(args='-plot rv', cmp=False, res=False):
     print('---Starting vpr.py with choosen parameters---')
 
-    if cb_plot_rv.get():
+    if not res:
         str_arg = e_rvo1.get()
 
         if cb_cen.get():
@@ -39,8 +39,8 @@ def bt_start(args='-plot rv', cmp=False):
             if cb_cmpocen.get():
                 str_arg += " -cmpocen"
 
-    elif cb_plot_res.get():
-        str_arg = "-res "+str(e_dir.get())
+    else:
+        str_arg = " -res "+str(e_dir.get())
 
         if e_oset_r.get():
             str_arg += " -oset "+e_oset_r.get()
@@ -70,11 +70,6 @@ def bt_rvo2():
 def bt_exit():
     exit()
 
-def reset_res():
-    cb_plot_res.set(0)
-
-def reset_rv():
-    cb_plot_rv.set(0)
 
 ###### SETTING ######
 
@@ -84,7 +79,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 840     # width of GUI window
-win_high = 400      # height of GUI window
+win_high = 405      # height of GUI window
 
 win = Tk()
 win.title('Gui VPR')
@@ -108,8 +103,8 @@ sl = 7
 # groove, ridge need bd=2 or more
 Frame(master=win, height=138, width=win_width-40, bg=bg_frame, bd=2, relief='groove').place(x=20, y=20)
 
-Frame(master=win, height=170, width=380, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
-Frame(master=win, height=170, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112)
+Frame(master=win, height=185, width=390, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
+Frame(master=win, height=185, width=404, bg=bg_frame, bd=2, relief='groove').place(x=415, y=50+112)
 
 
 ###### BUTTONS ######
@@ -119,14 +114,26 @@ ttk.Style().configure("TButton", padding=2,   background="#fdfdfd", font=(font_t
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
 b_exit.place(x=win_width-82,y=win_high-50, width=60)
 
-b_go = ttk.Button(master=win, text='Start', command = bt_start)
-b_go.place(x=win_width-162, y=win_high-50, width=60)
-
 b_rvo1 = Button(master=win, text='Search data file', command = bt_rvo1, background="#fdfdfd")
 b_rvo1.place(x=win_width-580, y=lh, height=25)
 
 b_rvo2 = Button(master=win,text='Search data file', command = bt_rvo2, background="#fdfdfd")
 b_rvo2.place(x=win_width-179, y=lh, height=25)
+
+call_vpr = bt_start
+width_bt = 110
+
+b_rvbjd = ttk.Button(master=win, text='Plot BJD-RV', command = call_vpr)
+b_rvbjd.place(x=x0, y=(sl+3)*lh, width=width_bt)
+
+b_rvo = ttk.Button(master=win, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
+b_rvo.place(x=x0+(width_bt+10)*1, y=(sl+3)*lh, width=width_bt)
+
+b_cmp = ttk.Button(master=win, text='Compare', command = lambda: call_vpr(cmp=True))
+b_cmp.place(x=x0+(width_bt+10)*2, y=(sl+3)*lh, width=width_bt)
+
+b_res = ttk.Button(master=win, text='Plot res', command = lambda: call_vpr(res=True))
+b_res.place(x=win_width-width_bt-x0, y=(sl+3)*lh, width=width_bt)
 
 ###### ENTRIES ######
 
@@ -150,7 +157,7 @@ e_oset2.place(x=x0+xs+400, y=3*lh, width=150)
 
 e_sort = Entry(master=win)
 e_sort.insert(0, 'BJD')
-e_sort.place(x=x0+xss, y=(sl+0)*lh, width=100)
+e_sort.place(x=x0+xss, y=(sl+1)*lh, width=100)
 
 
 e_dir = Entry(master=win)
@@ -178,29 +185,8 @@ ttk.Checkbutton(master=win, text="     center orders rvo 1", variable=cb_ocen).p
 cb_cmpocen = IntVar()
 ttk.Checkbutton(master=win, text="     center orders rvo 2", variable=cb_cmpocen).place(x=x0+400, y=4*lh)
 
-# Plot RV
-cb_plot_rv = IntVar()
-cb_plot_rv.set(1)
-ttk.Checkbutton(master=win, text="", variable=cb_plot_rv, command=reset_res).place(x=x0, y=(sl-1.2)*lh)
-
-# Plot residuals
-cb_plot_res = IntVar()
-ttk.Checkbutton(master=win, text="", variable=cb_plot_res, command=reset_rv).place(x=x0+390, y=(sl-1.2)*lh)
-
 cb_cen = IntVar()
-ttk.Checkbutton(master=win, text="     center RVs to zero median", variable=cb_cen).place(x=x0, y=(sl+1)*lh)
-
-call_vpr = bt_start
-
-b_go = ttk.Button(master=win, text='Plot BJD-RV', command = call_vpr)
-b_go.place(x=+20, y=win_high-50, width=110)
-
-b_go = ttk.Button(master=win, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
-b_go.place(x=+20+110+10, y=win_high-50, width=110)
-
-b_go = ttk.Button(master=win, text='Compare', command = lambda: call_vpr(cmp=True))
-b_go.place(x=+20+2*(110+10)+20, y=win_high-50, width=110)
-
+ttk.Checkbutton(master=win, text="     center RVs to zero median", variable=cb_cen).place(x=x0, y=(sl+0)*lh)
 
 ###### LABELS ######
 
@@ -212,16 +198,16 @@ Label(master=win, text='rvo file 2', font=(font_type, font_size, 'bold'), backgr
 Label(master=win, text='oset rvo 1:', background=bg_frame).place(x=x0, y=3*lh)
 Label(master=win, text='oset rvo 2:', background=bg_frame).place(x=x0+400, y=3*lh)
 
-Label(master=win, text='Plot RV', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+30, y=(sl-1.2)*lh)
+Label(master=win, text='Plot RV', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=(sl-1.2)*lh)
 
-Label(master=win, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps+30, y=(sl-1.2)*lh)
+Label(master=win, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl-1.2)*lh)
 
 #Label(master=win, text='nset:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
-Label(master=win, text='sort by:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
+Label(master=win, text='sort by:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
 
-Label(master=win, text='directory:', background=bg_frame).place(x=x0+385, y=(sl+0)*lh)
-Label(master=win, text='nset:', background=bg_frame).place(x=x0+385, y=(sl+1)*lh)
-Label(master=win, text='oset:', background=bg_frame).place(x=x0+385, y=(sl+2)*lh)
+Label(master=win, text='directory:', background=bg_frame).place(x=x0+sp+sps, y=(sl+0)*lh)
+Label(master=win, text='nset:', background=bg_frame).place(x=x0+sp+sps, y=(sl+1)*lh)
+Label(master=win, text='oset:', background=bg_frame).place(x=x0+sp+sps, y=(sl+2)*lh)
 
 
 ###### MAIN ######
