@@ -228,7 +228,7 @@ def run(cmd=None):
     resopt = args.pop('res')
     if resopt is not None:
         plot_res(resopt, o=args['oset'], n=args['nset'])
-        exit()
+        return
 
     args.pop('nset')
     tagcmp = args.pop('cmp')
