@@ -6,6 +6,8 @@ import argparse
 
 import numpy as np
 
+from wstat import wsem
+
 from pause import pause
 from gplot import gplot
 
@@ -51,14 +53,24 @@ def plot_cmp(vpr, vprcmp):
         gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s" noenh' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms))
         pause('RV time serie')
 
+def average(yi, e_yi=None, typ='wmean', **kwargs):
+    # other futures types might be median, trimmed mean, maximum jitter likelihood mean
+    if typ == 'mean':
+        Y = np.mean(yi, **kwargs)
+        e_Y = np.std(yi, **kwargs) / (yi.size//Y.size-1)**0.5
+    else:
+        Y, e_Y = wsem(yi, e=e_yi, **kwargs)
+    return Y, e_Y
+
 class VPR():
-    def __init__(self, tag, gp='', oset=None, ocen=None, sort='', cen=False):
+    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False):
         '''
         oset: slice,list
         '''
         self.tag = tag.replace('.rvo.dat', '')
         self.file = file = self.tag + '.rvo.dat'
         self.oset = oset
+        self.avgtyp = avg
         print(self.tag)
 
         if gp:
@@ -100,8 +112,7 @@ class VPR():
 
         # recompute mean RV
         self.BJD = self.A.BJD
-        self.RV = np.mean(self.rv, axis=0)
-        self.e_RV = np.std(self.rv, axis=0) / (len(self.onames)-1)**0.5
+        self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
 
         if cen:
             off = np.nanmedian(self.RV)
@@ -114,12 +125,11 @@ class VPR():
         if ocen:
             RVo = np.mean(self.rv-self.RV, axis=1)
             print('Subtracting mean order offsets from all RVs.')
-            # This should not change the RV mean values.
+            # This should not change the RV mean values (if unweighted).
             # The idea is to reduce RV uncertainty overestimation coming from large order offsets.
             # Offsets are hints for systematics in wavelength solutions (template or fts-iod)
             self.rv -= RVo[:,None]
-            self.RV = np.mean(self.rv, axis=0)
-            self.e_RV = np.std(self.rv, axis=0) / (len(self.onames)-1)**0.5
+            self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
             self.info()
 
     def info(self):
@@ -211,11 +221,12 @@ def run(cmd=None):
     parser = argparse.ArgumentParser(description='Analyse viper RVs', add_help=False, formatter_class=argparse.RawTextHelpFormatter)
     argopt = parser.add_argument   # function short cut
     argopt('tag', nargs='?', help='tag', default='tmp', type=str)
-    argopt('-gp', help='gnuplot commands', default='', type=str)
+    argopt('-avg', help='Average typ (mean, weighted mean).', default='wmean', choices=['mean', 'wmean'], type=str)
     argopt('-cen', help='center RVs to zero median', action='store_true')
     argopt('-cmp', help='compare two time series (default: cmp=None or, if cmposet is passed, cmp=tag)', type=str)
     argopt('-cmpocen', help='center orders (subtract order offset) of comparison', action='store_true')
     argopt('-cmposet', help='index for order subset of comparison', type=arg2slice)
+    argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
