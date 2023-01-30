@@ -172,7 +172,7 @@ if __name__ == "__main__":
     argopt('-tag', help='Output tag for filename.', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-tellshift', help='Variable telluric wavelength shift (one value for all selected molecules).', action='store_true')
-    argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default=None, type=str)
+    argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
     argopt('-?', '-h', '-help', '--help',  help='Show this help message and exit.', action='help')
