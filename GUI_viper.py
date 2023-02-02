@@ -213,7 +213,7 @@ e_molec.place(x=x0+380, y=(sl+8.5)*lh, width=250)
 
 ###### COMBOBOXES ######
 
-combo_inst = ttk.Combobox(master=win, values=['TLS', 'CRIRES', 'CES', 'KECK', 'UVES', 'OES'])
+combo_inst = ttk.Combobox(master=win, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES'])
 combo_inst.set('TLS')
 combo_inst.place(x=x0+xs, y=3*lh, width=100)
 
