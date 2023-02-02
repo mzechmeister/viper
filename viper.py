@@ -827,6 +827,7 @@ if createtpl:
     # combine all telluric corrected spectra to a final template
     wave_tpl_new = {}
     spec_tpl_new = {}
+    err_tpl_new = {}
     for order in orders:
         gplot.reset()
         gplot.key("title 'order: %s' noenhance" % (order))
@@ -845,14 +846,16 @@ if createtpl:
             weight_t[nn][np.abs(spec_t[nn]-spec_tpl_new[order])>0.1] = np.nan
 
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
+        err_tpl_new[order] = np.nanstd(spec_t, axis=0)
 
         gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
         for n in range(len(spec_t)):
             gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
-        pause()
+        if order in look:
+            pause()
 
-    Inst.write_fits(wave_tpl_new, spec_tpl_new, np.nanstd(spec_t, axis=0), obsnames, tag)
+    Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
 
 
 rvounit.close()
