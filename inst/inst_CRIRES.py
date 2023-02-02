@@ -1,5 +1,6 @@
 import numpy as np
 import os.path
+import sys
 from datetime import datetime
 from astropy.io import fits
 from astropy.time import Time
@@ -17,7 +18,7 @@ import matplotlib.pyplot as plt
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-path = 'lib/CRIRES/'
+path = sys.path[0] + '/lib/CRIRES/'
 
 location = crires = EarthLocation.from_geodetic(lat=-24.6268*u.deg,
                                                 lon=-70.4045*u.deg,
@@ -97,7 +98,7 @@ def Tpl(tplname, order=None, targ=None):
     return wave, spec
 
 
-def FTS(ftsname=path+'FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=100):
+def FTS(ftsname='lib/CRIRES/FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
 

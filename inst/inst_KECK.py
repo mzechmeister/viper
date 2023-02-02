@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -11,6 +12,8 @@ from .airtovac import airtovac
 from .FTS_resample import resample, FTSfits
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
+
+path = sys.path[0]
 
 location = keck = EarthLocation.of_site('Keck Observatory')
 
@@ -133,7 +136,7 @@ def Tell(molec='all'):
 
       wave_atm_all, specs_molec_all = {}, {}
       for mol in range(len(molec)):
-          modelfile = 'lib/atmos/'+str(molec[mol])+'.fits'
+          modelfile = path+'/lib/atmos/'+str(molec[mol])+'.fits'
           hdu = fits.open(modelfile, ignore_blank=True)
           atm_model = hdu[1].data
           w_atm = atm_model.field(0).astype(np.float64)
