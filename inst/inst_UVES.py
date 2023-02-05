@@ -14,9 +14,9 @@ from .FTS_resample import resample, FTSfits
 location = paranal = EarthLocation.of_site('paranal')
 
 oset = '5:16'
-iset = '400:2000'
+iset = '600:3600'
 
-ip_guess = {'s': 300_000/220_000/ np.sqrt(np.log(256))}   # convert FHWM resolution to sigma
+ip_guess = {'s': 300_000/110_000/ np.sqrt(np.log(256))}   # convert FHWM resolution to sigma
 
 from pause import *
 def Spectrum(filename, order=None, targ=None):

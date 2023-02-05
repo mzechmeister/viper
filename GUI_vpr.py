@@ -10,7 +10,7 @@ from tkinter import ttk
 
 import sys
 import vpr
-vpr.pause = print
+vpr.pause = print   # mainloop of the gui will pause
 
 ###### FUNCIONS BUTTONS ######
 
