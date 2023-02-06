@@ -63,6 +63,7 @@ def IP_mg(vk, *a):
     dx = s         # spacing between Gaussians
     na = len(a) + 1
     mid = len(a) // 2
+    a = np.tanh(a)   # sigmoid, limit coeffs between -1 and 1
     a = [*a[:mid], 1, *a[mid:]]   # insert unit amplitude for central Gaussian
     xl = np.arange(na)            # knot numbers
     # center of infinite long and infinite oversampled IP (easy, since sigma is the same)
