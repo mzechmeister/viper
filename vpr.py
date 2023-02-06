@@ -190,6 +190,10 @@ class VPR():
         print("Use '()[]^$' in gnuplot window to go through epochs n. Press Enter in terminal to quit.")
         pause('rv order dispersion\n')
 
+    def save(self, filename):
+        print('saving as', filename)
+        np.savetxt(filename, [*zip(self.BJD, self.RV, self.e_RV)], header='BJD RV e_RV')
+
 def plot_res(folder, o=[1], n=[1]):
     '''
     Plot stacked residuals.
@@ -231,6 +235,7 @@ def run(cmd=None):
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo'])
+    argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
 
@@ -246,8 +251,12 @@ def run(cmd=None):
     cmposet = args.pop('cmposet')
     cmpocen = args.pop('cmpocen')
     tasks = args.pop('tasks')
+    savefile = args.pop('save')
 
     vpr = VPR(**args)
+
+    if savefile:
+        vpr.save(savefile)
 
     if tagcmp or cmposet or cmpocen:
         if tagcmp: args['tag'] = tagcmp
