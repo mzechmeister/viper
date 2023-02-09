@@ -688,7 +688,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         e_s = e_params[ss,ss]**0.5
         par_ip = params[3]
         gplot(S_mod.vk, S_mod.IP(S_mod.vk, *par_ip_guess), ' lc 9 ps 0.5 t "IP_{guess}", ',
-	      S_mod.vk, S_mod.IP(S_mod.vk, *params[3]), S_mod.IP(S_mod.vk, *[par_ip[0]-e_s, *par_ip[1:]]), S_mod.IP(S_mod.vk, *[par_ip[0]+e_s, *par_ip[1:]]), 'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
+              S_mod.vk, S_mod.IP(S_mod.vk, *params[3]),
+                        S_mod.IP(S_mod.vk, *[par_ip[0]-e_s, *par_ip[1:]]),
+                        S_mod.IP(S_mod.vk, *[par_ip[0]+e_s, *par_ip[1:]]),
+              'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
         pause('lookpar', par_ip)
 
@@ -718,7 +721,7 @@ parunit = open(tag+'.par.dat', 'w')
 colnums = orders if chunks == 1 else [f'{order}-{ch}' for order in orders for ch in range(chunks)]
 
 print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, colnums), 'filename', file=rvounit)
-print('BJD order chunk', *map("p{0} e_params{0}".format, range(10)), 'prms', file=parunit)
+print('BJD n order chunk', *map("p{0} e_params{0}".format, range(10)), 'prms', file=parunit)
 
 ####  FTS  ####
 
@@ -802,7 +805,8 @@ for n, obsname in enumerate(obsnames):
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-            print(bjd, o, ch, *sum(zip(params, np.diag(e_params)), ()), prms, file=parunit)
+            flat_params = (params[0],) + sum(params[1:], ())
+            print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
