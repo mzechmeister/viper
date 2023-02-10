@@ -58,14 +58,12 @@ def bt_start(args='-plot rv', cmp=False, res=False):
 def bt_rvo1():
     file1 = askopenfilename(master=win)
     if file1:
-        e_rvo1.delete(0, END)
-        e_rvo1.insert(0, file1)
+        filename1.set(file1)
 
 def bt_rvo2():
     file2 = askopenfilename(master=win)
     if file2:
-        e_rvo2.delete(0, END)
-        e_rvo2.insert(0, file2)
+        filename2.set(file2)
 
 def bt_exit():
     exit()
