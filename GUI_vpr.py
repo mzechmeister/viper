@@ -117,6 +117,18 @@ b_exit.place(x=win_width-82,y=win_high-50, width=60)
 b_rvo1 = Button(master=win, text='Search data file', command = bt_rvo1, background="#fdfdfd")
 b_rvo1.place(x=win_width-580, y=lh, height=25)
 
+filename1 = StringVar(win)
+filename2 = StringVar(win)
+
+def swap():
+    f1 = filename1.get()
+    f2 = filename2.get()
+    filename1.set(f2)
+    filename2.set(f1)
+
+b_swap = Button(master=win, text='swap', command = swap, background="#fdfdfd")
+b_swap.place(x=win_width/2-25, y=2*lh, width=35, height=25)
+
 b_rvo2 = Button(master=win,text='Search data file', command = bt_rvo2, background="#fdfdfd")
 b_rvo2.place(x=win_width-179, y=lh, height=25)
 
@@ -137,11 +149,11 @@ b_res.place(x=win_width-width_bt-x0, y=(sl+3)*lh, width=width_bt)
 
 ###### ENTRIES ######
 
-e_rvo1 = Entry(master=win)
+e_rvo1 = Entry(master=win, textvariable=filename1)
 e_rvo1.insert(0, 'tmp.rvo.dat')
 e_rvo1.place(x=x0, y=2*lh, width=350)
 
-e_rvo2 = Entry(master=win)
+e_rvo2 = Entry(master=win, textvariable=filename2)
 e_rvo2.insert(0, '')
 e_rvo2.place(x=x0+400, y=2*lh, width=350)
 
