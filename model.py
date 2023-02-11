@@ -31,6 +31,7 @@ def IP_ag(vk, s=2.2, a=0):
     >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100), ', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
 
     '''
+    #a = 10 * np.tanh(a)   # restrict asymmetry parameter to -10 and 10
     b = a / np.sqrt(1+a**2) * np.sqrt(2/np.pi)
     ss = s / np.sqrt(1-b**2)    # readjust scale parameter to have same variance as unskewed Gaussian
     vk = (vk + ss*b) / ss       # recenter to have zero mean
@@ -114,10 +115,10 @@ class model:
         #print("sampling [km/s]:", self.dx*c)
 
     def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
-        # IP convolution
-        if len(self.fluxes_molec) == 0:
-            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j + coeff_bkg[0]), mode='valid')
-        else:
+
+        spec_gas = 1 * self.spec_cell_j
+
+        if len(self.fluxes_molec):
             # telluric forward modelling
             flux_atm = np.ones(len(self.fluxes_molec[0]))
             for coeff_mol, flux_mol in zip(coeff_atm, self.fluxes_molec):
@@ -127,7 +128,10 @@ class model:
             if len(coeff_atm) == len(self.fluxes_molec)+1:
                 flux_atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), flux_atm)
 
-            Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (self.spec_cell_j * flux_atm + coeff_bkg[0]), mode='valid')
+            spec_gas *= flux_atm
+
+        # IP convolution
+        Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
 
         # wavelength relation
         #    lam(x) = b0 + b1 * x + b2 * x^2
