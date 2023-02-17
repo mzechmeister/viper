@@ -349,7 +349,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
         par_ip = par_ip_guess = [par_ip[0]*1.5]
 
-    if ip in ('sg', 'mg'):
+    if ip in Inst.ip_guess:
+        par_ip = Inst.ip_guess[ip]
+    elif ip in ('sg', 'mg'):
         par_ip += [2.]   # exponent of super Gaussian
     elif ip in ('ag',):
         par_ip += [1.]   # skewness parameter (offset to get iterations)
