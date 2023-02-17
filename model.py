@@ -31,13 +31,16 @@ def IP_ag(vk, s=2.2, a=0):
     >>> gplot(vk, IP_ag(vk, s=10.), IP_ag(vk, s=10., a=100), ', "" us 1:3, "" us 1:($3-$2)*0.5, 0')
 
     '''
-    #a = 10 * np.tanh(a)   # restrict asymmetry parameter to -10 and 10
     b = a / np.sqrt(1+a**2) * np.sqrt(2/np.pi)
     ss = s / np.sqrt(1-b**2)    # readjust scale parameter to have same variance as unskewed Gaussian
     vk = (vk + ss*b) / ss       # recenter to have zero mean
     IP_k = np.exp(-vk**2/2) * (1+erf(a/np.sqrt(2)*vk))   # Gauss IP * erf
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
+
+def IP_agr(*args, a=0):
+    a = 10 * np.tanh(a)   # restrict asymmetry parameter to -10 and 10
+    return IP_ag(*args, a=a)
 
 def IP_bg(vk, s1=2., s2=2.):
     """BiGaussian"""
@@ -79,7 +82,7 @@ def IP_mg(vk, *a):
     # gplot(IP_k)
     return IP_k
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
