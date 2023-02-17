@@ -192,6 +192,7 @@ if __name__ == "__main__":
     argopt('-telluric', help='Treating tellurics (mask: mask telluric; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
+    argopt('-wgt', help='Weighted least square fit (employ data error).', action='store_true')
     argopt('-?', '-h', '-help', '--help',  help='Show this help message and exit.', action='help')
 
     args = parser.parse_args()
@@ -356,7 +357,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_ip += [par_ip[-1]]   # symmetric biGaussian
 
     # set weighting parameter for tellurics
-    sig = np.ones_like(spec_obs)
+    sig = 1 * err_obs if wgt else np.ones_like(spec_obs)
     if telluric in ('sig', 'add'):
         sig[mskatm(wave_obs) < 0.1] = tsig
 
