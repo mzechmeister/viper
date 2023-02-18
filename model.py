@@ -117,7 +117,7 @@ class model:
         self.func_norm = func_norm
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0]):
+    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0], coeff_ipB=[]):
 
         spec_gas = 1 * self.spec_cell_j
 
@@ -136,6 +136,14 @@ class model:
         # IP convolution
         Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
 
+        if len(coeff_ipB):
+            coeff_ipB = (coeff_ipB[0]*coeff_ip[0], )
+            Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+            Sj_A = Sj_eff
+            g = self.lnwave_j_eff - self.lnwave_j_eff[0]
+            g /= g[-1]
+            Sj_eff = (1-g)*Sj_A + g*Sj_B
+
         # wavelength relation
         #    lam(x) = b0 + b1 * x + b2 * x^2
         lnwave_obs = np.log(poly(pixel-self.xcen, coeff_wave))
@@ -148,7 +156,7 @@ class model:
         #Si_mod = self.func_norm((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
-    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], sig=[], **kwargs):
+    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], parfix_ipB=[], sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
@@ -166,7 +174,7 @@ class model:
         parfix_atm = tuple(parfix_atm)
         parfix_bkg = tuple(parfix_bkg)
 
-        S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg)
+        S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg, coeff_ipB=parfix_ipB)
 
         params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg], sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 

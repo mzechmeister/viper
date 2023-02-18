@@ -171,6 +171,7 @@ if __name__ == "__main__":
     argopt('-flagfile', help='Use just good region as defined in flag file.', default='', type=str)
     argopt('-infoprec', help='Prints and plots information about precision estimates for the star and the iodine.', action='store_true')
     argopt('-iphs', nargs='?', help='Half size of the IP.', default=50, type=int)
+    argopt('-ipB', nargs='*', help='Factor of IP width varation.', type=float, default=[])
     argopt('-iset', help='Pixel range.', default=iset, type=arg2slice)
     argopt('-kapsig', nargs='*', help='Kappa sigma values for the clipping stages. Zero does not clip.', default=[0], type=float)
     argopt('-look', nargs='?', help='See final fit of chunk.', default=[], const=':100', type=arg2range)
@@ -535,11 +536,11 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
 
     if tplname or createtpl:
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
+        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok], parfix_ipB=ipB, res=not createtpl, rel_fac=createtpl)
         # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok])
+        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok])
         # prepend dummy parameter
         # e_params = np.diag([np.nan, *np.diag(e_params)])
 
@@ -561,10 +562,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             spec_obs_ok = spec_obs[i_ok]
 
             if tplname or createtpl:
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
+                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
             else:
             # do not fit for velocity
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok])
+                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok])
 
     if createtpl:
         # modeled telluric spectrum
