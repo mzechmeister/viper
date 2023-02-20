@@ -18,7 +18,7 @@ def bt_start(args='-plot rv', cmp=False, res=False):
     print('---Starting vpr.py with choosen parameters---')
 
     if not res:
-        str_arg = e_rvo1.get()
+        str_arg = e_rvo1.get() + ' -avg ' + combo_avg.get()
 
         if cb_cen.get():
             str_arg += " -cen "
@@ -64,6 +64,12 @@ def bt_rvo2():
     file2 = askopenfilename(master=win)
     if file2:
         filename2.set(file2)
+
+def bt_swap():
+    f1 = filename1.get()
+    f2 = filename2.get()
+    filename1.set(f2)
+    filename2.set(f1)
 
 def bt_exit():
     exit()
@@ -115,17 +121,8 @@ b_exit.place(x=win_width-82,y=win_high-50, width=60)
 b_rvo1 = Button(master=win, text='Search data file', command = bt_rvo1, background="#fdfdfd")
 b_rvo1.place(x=win_width-580, y=lh, height=25)
 
-filename1 = StringVar(win)
-filename2 = StringVar(win)
-
-def swap():
-    f1 = filename1.get()
-    f2 = filename2.get()
-    filename1.set(f2)
-    filename2.set(f1)
-
-b_swap = Button(master=win, text='swap', command = swap, background="#fdfdfd")
-b_swap.place(x=win_width/2-25, y=2*lh, width=35, height=25)
+b_swap = Button(master=win, text='swap', command = bt_swap, background="#fdfdfd")
+b_swap.place(x=win_width/2-33, y=2*lh, width=45, height=23)
 
 b_rvo2 = Button(master=win,text='Search data file', command = bt_rvo2, background="#fdfdfd")
 b_rvo2.place(x=win_width-179, y=lh, height=25)
@@ -147,14 +144,16 @@ b_res.place(x=win_width-width_bt-x0, y=(sl+3)*lh, width=width_bt)
 
 ###### ENTRIES ######
 
+filename1 = StringVar(win)
+filename2 = StringVar(win)
+
 e_rvo1 = Entry(master=win, textvariable=filename1)
 e_rvo1.insert(0, 'tmp.rvo.dat')
-e_rvo1.place(x=x0, y=2*lh, width=350)
+e_rvo1.place(x=x0, y=2*lh, width=340)
 
 e_rvo2 = Entry(master=win, textvariable=filename2)
 e_rvo2.insert(0, '')
-e_rvo2.place(x=x0+400, y=2*lh, width=350)
-
+e_rvo2.place(x=x0+400, y=2*lh, width=340)
 
 e_oset1 = Entry(master=win)
 e_oset1.place(x=x0+xs, y=3*lh, width=150)
@@ -167,7 +166,7 @@ e_oset2.place(x=x0+xs+400, y=3*lh, width=150)
 
 e_sort = Entry(master=win)
 e_sort.insert(0, 'BJD')
-e_sort.place(x=x0+xss, y=(sl+1)*lh, width=100)
+e_sort.place(x=x0+xss, y=(sl+2)*lh, width=100)
 
 
 e_dir = Entry(master=win)
@@ -184,6 +183,9 @@ e_oset_r.place(x=x0+xss+400, y=(sl+2)*lh, width=100)
 
 ###### COMBOBOXES ######
 
+combo_avg = ttk.Combobox(master=win, values=['mean', 'wmean'])
+combo_avg.set('wmean')
+combo_avg.place(x=x0+xss, y=(sl+1)*lh, width=100)
 
 ###### CHECKBOXES ######
 
@@ -213,7 +215,8 @@ Label(master=win, text='Plot RV', font=(font_type, font_size, 'bold'), backgroun
 Label(master=win, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl-1.2)*lh)
 
 #Label(master=win, text='nset:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
-Label(master=win, text='sort by:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
+Label(master=win, text='average:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
+Label(master=win, text='sort by:', background=bg_frame).place(x=x0, y=(sl+2)*lh)
 
 Label(master=win, text='directory:', background=bg_frame).place(x=x0+sp+sps, y=(sl+0)*lh)
 Label(master=win, text='nset:', background=bg_frame).place(x=x0+sp+sps, y=(sl+1)*lh)
