@@ -225,7 +225,8 @@ class model:
         if rel_fac:
             args += (",", x, col2, x2, "us lam?3:1:2 w l lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, prms))
 
-        gplot(*args)
+        if res or rel_fac or dx:        
+            gplot(*args)
         return prms
 
 
