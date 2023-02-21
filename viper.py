@@ -343,13 +343,13 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par_bkg, parfix_bkg = (par_bkg_guess, []) if deg_bkg else ([], par_bkg_guess)
 
     # guess IP - read in from instrument file
-    par_ip = par_ip_guess = [Inst.ip_guess['s']]
+    par_ip = [Inst.ip_guess['s']]
 
     if demo:
         par_norm = parguess_norm = [parfix_norm*1.3] + [0]*deg_norm
         # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
         par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
-        par_ip = par_ip_guess = [par_ip[0]*1.5]
+        par_ip = [par_ip[0]*1.5]
 
     if ip in Inst.ip_guess:
         par_ip = Inst.ip_guess[ip]
@@ -359,6 +359,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_ip += [1.]   # skewness parameter (offset to get iterations)
     elif ip in ('bg',):
         par_ip += [par_ip[-1]]   # symmetric biGaussian
+    par_ip_guess = par_ip
 
     # set weighting parameter for tellurics
     sig = 1 * err_obs if wgt else np.ones_like(spec_obs)
