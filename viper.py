@@ -174,7 +174,8 @@ if __name__ == "__main__":
     argopt('-ipB', nargs='*', help='Factor of IP width varation.', type=float, default=[])
     argopt('-iset', help='Pixel range.', default=iset, type=arg2slice)
     argopt('-kapsig', nargs='*', help='Kappa sigma values for the clipping stages. Zero does not clip.', default=[0], type=float)
-    argopt('-look', nargs='?', help='See final fit of chunk.', default=[], const=':100', type=arg2range)
+    argopt('-look', nargs='?', help='See final fit of chunk with pause.', default=[], const=':100', type=arg2range)
+    argopt('-lookfast', nargs='?', help='See final fit of chunk without pause.', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show initial model.', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk.', default=[], const=':100', type=arg2range)
     argopt('-lookres', nargs='?', help='Analyse the residuals.', default=[], const=':100', type=arg2range)
@@ -534,13 +535,16 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs, a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
         par_rv = rvs
 
+    show = 0
+    if (order in look) or (order in lookfast):
+        show = 1
 
     if tplname or createtpl:
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok], parfix_ipB=ipB, res=not createtpl, rel_fac=createtpl)
+        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1*show, sig=sig[i_ok], parfix_ipB=ipB, res=(not createtpl)*show, rel_fac=createtpl*show)
         # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok])
+        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok])
         # prepend dummy parameter
         # e_params = np.diag([np.nan, *np.diag(e_params)])
 
@@ -562,10 +566,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             spec_obs_ok = spec_obs[i_ok]
 
             if tplname or createtpl:
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok], res=not createtpl, rel_fac=createtpl)
+                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
             else:
             # do not fit for velocity
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1, sig=sig[i_ok])
+                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok])
 
     if createtpl:
         # modeled telluric spectrum
@@ -594,9 +598,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_all[o,1][n] = spec_cor     # telluric corrected spectrum
         spec_all[o,2][n] = weight       # weighting for combination of spectra
 
-
-    # overplot flagged and clipped data
-    gplot+(pixel[flag_obs != 0], wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
+    if show:
+        # overplot flagged and clipped data
+        gplot+(pixel[flag_obs != 0], wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
 
     if infoprec:
         # estimate velocity precision limit from stellar information content
@@ -809,8 +813,9 @@ for n, obsname in enumerate(obsnames):
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-            flat_params = (params[0],) + sum(params[1:], ())
-            print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
+       #     flat_params = (params[0],) + sum(params[1:], ())
+         #   print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
+            print(bjd, o, ch, *sum(zip(params, np.diag(e_params)), ()), prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
@@ -855,15 +860,15 @@ if createtpl:
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         err_tpl_new[order] = np.nanstd(spec_t, axis=0)
 
-        gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
-        for n in range(len(spec_t)):
-            gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
+        if order in lookfast:
+            gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
+            for n in range(len(spec_t)):
+                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         if order in look:
             pause()
 
     Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
-
 
 rvounit.close()
 
@@ -873,9 +878,9 @@ print("processing time total:       ", Tfmt(T))
 print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
-if not createtpl:
-    vpr.VPR(tag)   # to print info statistic
+vpr.VPR(tag)   # to print info statistic
+if not createtpl and (look in orders or lookfast in orders):
     vpr.plot_RV(tag+'.rvo.dat')
-
-pause(tag, 'done.')
+if look in orders:
+    pause(tag, 'done.')
 
