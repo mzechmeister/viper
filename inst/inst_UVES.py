@@ -17,7 +17,7 @@ oset = '5:16'
 iset = '600:3600'
 
 ip_guess = {'s': 300_000/110_000/ np.sqrt(np.log(256))}   # convert FHWM resolution to sigma
-ip_guess['ag'] = [ip_guess['s'], -0.1]
+ip_guess['ag'] = ip_guess['agr'] = [ip_guess['s'], -1.1]
 
 from pause import *
 def Spectrum(filename, order=None, targ=None):

@@ -38,9 +38,9 @@ def IP_ag(vk, s=2.2, a=0):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-def IP_agr(*args, a=0):
-    a = 10 * np.tanh(a)   # restrict asymmetry parameter to -10 and 10
-    return IP_ag(*args, a=a)
+def IP_agr(vk, s, a=0):
+    a = 10 * np.tanh(a/10)   # restrict asymmetry parameter to -10 and 10
+    return IP_ag(vk, s, a=a)
 
 def IP_bg(vk, s1=2., s2=2.):
     """BiGaussian"""
@@ -137,7 +137,7 @@ class model:
         Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
 
         if len(coeff_ipB):
-            coeff_ipB = (coeff_ipB[0]*coeff_ip[0], )
+            coeff_ipB = [coeff_ipB[0]*coeff_ip[0], *coeff_ip[1:]]
             Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
             Sj_A = Sj_eff
             g = self.lnwave_j_eff - self.lnwave_j_eff[0]

@@ -355,7 +355,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par_ip = Inst.ip_guess[ip]
     elif ip in ('sg', 'mg'):
         par_ip += [2.]   # exponent of super Gaussian
-    elif ip in ('ag',):
+    elif ip in ('ag', 'agr'):
         par_ip += [1.]   # skewness parameter (offset to get iterations)
     elif ip in ('bg',):
         par_ip += [par_ip[-1]]   # symmetric biGaussian
@@ -392,7 +392,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         pause('demo 64: S_par_norm_wave_rv')
 
 
-    if ip in ('sg', 'ag', 'bg', 'bnd'):
+    if ip in ('sg', 'ag', 'agr', 'bg', 'bnd'):
         # prefit with Gaussian IP
         S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 
