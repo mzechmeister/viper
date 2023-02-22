@@ -10,14 +10,13 @@ from .airtovac import airtovac
 from .FTS_resample import resample, FTSfits
 from pause import pause
 
-path = sys.path[0]
-
 location = lasilla = EarthLocation.of_site('lasilla')
 
 oset = '0:1'
 
 ip_guess = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
+atmall = {'H2O': 'lib/atmos/H2O.fits', 'O2': 'lib/atmos/O2.fits'}
 
 def Spectrum(filename, order=None, targ=None, chksize=4000):
     with open(filename) as myfile:
@@ -97,22 +96,5 @@ def FTS(ftsname='lib/CES/master_iodlund.dat', dv=100):
     else:
         print('FTS', ftsname)
         return resample(*FTSfits(ftsname), dv=dv)
-
-def Tell(molec='all'):
-
-      if molec[0] == 'all':
-           molec = ['H2O', 'O2']
-
-      wave_atm_all, specs_molec_all = {}, {}
-      for mol in range(len(molec)):
-          modelfile = path+'/lib/atmos/'+str(molec[mol])+'.fits'
-          hdu = fits.open(modelfile, ignore_blank=True)
-          atm_model = hdu[1].data
-          w_atm = atm_model.field(0).astype(np.float64)
-          f_atm = atm_model.field(1).astype(np.float64)
-          wave_atm_all[mol], specs_molec_all[mol] = w_atm, f_atm
-    
-      return wave_atm_all, specs_molec_all, molec
-
 
 

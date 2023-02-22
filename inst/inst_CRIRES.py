@@ -28,6 +28,7 @@ oset = '1:19'
 
 ip_guess = {'s': 1.5}
 
+atmall = {'H2O': 'lib/CRIRES/atmos/stdAtmos_crires_H2O.fits', 'CH4': 'lib/CRIRES/atmos/stdAtmos_crires_CH4.fits', 'N2O': 'lib/CRIRES/atmos/stdAtmos_crires_N2O.fits', 'CO2': 'lib/CRIRES/atmos/stdAtmos_crires_CO2.fits', 'CO': 'lib/CRIRES/atmos/stdAtmos_crires_CO.fits'}
 
 def Spectrum(filename='', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)
@@ -101,29 +102,6 @@ def Tpl(tplname, order=None, targ=None):
 def FTS(ftsname='lib/CRIRES/FTS/CRp_SGC2_FTStmpl-HR0p007-WN3000-5000_Kband.dat', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
-
-
-def Tell(molec=['all']):
-
-      if molec[0] == 'all':
-           molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO']
-
-      wave_atm_all, specs_molec_all = {}, {}
-      for mol in range(len(molec)):
-          modelfile = path+'atmos/stdAtmos_crires_'+str(molec[mol])+'.fits'
-          hdu = fits.open(modelfile, ignore_blank=True)
-          atm_model = hdu[1].data
-          w_atm = atm_model.field(0).astype(np.float64)
-          f_atm = atm_model.field(1).astype(np.float64)
-
-          # add wavelength shift
-          # synthetic telluric spectra (molecfit) are laboratory wavelengths
-          # shift was determined empirical from several observations
-          w_atm *= (1 + (-0.249/3e5))
-
-          wave_atm_all[mol], specs_molec_all[mol] = w_atm, f_atm
-    
-      return wave_atm_all, specs_molec_all, molec
 
 
 def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):

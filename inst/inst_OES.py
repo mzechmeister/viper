@@ -13,14 +13,13 @@ from .FTS_resample import resample, FTSfits
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-path = sys.path[0]
-
 location = oes = EarthLocation.from_geodetic(lat=49.91056*u.deg, lon=14.78361*u.deg, height=528*u.m)
 
 oset = '1:30'
 
 ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
+atmall = {'H2O': 'lib/atmos/H2O.fits', 'O2': 'lib/atmos/O2.fits'}
 
 def Spectrum(filename='', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
@@ -95,23 +94,6 @@ def Tpl(tplname, order=None, targ=None):
 def FTS(ftsname='lib/oes.fits', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
-
-
-def Tell(molec='all'):
-
-      if molec[0] == 'all':
-           molec = ['H2O', 'O2']
-
-      wave_atm_all, specs_molec_all = {}, {}
-      for mol in range(len(molec)):
-          modelfile = path+'/lib/atmos/'+str(molec[mol])+'.fits'
-          hdu = fits.open(modelfile, ignore_blank=True)
-          atm_model = hdu[1].data
-          w_atm = atm_model.field(0).astype(np.float64)
-          f_atm = atm_model.field(1).astype(np.float64)
-          wave_atm_all[mol], specs_molec_all[mol] = w_atm, f_atm
-    
-      return wave_atm_all, specs_molec_all, molec
 
 
 def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
