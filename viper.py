@@ -814,9 +814,8 @@ for n, obsname in enumerate(obsnames):
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-       #     flat_params = (params[0],) + sum(params[1:], ())
-         #   print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
-            print(bjd, o, ch, *sum(zip(params, np.diag(e_params)), ()), prms, file=parunit)
+            flat_params = (params[0],) + sum(params[1:], ())
+            print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
