@@ -49,8 +49,9 @@ def plot_cmp(vpr, vprcmp):
         gplot.mxtics().mytics()
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
-        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#55FF0000" t "%s [o=%s] rms=%.2f m/s" noenh' % (vprcmp.tag, str(vprcmp.oset).replace('\n',''), vprcmp.rms))
-        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s" noenh' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms))
+        gplot.key('invert')
+        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#55FF0000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" noenh' % (vprcmp.tag, str(vprcmp.oset).replace('\n',''), vprcmp.rms, vprcmp.medunc))
+        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" noenh' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms, vpr.medunc))
         pause('RV time serie')
 
 def average(yi, e_yi=None, typ='wmean', **kwargs):
@@ -135,8 +136,9 @@ class VPR():
     def info(self):
         print('Number of chunks:', self.orders.size)
         self.rms = np.std(self.RV)
+        self.medunc = np.median(self.e_RV)
         print('rms(RV) [m/s]:     ', self.rms)
-        print('median(e_RV) [m/s]:', np.median(self.e_RV))
+        print('median(e_RV) [m/s]:', self.medunc)
 
     def plot_RV(self):
         gplot.mxtics().mytics()
