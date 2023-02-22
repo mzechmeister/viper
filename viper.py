@@ -748,7 +748,22 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 #### Telluric model ####
 if 'add' in telluric:
     # read in telluric spectra for wavelength range of the instrument   
-    wave_atm_all, specs_molec_all, molec = Tell(molec)
+ #   wave_atm_all, specs_molec_all, molec = Tell(molec)
+
+    if molec[0] == 'all':
+        molec = list(Inst.atmall.keys())
+
+    wave_atm_all, specs_molec_all = {}, {}
+    for i_mol, mol in enumerate(molec):
+        hdu = fits.open(viperdir+Inst.atmall[mol], ignore_blank=True)
+        atm_model = hdu[1].data
+        f_atm = atm_model.field(1).astype(np.float64)
+        w_atm = atm_model.field(0).astype(np.float64)
+        # add wavelength shift
+        # synthetic telluric spectra (molecfit) are laboratory wavelengths
+        # shift was determined empirical from several observations
+        w_atm *= (1 + (-0.249/3e5))
+        wave_atm_all[i_mol], specs_molec_all[i_mol] = w_atm, f_atm
 
 
 # collect all spectra for createtpl function
