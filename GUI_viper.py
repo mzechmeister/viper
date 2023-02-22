@@ -41,6 +41,10 @@ def bt_start():
         str_arg += " -kapsig "+ str(e_kapsig.get())
     if cb_lookpar.get():
         str_arg += " -lookpar "
+    if cb_look.get():
+        str_arg += " -look "
+    if cb_lookfast.get():
+        str_arg += " -lookfast "
     if cb_lookguess.get():
         str_arg += " -lookguess "
     if cb_lookres.get():
@@ -61,6 +65,8 @@ def bt_start():
         str_arg += " -createtpl "
     if cb_tellshift.get():
         str_arg += " -tellshift "
+    if cb_wgt.get():
+        str_arg += " -wgt "
 
     print(str_arg)
 
@@ -95,7 +101,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 840     # width of GUI window
-win_high = 570      # height of GUI window
+win_high = 630      # height of GUI window
 
 win = Tk()
 win.title('Gui VIPER')
@@ -120,8 +126,8 @@ sl = 7
 Frame(master=win, height=138, width=win_width-40, bg=bg_frame, bd=2, relief='groove').place(x=20, y=20)
 
 Frame(master=win, height=378, width=380, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
-Frame(master=win, height=223, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112)
-Frame(master=win, height=115, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112+228)
+Frame(master=win, height=283, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112)
+Frame(master=win, height=115, width=414, bg=bg_frame, bd=2, relief='groove').place(x=405, y=50+112+288)
 
 ###### BUTTONS ######
 
@@ -209,7 +215,7 @@ e_overs.place(x=x0+xss+0*sp, y=(sl+4)*lh, width=60)
 
 e_molec = Entry(master=win)
 e_molec.insert(0, 'all')
-e_molec.place(x=x0+380, y=(sl+8.5)*lh, width=250)
+e_molec.place(x=x0+380, y=(sl+10.5)*lh, width=250)
 
 ###### COMBOBOXES ######
 
@@ -217,7 +223,7 @@ combo_inst = ttk.Combobox(master=win, values=['TLS', 'CRIRES','cplCRIRES', 'CES'
 combo_inst.set('TLS')
 combo_inst.place(x=x0+xs, y=3*lh, width=100)
 
-combo_ip = ttk.Combobox(master=win, values=['g', 'ag', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
+combo_ip = ttk.Combobox(master=win, values=['g', 'ag', 'agr', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
 combo_ip.set('g')
 combo_ip.place(x=x0+xss+sp, y=(sl+0)*lh, width=50)
 
@@ -235,6 +241,9 @@ ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickn
 
 cb_flagfile = IntVar()
 ttk.Checkbutton(master=win, text=" ", variable=cb_flagfile).place(x=x0, y=4*lh)
+
+cb_wgt = IntVar()
+ttk.Checkbutton(master=win, text="     weighted error", variable=cb_wgt).place(x=x0+sp+0*sps, y=(sl+7)*lh)
 
 cb_nocell = IntVar()
 ttk.Checkbutton(master=win, text="     no cell", variable=cb_nocell).place(x=x0+sp+0*sps, y=(sl+9)*lh)
@@ -259,6 +268,12 @@ cb_lookres = IntVar()
 ttk.Checkbutton(master=win, text="     lookres", variable=cb_lookres).place(x=x0+sp+1*sps, y=(sl+4)*lh)
 cb_infoprec = IntVar()
 ttk.Checkbutton(master=win, text="     infoprec", variable=cb_infoprec).place(x=x0+sp+1*sps, y=(sl+5)*lh)
+cb_lookfast = IntVar()
+ttk.Checkbutton(master=win, text="     lookfast", variable=cb_lookfast).place(x=x0+sp+1*sps, y=(sl+7)*lh)
+cb_lookfast.set(1)
+cb_look = IntVar()
+ttk.Checkbutton(master=win, text="     look", variable=cb_look).place(x=x0+sp+2*sps, y=(sl+7)*lh)
+
 
 #cb_atmmask = IntVar()
 #ttk.Checkbutton(master=win, text="     atmmask", variable=cb_atmmask).place(x=x0+0*sp, y=(sl+5)*lh)
@@ -278,8 +293,8 @@ Label(master=win, text='tag:', background=bg_frame).place(x=x0+2*sp+30, y=3*lh)
 Label(master=win, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=(sl-1.2)*lh)
 Label(master=win, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl-1.2)*lh)
 Label(master=win, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+0*sp, y=(sl+8)*lh)
-Label(master=win, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl+6.5)*lh)
-Label(master=win, text='Optical: H2O O2; NIR: H2O CH4 N2O CO2 CO', background=bg_frame).place(x=x0+sp+sps, y=(sl+7.5)*lh)
+Label(master=win, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl+8.5)*lh)
+Label(master=win, text='Optical: H2O O2; NIR: H2O CH4 N2O CO2 CO', background=bg_frame).place(x=x0+sp+sps, y=(sl+9.5)*lh)
 
 Label(master=win, text='nset:', background=bg_frame).place(x=x0, y=(sl+0)*lh)
 Label(master=win, text='oset:', background=bg_frame).place(x=x0, y=(sl+1)*lh)
@@ -301,6 +316,7 @@ Label(master=win,text='stepRV:', background=bg_frame).place(x=x0+0*sp, y=(sl+5)*
 Label(master=win,text='telluric:', background=bg_frame).place(x=x0+0*sp, y=(sl+6)*lh)
 Label(master=win,text='tsig:', background=bg_frame).place(x=x0+0*sp, y=(sl+7)*lh)
 
+Label(master=win, text='Plot fitted chunks', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0+sp+sps, y=(sl+6)*lh)
 
 ###### MAIN ######
 
