@@ -236,8 +236,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # using flag file for noisy regions
         try:
             flagf = np.genfromtxt(flagfile, dtype=None, names=True).view(np.recarray)
-            flag_obs[:flagf.ok_s[np.argwhere(flagf.order==o).item()]] |= 64
-            flag_obs[flagf.ok_e[np.argwhere(flagf.order==o).item()]:] |= 64
+            flag_obs[:flagf.ok_s[np.argwhere(flagf.order==order).item()]] |= 64
+            flag_obs[flagf.ok_e[np.argwhere(flagf.order==order).item()]:] |= 64
         except:
             print('selected flagfile or order in flag file are not available')
 
@@ -875,7 +875,7 @@ if createtpl:
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         err_tpl_new[order] = np.nanstd(spec_t, axis=0)
 
-        if order in lookfast:
+        if (order in lookfast) or (order in look):
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
                 gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
