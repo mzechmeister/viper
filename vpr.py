@@ -133,6 +133,9 @@ class VPR():
             self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
             self.info()
 
+        self.stat_o = np.percentile(self.rv-self.RV, [17,50,83], axis=1)
+        self.med_e_rvo = np.median(self.e_rv, axis=1)
+
     def info(self):
         print('Number of chunks:', self.orders.size)
         self.rms = np.std(self.RV)
@@ -166,8 +169,6 @@ class VPR():
         gplot.xlabel("'order o'")
         gplot.ylabel("'RV_{n,o} -- RV_{n}  [m/s]'")
         gplot.mxtics().mytics()
-        stat_o = np.percentile(A.rv-A.RV, [17,50,83], axis=1)
-        med_e_rvo = np.median(A.e_rv, axis=1)
 
         Nch = 1
         gap = 0.4   # plot gaps between orders and chunks
@@ -187,11 +188,40 @@ class VPR():
             A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
             'spectrum="", "" us 1:(RVn=$2):(spectrum=strcol(4), e_RVn=$3) every ::n-1::n-1 w e lc "red" pt 7 axis x2y1 t replace(spectrum, "_", "\\\\_")." RV_{".n."}=".sprintf("%.2f±%.2f m/s", RVn-400, e_RVn),',
-            xpos+chksz/2, stat_o, med_e_rvo, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
+            xpos+chksz/2, A.stat_o, A.med_e_rvo, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
             ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
             '"" us 1:4:(sprintf("  %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
         print("Use '()[]^$' in gnuplot window to go through epochs n. Press Enter in terminal to quit.")
         pause('rv order dispersion\n')
+
+    def plot_nrvo(self):
+        A = self
+        gplot.var(N=len(self.rv.T))
+        gplot.key('title "%s" noenhance'%self.tag)
+        # print filename on terminal with carriage return and some trailing space
+        gplot.xlabel("'spectrum number n'")
+        gplot.ylabel("'RV_{n,o} -- RV_{o}  [m/s]'")
+        gplot.mxtics().mytics()
+
+        gap = 40   # [m/s] separation between orders
+        No = self.orders.size
+        # parula http://www.gnuplotting.org/tag/palette + alpha 0x77
+        colors = [0x770072bd, # blue
+                  0x77d95319, # orange
+                  0x77edb120, # yellow
+                  0x777e2f8e, # purple
+                  0x7777ac30, # green
+                  0x774dbeee, # light-blue
+                  0x77a2142f, # red
+                 ]
+        gplot.put('array colors[8] =  %s ' % colors)
+        gplot.bind('''"$" "i=!i; set xlabel i? 'spectrum number n':'BJD - 2 450 000'; repl";  i=0''')
+
+        gplot(A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0):2:3 w e pt 7 lc "#77000000" t "",',
+              f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0):(column(o+1)-o*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
+              self.rms, self.medunc, f'us (N+2):(0):(sprintf("     %.2f m/s (%.2f)",$1, $2)) w labels left t "",',
+              self.orders, self.stat_o, self.med_e_rvo, f'us (N+2):(o=int($0)+1, -o*{gap}):(sprintf("%3d (%.2f, %.2f)",$1,($4-$2)/2, $5)):(colors[(o-1)%7+1]-0x77000000) w labels left tc rgb var t ""')
+        pause('nrvo\n')
 
     def save(self, filename):
         print('saving as', filename)
@@ -237,7 +267,7 @@ def run(cmd=None):
     argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
-    argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo'])
+    argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo'])
     argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
@@ -278,6 +308,9 @@ def run(cmd=None):
 
     if 'rvo' in tasks:
         vpr.plot_rv(n=1)
+
+    if 'nrvo' in tasks:
+        vpr.plot_nrvo()
 
 if __name__ == "__main__":
     run()
