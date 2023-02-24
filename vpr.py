@@ -50,8 +50,10 @@ def plot_cmp(vpr, vprcmp):
         gplot.xlabel("'BJD - 2 450 000'")
         gplot.ylabel("'RV [m/s]'")
         gplot.key('invert')
-        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#55FF0000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" noenh' % (vprcmp.tag, str(vprcmp.oset).replace('\n',''), vprcmp.rms, vprcmp.medunc))
-        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us ($1-2450000):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us ($1-2450000):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" noenh' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms, vpr.medunc))
+        gplot.bind('''"$" "i=!i; set xlabel i? 'BJD - 2 450 000':'spectrum number n'; repl";  i=1''')
+
+        gplot-(vprcmp.BJD, vprcmp.RV, vprcmp.e_RV, vprcmp.A.filename, ' us (i?$1-2450000:$0+1):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us (i?$1-2450000:$0+1):2:3 w e pt 7 lc "#55FF0000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" noenh' % (vprcmp.tag, str(vprcmp.oset).replace('\n',''), vprcmp.rms, vprcmp.medunc))
+        gplot+(vpr.BJD, vpr.RV, vpr.e_RV, vpr.A.filename, ' us (i?$1-2450000:$0+1):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t "", "" us (i?$1-2450000:$0+1):2:3 w e pt 7 lc "#3300000" t "%s [o=%s] rms=%.2f m/s (med(σ)=%.2f m/s)" ' % (vpr.tag, str(vpr.oset).replace('\n',''), vpr.rms, vpr.medunc))
         pause('RV time serie')
 
 def average(yi, e_yi=None, typ='wmean', **kwargs):
@@ -215,10 +217,10 @@ class VPR():
                   0x77a2142f, # red
                  ]
         gplot.put('array colors[8] =  %s ' % colors)
-        gplot.bind('''"$" "i=!i; set xlabel i? 'spectrum number n':'BJD - 2 450 000'; repl";  i=0''')
+        gplot.bind('''"$" "i=!i; set xlabel i? 'BJD - 2 450 000':'spectrum number n'; repl";  i=0''')
 
-        gplot(A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0):2:3 w e pt 7 lc "#77000000" t "",',
-              f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0):(column(o+1)-o*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
+        gplot(A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "",',
+              f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0+1):(column(o+1)-o*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
               self.rms, self.medunc, f'us (N+2):(0):(sprintf("     %.2f m/s (%.2f)",$1, $2)) w labels left t "",',
               self.orders, self.stat_o, self.med_e_rvo, f'us (N+2):(o=int($0)+1, -o*{gap}):(sprintf("%3d (%.2f, %.2f)",$1,($4-$2)/2, $5)):(colors[(o-1)%7+1]-0x77000000) w labels left tc rgb var t ""')
         pause('nrvo\n')
