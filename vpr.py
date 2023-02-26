@@ -218,11 +218,13 @@ class VPR():
                  ]
         gplot.put('array colors[8] =  %s ' % colors)
         gplot.bind('''"$" "i=!i; set xlabel i? 'BJD - 2 450 000':'spectrum number n'; repl";  i=0''')
+        gplot.bind('''")" "off = off + 1; repl"; off = 0''')
+        gplot.bind('''"(" "off = off - 1; repl";''')
 
-        gplot(A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "",',
-              f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0+1):(column(o+1)-o*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
+        gplot(f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0+1):(column(o+1)-(o-off)*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
+              self.orders, self.stat_o, self.med_e_rvo, f'us (N+2):(o=int($0)+1, -(o-off)*{gap}):(sprintf("%3d (%.2f, %.2f)",$1,($4-$2)/2, $5)):(colors[(o-1)%7+1]-0x77000000) w labels left tc rgb var t "",',
               self.rms, self.medunc, f'us (N+2):(0):(sprintf("     %.2f m/s (%.2f)",$1, $2)) w labels left t "",',
-              self.orders, self.stat_o, self.med_e_rvo, f'us (N+2):(o=int($0)+1, -o*{gap}):(sprintf("%3d (%.2f, %.2f)",$1,($4-$2)/2, $5)):(colors[(o-1)%7+1]-0x77000000) w labels left tc rgb var t ""')
+              A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t ""')
         pause('nrvo\n')
 
     def save(self, filename):
