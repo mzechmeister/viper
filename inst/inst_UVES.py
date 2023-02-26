@@ -68,6 +68,9 @@ def Spectrum(filename, order=None, targ=None):
 
     x = np.arange(f.size)
     b = 1 * np.isnan(f) # bad pixel map
+    b[~(e>0)] |= 1      # exclude zero error
+    if order == 22: b[:1600] |= 2 # bad region
+    if order == 25: b[2800:] |= 2 # bad region
     #b[f>1.5] |= 2 # large flux
     #b[(5300<w) & (w<5343)] |= 4  # only for HARPS s1d template (this order misses)
     # TLS spectra have a kink in continuum  at about 1700
