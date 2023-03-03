@@ -14,14 +14,15 @@ class param(float):
     >>> p + 2
     7.0
     '''
-    def __new__(cls, value, unc=float('inf')):
+    def __new__(cls, value, unc=None):
         instance = super().__new__(cls, value)
         instance.unc = unc
         instance.value = value
         return instance
 
     def __repr__(self):
-        return f'{self.value} ± {self.unc}'
+        return f'{self.value}' + ('' if self.unc is None  else f' ± {self.unc}')
+
 
 class nesteddict(dict):
     '''
@@ -53,6 +54,9 @@ class nesteddict(dict):
     values = lambda _: [*super().values()]   # return a simple list instead of dict_values object
     keys = lambda _: [*super().keys()]   # return a simple list instead of dict_values object
 
+    def __init__(self, *args, **kwargs):
+        self.update(*args, **kwargs)
+
     def __getitem__(self, key):
         # allow tuple indexing
         if isinstance(key, tuple):
@@ -65,7 +69,14 @@ class nesteddict(dict):
         else:
             super().__setitem__(key, value)
 
-    __setattr__ = __setitem__
+    def __setattr__(self, key, value):
+        self[key] = value
+
+    def update(self, *args, **kwargs):
+        # force calling _as_param via setitem
+        for d in args + (kwargs,):
+            for k in d:
+                self[k] = d[k]
 
     def flat(self):
         d = {}
@@ -81,30 +92,33 @@ class nesteddict(dict):
                d[key] = values
         return d
 
+    def __add__(self, d):
+        p = self.__class__(self, d)
+        return p
+
     def __repr__(self):
         return "\n".join([f'{k}: '+repr(v).replace('\n',', ') for k,v in self.items()])
 
 
-class params(nesteddict):
+class Params(nesteddict):
     '''
     A collection/group of param
 
     Example
     -------
-    >>> par = params(rv=(1.5, 0))
+    >>> par = Params(rv=(1.5, 0))
     >>> par.norm = [1, 2, 3]
     >>> par.wave = [1, 3., 4.]
     >>> par.bkg = param(0.9, 0)
-    >>> par.atm = {'H2O': 0.9, 'O2': 0.8, 'rv': 5}
+    >>> par.atm = {'H2O': 0.9, 'O2': param(0.8, 0.3), 'rv': 5}
     >>> par['wave', 0]
-    1 ± inf
+    1
 
     >>> par['wave', 0] = 5
-    >>> par['atm', 'O2']
-    0.8 ± inf
+    >>> par['atm', 'O2'].unc = 0.3
 
     >>> par.flat()
-    {'rv': 1.5 ± 0, ('norm', 0): 1 ± inf, ('norm', 1): 2 ± inf, ('norm', 2): 3 ± inf, ('wave', 0): 5 ± inf, ('wave', 1): 3.0 ± inf, ('wave', 2): 4.0 ± inf, 'bkg': 0.9 ± inf, ('atm', 'H2O'): 0.9 ± inf, ('atm', 'O2'): 0.8 ± inf, ('atm', 'rv'): 5 ± inf}
+    {'rv': 1.5 ± 0, ('norm', 0): 1, ('norm', 1): 2, ('norm', 2): 3, ('wave', 0): 5, ('wave', 1): 3.0, ('wave', 2): 4.0, 'bkg': 0.9, ('atm', 'H2O'): 0.9, ('atm', 'O2'): 0.8 ± 0.3, ('atm', 'rv'): 5}
 
     >>> par.update({'b': 5})
     >>> par.vary().keys()
@@ -113,43 +127,42 @@ class params(nesteddict):
     >>> vals = [901, 902, 903]
     >>> par.update(dict(zip(vary, vals)))
     >>> par
-    rv: 901 ± inf
-    norm: [902 ± inf, 2 ± inf, 3 ± inf]
-    wave: [5 ± inf, 903 ± inf, 4.0 ± inf]
-    bkg: 0.9 ± inf
-    atm: H2O: 0.9 ± inf, O2: 0.8 ± inf, rv: 5 ± inf
-    b: 5 ± inf
+    rv: 901
+    norm: [902, 2, 3]
+    wave: [5, 903, 4.0]
+    bkg: 0.9
+    atm: H2O: 0.9, O2: 0.8 ± 0.3, rv: 5
+    b: 5
 
-    >>> parcopy = params(**par)
+    >>> parcopy = Params(par)
+
+    >>> par + {('norm', 2): -1, 'c': 77}
+    rv: 901.0
+    norm: [902.0, 2.0, -1]
+    wave: [5.0, 903.0, 4.0]
+    bkg: 0.9
+    atm: H2O: 0.9, O2: 0.8 ± 0.3, rv: 5
+    b: 5.0
+    c: 77
+
     '''
-    def __init__(self, **kwargs):
-        for d in kwargs.items():
-            setattr(self, *d)
-
     def __setitem__(self, key, value):
         super().__setitem__(key, self._as_param(value))
 
-    __setattr__ = __setitem__
-
     def _as_param(self, value):
-        if isinstance(value, params):
+        if isinstance(value, Params):
              p = value
         elif isinstance(value, (float, int)):
              p = param(value)
         elif isinstance(value, tuple):
              p = param(*value)
-        elif isinstance(value, list):
+        elif type(value).__name__ in ('list', 'ndarray'):
              p = list(map(param, value))
         elif isinstance(value, dict):
-             p = params(**value)
+             p = Params(value)
         else:
             print(value, type(value), 'not supported')
         return p
 
     def vary(self):
-        return {k: v for k,v in self.flat().items() if v.unc == float('inf')}
-
-    def update(self, other):
-        # force calling _as_param via setitem
-        for d in other.items():
-            self.__setitem__(*d)
+        return {k: v for k,v in self.flat().items() if v.unc is not 0}
