@@ -32,7 +32,10 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
     print('---Starting vpr.py with choosen parameters---')
 
     global opt
-    opt = options.index(str(args))
+    if '-save' in str(args):    
+        args = options[opt]
+    else:
+        opt = options.index(str(args))
 
     if not res:
         str_arg = e_rvo1.get() + ' -avg ' + combo_avg.get()
