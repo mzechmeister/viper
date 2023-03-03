@@ -216,11 +216,17 @@ width_bt = 110
 
 # options: solid, sunken, ridge, groove, raised
 # groove, ridge need bd=2 or more
-Frame(tab_rv, height=fr_high, width=win_width-40, bg=bg_frame, bd=2, relief='groove').place(x=20, y=20)
-Frame(tab_res, height=fr_high, width=win_width-40, bg=bg_frame, bd=2, relief='groove').place(x=20, y=20)
+frm_rv = Frame(tab_rv, bg=bg_frame, bd=2, relief='groove')
+frm_rv.pack(padx=5, pady=2, expand=True, fill='both', side='left')
+Frame(tab_res, height=fr_high, width=win_width-40, bg=bg_frame, bd=2, relief='groove').pack(padx=5, pady=2, expand=True, fill='both')
 
 #Frame(tab_rv, height=185, width=390, bg=bg_frame, bd=2, relief='groove').place(x=20, y=50+112)
 #Frame(tab_rv, height=185, width=404, bg=bg_frame, bd=2, relief='groove').place(x=415, y=50+112)
+
+file_bar = Frame(frm_rv, bg=bg_frame)
+file_bar.pack(padx=20, pady=(lh*2, 0), fill='x', side='top')
+plot_bar = Frame(frm_rv, bg=bg_frame)
+plot_bar.pack(padx=20, pady=(lh*12, 0), fill='x', side='top')
 
 ###### BUTTONS ######
 
@@ -233,24 +239,24 @@ b_exit.place(x=win_width-82,y=win_high-50, width=60)
 b_rvo1 = Button(tab_rv, text='Search data file', command = bt_rvo1, background="#fdfdfd")
 b_rvo1.place(x=win_width-590, y=lh, height=25)
 
-b_swap = Button(tab_rv, text='swap', command = bt_swap, background="#fdfdfd")
-b_swap.place(x=win_width/2-23, y=2*lh, width=45, height=23)
+b_swap = Button(file_bar, text='swap', command = bt_swap, background="#fdfdfd")
 
 b_rvo2 = Button(tab_rv,text='Search data file', command = bt_rvo2, background="#fdfdfd")
 b_rvo2.place(x=win_width-169, y=lh, height=25)
 
+conf = {'side': 'left', 'padx': 10}
 
-b_rvbjd = ttk.Button(tab_rv, text='Plot BJD-RV', command = call_vpr)
-b_rvbjd.place(x=win_width-(width_bt+20)*4-20, y=fr_high-30, width=width_bt)
+b_rvbjd = ttk.Button(plot_bar, text='Plot BJD-RV', command = call_vpr)
+b_rvbjd.pack(**conf)
 
-b_rvo = ttk.Button(tab_rv, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
-b_rvo.place(x=win_width-(width_bt+20)*3-20, y=fr_high-30, width=width_bt)
+b_rvo = ttk.Button(plot_bar, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
+b_rvo.pack(**conf)
 
-b_nrvo = ttk.Button(tab_rv, text='Plot no-rv', command = lambda: call_vpr('-plot nrvo'))
-b_nrvo.place(x=win_width-(width_bt+20)*2-20, y=fr_high-30, width=width_bt)
+b_nrvo = ttk.Button(plot_bar, text='Plot no-rv', command = lambda: call_vpr('-plot nrvo'))
+b_nrvo.pack(**conf)
 
-b_cmp = ttk.Button(tab_rv, text='Compare', command = lambda: call_vpr(cmp=True))
-b_cmp.place(x=win_width-(width_bt+20)*1-20, y=fr_high-30, width=width_bt)
+b_cmp = ttk.Button(plot_bar, text='Compare', command = lambda: call_vpr(cmp=True))
+b_cmp.pack(**{**conf, 'side': 'right'})
 
 b_save = ttk.Button(tab_rv, text='Save', command = lambda: call_vpr('-save'))
 b_save.place(x=x0+300, y=(13.5)*lh-5, width=width_bt/2)
@@ -278,15 +284,18 @@ filename2 = StringVar()
 e_run = ScrolledText(win)
 e_run.place(x=x0, y=fr_high+lh*3, width=600, height=60)
 
-e_rvo1 = Entry(tab_rv, textvariable=filename1)
+e_rvo1 = Entry(file_bar, textvariable=filename1, width=40)
 e_rvo1.insert(0, 'tmp.rvo.dat')
 e_rvo1.bind("<Return>", (lambda event: update_changes(refresh=1)))
-e_rvo1.place(x=x0, y=2*lh, width=340)
+e_rvo1.pack(side='left', padx=20, pady=3, expand=1, fill='x')
 
-e_rvo2 = Entry(tab_rv, textvariable=filename2)
+b_swap.pack(side='left')
+
+e_rvo2 = Entry(file_bar, textvariable=filename2)
 e_rvo2.insert(0, '')
 e_rvo2.bind("<Return>", (lambda event: update_changes(refresh=2)))
-e_rvo2.place(x=x0+420, y=2*lh, width=340)
+e_rvo2.pack(side='left', padx=20, pady=3, expand=1, fill='x')
+
 
 #e_nset = Entry(tab_rv)
 #e_nset.place(x=x0+xss, y=(sl+0)*lh, width=100)
