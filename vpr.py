@@ -66,7 +66,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
     return Y, e_Y
 
 class VPR():
-    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False):
+    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False, offset = 400):
         '''
         oset: slice,list
         '''
@@ -74,6 +74,7 @@ class VPR():
         self.file = file = self.tag + '.rvo.dat'
         self.oset = oset
         self.avgtyp = avg
+        self.offset = offset
         print(self.tag)
 
         if gp:
@@ -187,7 +188,7 @@ class VPR():
             f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "red" t "RV_{{".n.",o}} -- RV_{{".n."}}",',
             f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f ± %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
             f'"" us ($1+{chksz}*n/N):(column(1+n)-column(1+n+N)):'+'(sprintf("%.2f   ", column(1+n+N))) w labels noenh rotate right tc "red" t "",',  # red text
-            A.BJD, A.RV+400, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
+            A.BJD, A.RV+self.offset, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
             'spectrum="", "" us 1:(RVn=$2):(spectrum=strcol(4), e_RVn=$3) every ::n-1::n-1 w e lc "red" pt 7 axis x2y1 t replace(spectrum, "_", "\\\\_")." RV_{".n."}=".sprintf("%.2f±%.2f m/s", RVn-400, e_RVn),',
             xpos+chksz/2, A.stat_o, A.med_e_rvo, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
@@ -270,6 +271,7 @@ def run(cmd=None):
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
+    argopt('-offset', help='RV plotting offset for rvo plot', default=400, type=float)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo'])
     argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
