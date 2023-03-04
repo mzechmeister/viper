@@ -117,11 +117,11 @@ class Params(nesteddict):
     >>> par['atm', 'O2'].unc = 0.3
 
     >>> par.flat()
-    {'rv': 1.5 ± 0, ('norm', 0): 1, ('norm', 1): 2, ('norm', 2): 3, ('wave', 0): 5, ('wave', 1): 3.0, ('wave', 2): 4.0, 'bkg': 0.9, ('atm', 'H2O'): 0.9, ('atm', 'O2'): 0.8 ± 0.3, ('atm', 'rv'): 5}
+    {'rv': 1.5 ± 0, ('norm', 0): 1, ('norm', 1): 2, ('norm', 2): 3, ('wave', 0): 5, ('wave', 1): 3.0, ('wave', 2): 4.0, 'bkg': 0.9 ± 0, ('atm', 'H2O'): 0.9, ('atm', 'O2'): 0.8 ± 0.3, ('atm', 'rv'): 5}
 
     >>> par.update({'b': 5})
     >>> par.vary().keys()
-    dict_keys([('norm', 0), ('norm', 1), ('norm', 2), ('wave', 0), ('wave', 1), ('wave', 2), 'bkg', ('atm', 'H2O'), ('atm', 'O2'), ('atm', 'rv'), 'b'])
+    dict_keys([('norm', 0), ('norm', 1), ('norm', 2), ('wave', 0), ('wave', 1), ('wave', 2), ('atm', 'H2O'), ('atm', 'O2'), ('atm', 'rv'), 'b'])
     >>> vary = ['rv', ('norm', 0), ('wave', 1)]
     >>> vals = [901, 902, 903]
     >>> par.update(dict(zip(vary, vals)))
@@ -129,21 +129,21 @@ class Params(nesteddict):
     rv: 901
     norm: [902, 2, 3]
     wave: [5, 903, 4.0]
-    bkg: 0.9
+    bkg: 0.9 ± 0
     atm: H2O: 0.9, O2: 0.8 ± 0.3, rv: 5
     b: 5
 
     >>> parcopy = Params(par)
 
+    >>> par.b = [(6., 0)]
     >>> par + {('norm', 2): -1, 'c': 77}
-    rv: 901.0
-    norm: [902.0, 2.0, -1]
-    wave: [5.0, 903.0, 4.0]
-    bkg: 0.9
+    rv: 901
+    norm: [902, 2, -1]
+    wave: [5, 903, 4.0]
+    bkg: 0.9 ± 0
     atm: H2O: 0.9, O2: 0.8 ± 0.3, rv: 5
-    b: 5.0
+    b: [6.0 ± 0]
     c: 77
-
     '''
     def __setitem__(self, key, value):
         super().__setitem__(key, self._as_param(value))
@@ -156,7 +156,7 @@ class Params(nesteddict):
         elif isinstance(value, tuple):
              p = param(*value)
         elif type(value).__name__ in ('list', 'ndarray'):
-             p = list(map(param, value))
+             p = [self._as_param(val) for val in value]
         elif isinstance(value, dict):
              p = Params(value)
         else:

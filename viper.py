@@ -554,6 +554,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if tplname or createtpl:
         # par from prefit, (not pre-clip)
         par.wave = parguess.wave   # why?
+        if ipB:
+            par.bkg = [(0,0)]
+            par.ipB = [(ipB[0], 0)]
+
         par4, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
         par = par4
         # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
@@ -565,7 +569,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig[-1]:
         # second kappa sigma clipping of outliers
-        smod = S_mod(pixel, *par.values())
+        # just for compability, remove Params(ipB=[]) later !!
+        smod = S_mod(pixel, *(par + Params(ipB=[])).values())
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -661,7 +666,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     #gplot+(pixel_ok, S_star(np.log(np.poly1d(b[::-1])(pixel_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
 
-    fmod = S_mod(pixel_ok, *par.values())
+    # just for compability, remove Params(ipB=[]) later !!
+    fmod = S_mod(pixel_ok, *(par+Params(ipB=[])).values())
     res = spec_obs_ok - fmod
     prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
@@ -843,6 +849,9 @@ for n, obsname in enumerate(obsnames):
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
+            # just for compability, remove Params(ipB=[]) later !!
+            params.pop('ipB')
+            params.pop('bkg')
             flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
