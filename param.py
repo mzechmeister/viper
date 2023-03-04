@@ -106,8 +106,7 @@ class Params(nesteddict):
 
     Example
     -------
-    >>> par = Params(rv=(1.5, 0))
-    >>> par.norm = [1, 2, 3]
+    >>> par = Params(Params(rv=(1.5, 0)), norm=[1, 2, 3])
     >>> par.wave = [1, 3., 4.]
     >>> par.bkg = param(0.9, 0)
     >>> par.atm = {'H2O': 0.9, 'O2': param(0.8, 0.3), 'rv': 5}
@@ -150,7 +149,7 @@ class Params(nesteddict):
         super().__setitem__(key, self._as_param(value))
 
     def _as_param(self, value):
-        if isinstance(value, Params):
+        if isinstance(value, (param, Params)):
              p = value
         elif isinstance(value, (float, int)):
              p = param(value)
