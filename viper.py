@@ -352,10 +352,11 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par.bkg = [0] #* deg_bkg
 
     if demo:
+        # disturb guess
         par.norm = parguess.norm = [parfix_norm*1.3] + [0]*deg_norm
         # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
-        par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
-        par_ip = [par_ip[0]*1.5]
+        par.wave = parguess.wave = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
+        par.ip = [par.ip[0]*1.5]
 
     if ip in Inst.ip_guess:
         par.ip = Inst.ip_guess[ip]
@@ -378,25 +379,31 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # a simple call to the forward model
         # Si_mod = S_mod(pixel_ok, par_rv=0, a=a, b=b, s=s)
         # show the start guess
-        S_mod.show([par.rv, par.norm, par.wave, par.ip, par.atm], pixel_ok, spec_obs_ok, res=False, dx=0.1)
+        S_mod.show(par, pixel_ok, spec_obs_ok, res=False, dx=0.1)
         pause('demo 8: Smod simple call')
 
+    fixed = lambda x: [(pk, 0) for pk in x]
     if demo & 16:
         # A wrapper to fit the continuum
-        p_norm, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=[parfix_norm], parfix_rv=rv_guess, parfix_wave=par_wave_guess, parfix_ip=par_ip_guess, par_atm=parfix_atm, parfix_bkg=par_bkg_guess, res=False, dx=0.1, sig=sig[i_ok])
-        parguess_norm[0] = p_norm[1][0]
+        par_d16 = Params(rv=(rv_guess, 0), norm=[parfix_norm],  wave=fixed(parguess.wave), ip=fixed(parguess.ip), atm=fixed(parfix_atm), parfix_bkg=[(0, 0)])
+        p_norm, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_d16, res=False, dx=0.1, sig=sig[i_ok])
+        parguess.norm[0] = p_norm.norm[0]
         pause('demo 16: S_par_norm')
 
     if demo & 32:
         # A wrapper to fit the wavelength solution
-        p_wave, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_wave=par_wave_guess[:-1]+[1e-15], parfix_rv=rv_guess, parfix_norm=par_norm, parfix_ip=par_ip_guess, par_atm=parfix_atm, parfix_bkg=par_bkg_guess,  res=False, dx=0.1, sig=sig[i_ok])
-        par_wave = p_wave[2]
+        par_d32 = Params(rv=(rv_guess, 0), norm=fixed(parguess.norm), wave=parguess.wave[:-1]+[1e-15], ip=fixed(parguess.ip), atm=fixed(parfix_atm), bkg=[(0, 0)])
+        p_wave, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_d32,  res=False, dx=0.1, sig=sig[i_ok])
+        par.wave = p_wave.wave
         pause('demo 32: S_par_wave')
 
     if demo & 64:
         # fit par_rv, a0 and b simultaneously
-        params, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave, parfix_rv=rv_guess, parfix_ip=par_ip_guess, par_atm=parfix_atm, parfix_bkg=par_bkg_guess, res=False, dx=0.1, sig=sig[i_ok])
-        par_rv, par_norm, par_wave, par_ip, par_atm, par_bkg = params
+        par_d64 = Params(rv=(rv_guess, 0), norm=parguess.norm, wave=par.wave, ip=fixed(parguess.ip), atm=fixed(parfix_atm), bkg=[(0, 0)])
+        params, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_d64, res=False, dx=0.1, sig=sig[i_ok])
+        par = Params(params)
+        # remove uncertainties
+        par = par + dict([(k, v.value)  for k,v in par.flat().items()])
         pause('demo 64: S_par_norm_wave_rv')
 
 
