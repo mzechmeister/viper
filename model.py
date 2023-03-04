@@ -179,36 +179,25 @@ class model:
         #Si_mod = self.func_norm((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
-    #def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], parfix_ipB=[], sig=[], **kwargs):
     def fit(self, pixel, spec_obs, par, sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
         varykeys, varyvals = zip(*par.vary().items())
 
-        def S_model(x, *params):
-            p = par + dict(zip(varykeys, params))
-            return self(x, p.rv, p.norm, p.wave, p.ip)
-        #S_model = lambda x, *params: self(x, **par + dict(zip(varykeys, params)))
-        #self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg, coeff_ipB=parfix_ipB)
-        params = varyvals
-        x = pixel
-        #S_model(x, *params)
+        S_model = lambda x, *params: self(x, *(par + dict(zip(varykeys, params))).values())
+        #S_model(pixel, *varyvals)
 
-        #params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg], sigma=sig, absolute_sigma=False, epsfcn=1e-12)
-        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*varyvals], sigma=sig, absolute_sigma=False, epsfcn=1e-12)
+        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=varyvals, sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 
-        #from pause import pause; pause()
         pnew = par + dict(zip(varykeys, params))
+        # attach uncertainties
         for k,v in zip(varykeys, np.diag(e_params)):
             pnew[k].unc = v
- #       par_rv = (*params[sv], *np.diag(e_params)[sv])
- #       params = tuple(params)
- #       params = [*params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, #params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg]
 
         if kwargs:
-            #from pause import pause; pause()
             self.show(pnew, pixel, spec_obs, par_rv=pnew.rv, **kwargs)
+
         return pnew, e_params
 
     def show(self, params, x, y, par_rv=None, res=True, x2=None, dx=None, rel_fac=None):
@@ -218,7 +207,6 @@ class model:
         rel_fac: Factor for relative residuals.
         dx: Subpixel step size for the model [pixel].
         '''
-        #ymod = self(x, *params)
         ymod = self(x, *params.values())
         if x2 is None:
             x2 = np.poly1d(params.wave[::-1])(x-self.xcen)
