@@ -344,12 +344,12 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     # guess additional background
     par_bkg = []
     parfix_bkg = [0]
-    if deg_bkg:
-        par.bkg = [0] #* deg_bkg
 
     # guess IP - read in from instrument file
     par.ip = [Inst.ip_guess['s']]
     par.atm = par_atm
+    if deg_bkg:
+        par.bkg = [0] #* deg_bkg
 
     if demo:
         par.norm = parguess.norm = [parfix_norm*1.3] + [0]*deg_norm
@@ -557,6 +557,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         if ipB:
             par.bkg = [(0,0)]
             par.ipB = [(ipB[0], 0)]
+        if deg_bkg:
+            par.bkg = [0]
 
         par4, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
         par = par4
@@ -851,7 +853,7 @@ for n, obsname in enumerate(obsnames):
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
             # just for compability, remove Params(ipB=[]) later !!
             params.pop('ipB')
-            params.pop('bkg')
+            if not deg_bkg: params.pop('bkg')
             flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
