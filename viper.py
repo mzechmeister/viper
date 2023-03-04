@@ -29,6 +29,7 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
 from astropy.io import fits
 import astropy.units as u
+from param import Params
 
 from gplot import *
 gplot.colors('classic')
@@ -288,7 +289,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
         # parameter to scale each telluric model:
         # add parameter for telluric position shift if selected
-        par_atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
+        par.atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
 
     if demo & 1:
         # pre-look raw input
@@ -323,43 +324,50 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
 
     # an initial parameter set
+    par = Params()
 
     # a good guess for the stellar RV is needed
-    par_rv = rv_guess
+    par.rv = rv_guess
 
     # guess for normalization
     parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
-    par_norm = parguess_norm = [parfix_norm] + [0]*deg_norm
+    par.norm = [parfix_norm] + [0]*deg_norm
 
     if deg_norm_rat:
         # rational polynom
-        par_norm += [5e-7] * deg_norm_rat   # a tiny scale hint (zero didn't iterate)
+        par.norm += [5e-7] * deg_norm_rat   # a tiny scale hint (zero didn't iterate)
 
     # guess wavelength solution
-    par_wave = par_wave_guess = np.polyfit(pixel_ok-xcen, wave_obs_ok, deg_wave)[::-1]
+    par.wave = np.polyfit(pixel_ok-xcen, wave_obs_ok, deg_wave)[::-1]
+    parguess = Params(par)
 
     # guess additional background
-    par_bkg_guess = [0] #* deg_bkg
-    par_bkg, parfix_bkg = (par_bkg_guess, []) if deg_bkg else ([], par_bkg_guess)
+    par_bkg = []
+    parfix_bkg = [0]
+    if deg_bkg:
+        par.bkg = [0] #* deg_bkg
 
     # guess IP - read in from instrument file
-    par_ip = [Inst.ip_guess['s']]
+    par.ip = [Inst.ip_guess['s']]
+    par.atm = par_atm
 
     if demo:
-        par_norm = parguess_norm = [parfix_norm*1.3] + [0]*deg_norm
+        par.norm = parguess.norm = [parfix_norm*1.3] + [0]*deg_norm
         # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
         par_wave = par_wave_guess = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
         par_ip = [par_ip[0]*1.5]
 
     if ip in Inst.ip_guess:
-        par_ip = Inst.ip_guess[ip]
-    elif ip in ('sg', 'mg'):
-        par_ip += [2.]   # exponent of super Gaussian
+        par.ip = Inst.ip_guess[ip]
+    elif ip in ('sg', 'mg', 'asg'):
+        par.ip += [2.]   # exponent of super Gaussian
+    elif ip in ('asg',):
+        par.ip += [1.]   # asymmetry parameter
     elif ip in ('ag', 'agr'):
-        par_ip += [1.]   # skewness parameter (offset to get iterations)
+        par.ip += [1.]   # skewness parameter (offset to get iterations)
     elif ip in ('bg',):
-        par_ip += [par_ip[-1]]   # symmetric biGaussian
-    par_ip_guess = par_ip
+        par.ip += [par_ip[-1]]   # symmetric biGaussian
+    parguess.ip = par.ip
 
     # set weighting parameter for tellurics
     sig = 1 * err_obs if wgt else np.ones_like(spec_obs)
@@ -370,7 +378,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # a simple call to the forward model
         # Si_mod = S_mod(pixel_ok, par_rv=0, a=a, b=b, s=s)
         # show the start guess
-        S_mod.show([par_rv, par_norm, par_wave, par_ip, par_atm], pixel_ok, spec_obs_ok, res=False, dx=0.1)
+        S_mod.show([par.rv, par.norm, par.wave, par.ip, par.atm], pixel_ok, spec_obs_ok, res=False, dx=0.1)
         pause('demo 8: Smod simple call')
 
     if demo & 16:
@@ -397,27 +405,29 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 
         if tplname:
-            params, _ = S_modg.fit(pixel_ok, spec_obs_ok, par_rv=rv_guess, par_norm=par_norm, par_wave=par_wave, par_ip=par_ip_guess[0:1], par_atm=parfix_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, sig=sig[i_ok])
+            par1 = Params(par, ip=par.ip[0:1])   # fit only sigma
+            par2, _ = S_modg.fit(pixel_ok, spec_obs_ok, par1, sig=sig[i_ok])
         else:
             # do not fit for RV
             params, _ = S_modg.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave, par_ip=par_ip_guess[0:1], par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=rv_guess, parfix_bkg=parfix_bkg, sig=sig[i_ok])
 
-        par_rv, par_norm, par_wave, *_ = params
-        par_ip = [params[-3][0], *par_ip_guess[1:]]
+        par = par + par2.flat()   # update, but replace first ip par
+    par3 = par
 
     if order in lookguess:
         if demo:
             par_wave_guess = par_wave
             par_norm = [parfix_norm]
-        params_guess = [par_rv, par_norm, par_wave_guess, par_ip, parfix_atm, par_bkg+parfix_bkg]
+        params_guess = Params(rv=par.rv, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=parfix_atm, bkg=par_bkg+parfix_bkg)
         prms = S_mod.show(params_guess, pixel_ok, spec_obs_ok, res=True, dx=0.1)
         pause('lookguess')
 
 
     if kapsig[0]:
         # first kappa sigma clipping of outliers
-        params_guess = [rv_guess, par_norm, par_wave_guess, par_ip, par_atm, par_bkg+parfix_bkg]
-        smod = S_mod(pixel, *params_guess)
+        params_guess = Params({'rv': rv_guess, 'norm': par.norm, 'wave': parguess.wave, 'ip': par.ip, 'atm': par_atm, 'bkg': par_bkg+parfix_bkg})
+        # check rv_guess is used instead of updated par.rv https://github.com/mzechmeister/viper/issues/19
+        smod = S_mod(pixel, *params_guess.values())
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -426,6 +436,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         pixel_ok = pixel[i_ok]
         wave_obs_ok = wave_obs[i_ok]
         spec_obs_ok = spec_obs[i_ok]
+        # seems params_guess is not reused (wanted or unwanted, speed vs. trap)
 
     if IP == 'bnd':
         # Non parametric fit with band matrix
@@ -541,7 +552,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         show = 1
 
     if tplname or createtpl:
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1*show, sig=sig[i_ok], parfix_ipB=ipB, res=(not createtpl)*show, rel_fac=createtpl*show)
+        # par from prefit, (not pre-clip)
+        par.wave = parguess.wave   # why?
+        par4, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
+        par = par4
         # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
     else:
         # do not fit for velocity
@@ -551,7 +565,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig[-1]:
         # second kappa sigma clipping of outliers
-        smod = S_mod(pixel, *params)
+        smod = S_mod(pixel, *par.values())
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -567,7 +581,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             spec_obs_ok = spec_obs[i_ok]
 
             if tplname or createtpl:
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_rv, par_norm, par_wave_guess, par_ip, par_atm, par_bkg=par_bkg, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
+                par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
+                par = par5
             else:
             # do not fit for velocity
                 params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok])
@@ -640,13 +655,13 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     # overplot stellar spectrum
     #gplot+(np.exp(lnwave_j), S_star(lnwave_j)/S_star(lnwave_j).max()*spec_obs_ok.max(), 'w l lc 9')
 
-    rvo, e_rvo = 1000*params[0], 1000*np.diag(e_params)[0]**0.5   # convert to m/s
+    rvo, e_rvo = 1000*par.rv, 1000*np.diag(e_params)[0]**0.5   # convert to m/s
     #prms = S_mod.show([params[0], params[1:1+1+deg_norm], params[2+deg_norm:2+deg_norm+1+deg_wave], params[3+deg_norm+deg_wave:]], pixel_ok, spec_obs_ok, dx=0.1)
     # gplot+(wave_tpl[s_s]*(1-berv/c), spec_tpl[s_s]*parguess_norm, 'w lp lc 4 ps 0.5')
     #gplot+(pixel_ok, S_star(np.log(np.poly1d(b[::-1])(pixel_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
 
-    fmod = S_mod(pixel_ok, *params)
+    fmod = S_mod(pixel_ok, *par.values())
     res = spec_obs_ok - fmod
     prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
@@ -671,15 +686,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     ss = sb + deg_wave+1
     # error estimation
     # uncertainty in continuum
-    xl = np.log(np.poly1d(params[2][::-1])(pixel-xcen))
-    Cg = np.poly1d(parguess_norm[::-1])(pixel-xcen)      # continuum guess
-    Cp = np.poly1d(params[1][::-1])(pixel-xcen)    # best continuum
+    xl = np.log(np.poly1d(par.wave[::-1])(pixel-xcen))
+    Cg = np.poly1d(parguess.norm[::-1])(pixel-xcen)      # continuum guess
+    Cp = np.poly1d(par.norm[::-1])(pixel-xcen)    # best continuum
     X = np.vander(xl, deg_norm+1)[:,::-1].T
     e_Cp = np.einsum('ji,jk,ki->i', X, e_params[sa:sb,sa:sb], X)**0.5
     # uncertainty in wavelength solution
     X = np.vander(xl, deg_wave+1)[:,::-1].T
-    lam_g = np.poly1d(par_wave_guess[::-1])(pixel-xcen)
-    lam = np.poly1d(params[2][::-1])(pixel-xcen)
+    lam_g = np.poly1d(parguess.wave[::-1])(pixel-xcen)
+    lam = np.poly1d(par.wave[::-1])(pixel-xcen)
     e_lam = np.einsum('ji,jk,ki->i', X, e_params[sb:ss,sb:ss], X)**0.5
     e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
@@ -695,16 +710,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         gplot(f'[{ibeg}:{iend}]', pixel, (lam/lam_g-1)*c, ((lam-e_lam)/lam_g-1)*c, ((lam+e_lam)/lam_g-1)*c, 'w l lc 3, "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.xlabel('"[km/s]"').ylabel('"contribution"')
         e_s = e_params[ss,ss]**0.5
-        par_ip = params[3]
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *par_ip_guess), ' lc 9 ps 0.5 t "IP_{guess}", ',
-              S_mod.vk, S_mod.IP(S_mod.vk, *params[3]),
-                        S_mod.IP(S_mod.vk, *[par_ip[0]-e_s, *par_ip[1:]]),
-                        S_mod.IP(S_mod.vk, *[par_ip[0]+e_s, *par_ip[1:]]),
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *parguess.ip), ' lc 9 ps 0.5 t "IP_{guess}", ',
+              S_mod.vk, S_mod.IP(S_mod.vk, *par.ip),
+                        S_mod.IP(S_mod.vk, *[par.ip[0]-e_s, *par.ip[1:]]),
+                        S_mod.IP(S_mod.vk, *[par.ip[0]+e_s, *par.ip[1:]]),
               'lc 3 ps 0.5 t "IP", "" us 1:3:4 w filledcurves fill fs transparent solid 0.2 lc 3 t "1{/Symbol s}"')
         gplot.unset('multiplot')
-        pause('lookpar', par_ip)
+        pause('lookpar', par.ip)
 
-    return rvo, e_rvo, bjd.jd, berv, params, e_params, prms
+    return rvo, e_rvo, bjd.jd, berv, par, e_params, prms
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
@@ -829,8 +843,8 @@ for n, obsname in enumerate(obsnames):
 #            print("Order failed due to:", repr(e))
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-            flat_params = (params[0],) + sum(params[1:], ())
-            print(bjd, n+1, o, ch, *sum(zip(flat_params, np.diag(e_params)), ()), prms, file=parunit)
+            flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
+            print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
