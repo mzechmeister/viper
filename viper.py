@@ -434,7 +434,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # first kappa sigma clipping of outliers
         params_guess = Params({'rv': rv_guess, 'norm': par.norm, 'wave': parguess.wave, 'ip': par.ip, 'atm': par_atm, 'bkg': par_bkg+parfix_bkg})
         # check rv_guess is used instead of updated par.rv https://github.com/mzechmeister/viper/issues/19
-        smod = S_mod(pixel, *params_guess.values())
+        smod = S_mod(pixel, **params_guess)
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -575,9 +575,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig[-1]:
         # second kappa sigma clipping of outliers
-        # just for compability, remove Params(ipB=[]) later !!
-        #smod = S_mod(pixel, *(par + Params(ipB=[])).values())
-        smod = S_mod(pixel, *par.values())
+        smod = S_mod(pixel, **par)
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -602,7 +600,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if createtpl:
         # modeled telluric spectrum
         spec_model = np.nan * np.empty_like(pixel)
-        spec_model[iset] = S_mod(pixel[iset], *par.values())
+        spec_model[iset] = S_mod(pixel[iset], **par)
         spec_model /= np.nanmean(spec_model[iset])
 
         # telluric corrected spectrum
@@ -673,9 +671,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     #gplot+(pixel_ok, S_star(np.log(np.poly1d(b[::-1])(pixel_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
 
-    # just for compability, remove Params(ipB=[]) later !!
-    #fmod = S_mod(pixel_ok, *(par+Params(ipB=[])).values())
-    fmod = S_mod(pixel_ok, *(par).values())
+    fmod = S_mod(pixel_ok, **par)
     res = spec_obs_ok - fmod
     prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")

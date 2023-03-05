@@ -140,7 +140,9 @@ class model:
         self.func_norm = func_norm
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm=[], coeff_bkg=[0], coeff_ipB=[]):
+    def __call__(self, pixel, rv=0, norm=[1], wave=[], ip=[], atm=[], bkg=[0], ipB=[]):
+        # renaming (coeff is ok prefix below, but too verbose for par)
+        coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg, coeff_ipB = norm, wave, ip, atm, bkg, ipB
 
         spec_gas = 1 * self.spec_cell_j
 
