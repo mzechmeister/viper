@@ -412,12 +412,11 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # prefit with Gaussian IP
         S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 
-        if tplname:
-            par1 = Params(par, ip=par.ip[0:1])   # fit only sigma
-            par2, _ = S_modg.fit(pixel_ok, spec_obs_ok, par1, sig=sig[i_ok])
-        else:
+        par1 = Params(par, ip=par.ip[0:1])   # fit only sigma
+        if not tplname:
             # do not fit for RV
-            params, _ = S_modg.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave, par_ip=par_ip_guess[0:1], par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=rv_guess, parfix_bkg=parfix_bkg, sig=sig[i_ok])
+            par1 = par1 + {'rv': (0, 0)}
+        par2, _ = S_modg.fit(pixel_ok, spec_obs_ok, par1, sig=sig[i_ok])
 
         par = par + par2.flat()   # update, but replace first ip par
     par3 = par
@@ -559,28 +558,26 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if (order in look) or (order in lookfast):
         show = 1
 
-    if tplname or createtpl:
+    if 1:
         # par from prefit, (not pre-clip)
         par.wave = parguess.wave   # why?
         if ipB:
-            par.bkg = [(0,0)]
+            par.bkg = [(0, 0)]
             par.ipB = [(ipB[0], 0)]
         if deg_bkg:
             par.bkg = [0]
+        if not(tplname or createtpl):
+            # do not fit for velocity
+            par = par + {'rv': (0, 0)}
 
         par4, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
         par = par4
-        # params, e_params = curve_fit(S, pixel_ok, spec_obs_ok, p0=[par_rv]+a+[*par_wave_guess]+s, epsfcn=1e-12)
-    else:
-        # do not fit for velocity
-        params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok])
-        # prepend dummy parameter
-        # e_params = np.diag([np.nan, *np.diag(e_params)])
 
     if kapsig[-1]:
         # second kappa sigma clipping of outliers
         # just for compability, remove Params(ipB=[]) later !!
-        smod = S_mod(pixel, *(par + Params(ipB=[])).values())
+        #smod = S_mod(pixel, *(par + Params(ipB=[])).values())
+        smod = S_mod(pixel, *par.values())
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -595,12 +592,12 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             wave_obs_ok = wave_obs[i_ok]
             spec_obs_ok = spec_obs[i_ok]
 
-            if tplname or createtpl:
-                par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
-                par = par5
-            else:
-            # do not fit for velocity
-                params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par_norm=par_norm, par_wave=par_wave_guess, par_ip=par_ip, par_atm=parfix_atm, par_bkg=par_bkg, parfix_rv=0, parfix_bkg=parfix_bkg, parfix_ipB=ipB, dx=0.1*show, sig=sig[i_ok])
+            if not (tplname or createtpl):
+                # do not fit for velocity
+                par3.rv.unc = 0
+
+            par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
+            par = par5
 
     if createtpl:
         # modeled telluric spectrum
@@ -670,14 +667,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     # overplot stellar spectrum
     #gplot+(np.exp(lnwave_j), S_star(lnwave_j)/S_star(lnwave_j).max()*spec_obs_ok.max(), 'w l lc 9')
 
-    rvo, e_rvo = 1000*par.rv, 1000*np.diag(e_params)[0]**0.5   # convert to m/s
+    rvo, e_rvo = 1000*par.rv, 1000*par.rv.unc   # convert to m/s
     #prms = S_mod.show([params[0], params[1:1+1+deg_norm], params[2+deg_norm:2+deg_norm+1+deg_wave], params[3+deg_norm+deg_wave:]], pixel_ok, spec_obs_ok, dx=0.1)
     # gplot+(wave_tpl[s_s]*(1-berv/c), spec_tpl[s_s]*parguess_norm, 'w lp lc 4 ps 0.5')
     #gplot+(pixel_ok, S_star(np.log(np.poly1d(b[::-1])(pixel_ok))+(v)/c), 'w lp ps 0.5')
     # gplot+(np.exp(S_star.x), S_star.y, 'w lp ps 0.5 lc 7')
 
     # just for compability, remove Params(ipB=[]) later !!
-    fmod = S_mod(pixel_ok, *(par+Params(ipB=[])).values())
+    #fmod = S_mod(pixel_ok, *(par+Params(ipB=[])).values())
+    fmod = S_mod(pixel_ok, *(par).values())
     res = spec_obs_ok - fmod
     prms = np.nanstd(res) / np.nanmean(fmod) * 100
     np.savetxt('res.dat', list(zip(pixel_ok, res)), fmt="%s")
@@ -861,7 +859,7 @@ for n, obsname in enumerate(obsnames):
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
             # just for compability, remove Params(ipB=[]) later !!
             if 'ipB' in params: params.pop('ipB')
-            if not deg_bkg: params.pop('bkg')
+            if not deg_bkg: params.pop('bkg', None)
             flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
