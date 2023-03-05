@@ -754,7 +754,6 @@ parunit = open(tag+'.par.dat', 'w')
 colnums = orders if chunks == 1 else [f'{order}-{ch}' for order in orders for ch in range(chunks)]
 
 print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, colnums), 'filename', file=rvounit)
-print('BJD n order chunk', *map("p{0} e_params{0}".format, range(10)), 'prms', file=parunit)
 
 ####  FTS  ####
 
@@ -837,6 +836,7 @@ if telluric == 'add' and (wave_cell[-1] < wmax):
         wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*100, [np.ones(2)]*100
 
 T = time.time()
+headrow = True
 for n, obsname in enumerate(obsnames):
     filename = os.path.basename(obsname)
     print(f"{n+1:3d}/{N}", filename)
@@ -856,6 +856,12 @@ for n, obsname in enumerate(obsnames):
             # just for compability, remove Params(ipB=[]) later !!
             if 'ipB' in params: params.pop('ipB')
             if not deg_bkg: params.pop('bkg', None)
+
+            if headrow:
+                headrow = False
+                colnames = ["".join(map(str,x)) for x in params.flat().keys()]
+                print('BJD n order chunk', *map("{0} e_{0}".format, colnames), 'prms', file=parunit)
+
             flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
