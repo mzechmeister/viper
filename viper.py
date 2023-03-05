@@ -289,7 +289,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
         # parameter to scale each telluric model:
         # add parameter for telluric position shift if selected
-        par.atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
+        par_atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
 
     if demo & 1:
         # pre-look raw input
@@ -348,6 +348,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     # guess IP - read in from instrument file
     par.ip = [Inst.ip_guess['s']]
     par.atm = par_atm
+
     if deg_bkg:
         par.bkg = [0] #* deg_bkg
 
@@ -604,7 +605,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if createtpl:
         # modeled telluric spectrum
         spec_model = np.nan * np.empty_like(pixel)
-        spec_model[iset] = S_mod(pixel[iset], *params)
+        spec_model[iset] = S_mod(pixel[iset], *par.values())
         spec_model /= np.nanmean(spec_model[iset])
 
         # telluric corrected spectrum
@@ -615,7 +616,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_cor[spec_model<0.2] = np.nan
         spec_cor[spec_cor<3*err_cor] = np.nan
 
-        wave_model = np.poly1d(params[2][::-1])(pixel-xcen)
+        wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
         spec_cor = np.interp(wave_model/(1+berv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
 
         # downweighting by telluric spectrum and errors
@@ -859,7 +860,7 @@ for n, obsname in enumerate(obsnames):
 
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
             # just for compability, remove Params(ipB=[]) later !!
-            params.pop('ipB')
+            if 'ipB' in params: params.pop('ipB')
             if not deg_bkg: params.pop('bkg')
             flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
