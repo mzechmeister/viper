@@ -65,7 +65,7 @@ def Spectrum(filename, order=None, targ=None, chksize=4000):
     berv = targ.radial_velocity_correction(obstime=midtime, location=lasilla)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
-    return x, w, f, e, b, bjd, berv
+    return x, w, f, e_f, b, bjd, berv
 
 def Tpl(tplname, order=None, targ=None):
     if tplname.endswith('.dat'):

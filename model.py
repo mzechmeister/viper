@@ -42,6 +42,29 @@ def IP_agr(vk, s, a=0):
     a = 10 * np.tanh(a/10)   # restrict asymmetry parameter to -10 and 10
     return IP_ag(vk, s, a=a)
 
+def IP_asg(vk, s=2.2, e=2., a=1):
+    """asymmetric super Gaussian"""
+    mu = 0
+    for _ in range(2):
+        IP_k = np.exp(-abs((vk+mu)/s)**e)
+        IP_k *= (1+erf(a/np.sqrt(2)*(vk+mu)))
+        IP_k /= IP_k.sum()          # normalise IP,
+        mu += IP_k.dot(vk)
+        #mu,a, e,s
+    #gplot(vk, IP_k)
+    #from pause import pause; pause(mu, s, e, a)
+    #print(mu, s, e, a)
+    return IP_k
+
+def IP_sbg(vk, s1=2.2, s2=1, e=2.):
+    """super bi-Gaussian"""
+    IP_k = np.exp(-abs((vk+mu)/s)**e)
+    IP_k *= (1+erf(a/np.sqrt(2)*(vk+mu)))
+    IP_k /= IP_k.sum()          # normalise IP,
+    #from pause import pause; pause(mu, s, e, a)
+    #print(mu, s, e, a)
+    return IP_k
+
 def IP_bg(vk, s1=2., s2=2.):
     """BiGaussian"""
     # center of half-normal distribution Gaussians:   x1 = s1 * sqrt(2/pi)
@@ -82,7 +105,7 @@ def IP_mg(vk, *a):
     # gplot(IP_k)
     return IP_k
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'asg': IP_asg, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
 
 
 def poly(x, a):
@@ -117,7 +140,9 @@ class model:
         self.func_norm = func_norm
         #print("sampling [km/s]:", self.dx*c)
 
-    def __call__(self, pixel, rv, coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg=[0], coeff_ipB=[]):
+    def __call__(self, pixel, rv=0, norm=[1], wave=[], ip=[], atm=[], bkg=[0], ipB=[]):
+        # renaming (coeff is ok prefix below, but too verbose for par)
+        coeff_norm, coeff_wave, coeff_ip, coeff_atm, coeff_bkg, coeff_ipB = norm, wave, ip, atm, bkg, ipB
 
         spec_gas = 1 * self.spec_cell_j
 
@@ -156,35 +181,26 @@ class model:
         #Si_mod = self.func_norm((np.exp(lnwave_obs)-b[0]-coeff_norm[-1]), coeff_norm[:-1]) * Si_eff
         return Si_mod
 
-    def fit(self, pixel, spec_obs, par_rv=None, par_norm=[], par_wave=[], par_ip=[], par_atm=[], par_bkg=[], parfix_rv=None, parfix_norm=[], parfix_wave=[], parfix_ip=[], parfix_atm=[], parfix_bkg=[], parfix_ipB=[], sig=[], **kwargs):
+    def fit(self, pixel, spec_obs, par, sig=[], **kwargs):
         '''
         Generic fit wrapper.
         '''
-        parfix_rv = () if parfix_rv is None else (parfix_rv,)
-        par_rv = () if par_rv is None else (par_rv,)
-        sv = slice(0, len(par_rv))
-        sa = slice(sv.stop, sv.stop+len(par_norm))
-        sb = slice(sa.stop, sa.stop+len(par_wave))
-        ss = slice(sb.stop, sb.stop+len(par_ip))
-        st = slice(ss.stop, ss.stop+len(par_atm))
-        sc = slice(st.stop, st.stop+len(par_bkg))
-        parfix_norm = tuple(parfix_norm)
-        parfix_wave = tuple(parfix_wave)
-        parfix_ip = tuple(parfix_ip)
-        parfix_atm = tuple(parfix_atm)
-        parfix_bkg = tuple(parfix_bkg)
+        varykeys, varyvals = zip(*par.vary().items())
 
-        S_model = lambda x, *params: self(x, *params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg, coeff_ipB=parfix_ipB)
+        S_model = lambda x, *params: self(x, *(par + dict(zip(varykeys, params))).values())
+        #S_model(pixel, *varyvals)
 
-        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=[*par_rv, *par_norm, *par_wave, *par_ip, *par_atm, *par_bkg], sigma=sig, absolute_sigma=False, epsfcn=1e-12)
+        params, e_params = curve_fit(S_model, pixel, spec_obs, p0=varyvals, sigma=sig, absolute_sigma=False, epsfcn=1e-12)
 
-        par_rv = (*params[sv], *np.diag(e_params)[sv])
-        params = tuple(params)
-        params = [*params[sv]+parfix_rv, params[sa]+parfix_norm, params[sb]+parfix_wave, params[ss]+parfix_ip, params[st]+parfix_atm, params[sc]+parfix_bkg]
+        pnew = par + dict(zip(varykeys, params))
+        # attach uncertainties
+        for k,v in zip(varykeys, np.sqrt(np.diag(e_params))):
+            pnew[k].unc = v
 
         if kwargs:
-            self.show(params, pixel, spec_obs, par_rv=par_rv, **kwargs)
-        return params, e_params
+            self.show(pnew, pixel, spec_obs, par_rv=pnew.rv, **kwargs)
+
+        return pnew, e_params
 
     def show(self, params, x, y, par_rv=None, res=True, x2=None, dx=None, rel_fac=None):
         '''
@@ -193,11 +209,11 @@ class model:
         rel_fac: Factor for relative residuals.
         dx: Subpixel step size for the model [pixel].
         '''
-        ymod = self(x, *params)
+        ymod = self(x, *params.values())
         if x2 is None:
-            x2 = np.poly1d(params[2][::-1])(x-self.xcen)
+            x2 = np.poly1d(params.wave[::-1])(x-self.xcen)
         if par_rv:
-            gplot.RV2title(", v=%.2f ± %.2f m/s" % (par_rv[0]*1000, np.sqrt(par_rv[1])*1000))
+            gplot.RV2title(", v=%.2f ± %.2f m/s" % (par_rv*1000, par_rv.unc*1000))
 
         gplot.put("if (!exists('lam')) {lam=1}")
 
@@ -211,8 +227,8 @@ class model:
         prms = np.nan   # percentage prms
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
-            xx2 = np.poly1d(params[2][::-1])(xx-self.xcen)
-            yymod = self(xx, *params)
+            xx2 = np.poly1d(params.wave[::-1])(xx-self.xcen)
+            yymod = self(xx, *params.values())
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         if res or rel_fac:
             # linear or relative residuals
@@ -225,7 +241,7 @@ class model:
         if rel_fac:
             args += (",", x, col2, x2, "us lam?3:1:2 w l lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, prms))
 
-        if res or rel_fac or dx:        
+        if res or rel_fac or dx:
             gplot(*args)
         return prms
 
@@ -235,6 +251,20 @@ class model_bnd(model):
     The forward model with band matrix.
 
     '''
+    def __init__(self, *args, func_norm=poly, IP_hs=50, xcen=0):
+        # IP_hs: Half size of the IP (number of sampling knots).
+        # xcen: Central pixel (to center polynomial for numeric reason).
+
+        self.xcen = xcen
+        self.S_star, self.lnwave_j, self.spec_cell_j, self.IP = args
+        # convolving with IP will reduce the valid wavelength range
+        self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
+        self.IP_hs = IP_hs
+        self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
+        self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]    # valid grid
+        self.func_norm = func_norm
+        #print("sampling [km/s]:", self.dx*c)
+
     def base(self, x=None, degk=3, sig_k=1):
         '''
         Setup the base functions.
