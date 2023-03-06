@@ -187,7 +187,7 @@ class model:
         '''
         varykeys, varyvals = zip(*par.vary().items())
 
-        S_model = lambda x, *params: self(x, *(par + dict(zip(varykeys, params))).values())
+        S_model = lambda x, *params: self(x, **(par + dict(zip(varykeys, params))))
         #S_model(pixel, *varyvals)
 
         params, e_params = curve_fit(S_model, pixel, spec_obs, p0=varyvals, sigma=sig, absolute_sigma=False, epsfcn=1e-12)
@@ -209,7 +209,7 @@ class model:
         rel_fac: Factor for relative residuals.
         dx: Subpixel step size for the model [pixel].
         '''
-        ymod = self(x, *params.values())
+        ymod = self(x, **params)
         if x2 is None:
             x2 = np.poly1d(params.wave[::-1])(x-self.xcen)
         if par_rv:
@@ -228,7 +228,7 @@ class model:
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
             xx2 = np.poly1d(params.wave[::-1])(xx-self.xcen)
-            yymod = self(xx, *params.values())
+            yymod = self(xx, **params)
             args += (",", xx, yymod, xx2, 'us lam?3:1:2 w l lc 3 t ""')
         if res or rel_fac:
             # linear or relative residuals
