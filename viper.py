@@ -327,7 +327,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par = Params()
 
     # a good guess for the stellar RV is needed
-    par.rv = rv_guess
+    par.rv = rv_guess if (tplname or createtpl) else (0, 0)   # else: do not fit for RV
 
     # guess for normalization
     parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
@@ -413,9 +413,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         S_modg = model(S_star, lnwave_j, spec_cell_j, specs_molec, IPs['g'], **modset)
 
         par1 = Params(par, ip=par.ip[0:1])   # fit only sigma
-        if not tplname:
-            # do not fit for RV
-            par1 = par1 + {'rv': (0, 0)}
         par2, _ = S_modg.fit(pixel_ok, spec_obs_ok, par1, sig=sig[i_ok])
 
         par = par + par2.flat()   # update, but replace first ip par
@@ -566,9 +563,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             par.ipB = [(ipB[0], 0)]
         if deg_bkg:
             par.bkg = [0]
-        if not(tplname or createtpl):
-            # do not fit for velocity
-            par = par + {'rv': (0, 0)}
 
         par4, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
         par = par4
@@ -589,10 +583,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             pixel_ok = pixel[i_ok]
             wave_obs_ok = wave_obs[i_ok]
             spec_obs_ok = spec_obs[i_ok]
-
-            if not (tplname or createtpl):
-                # do not fit for velocity
-                par3.rv.unc = 0
 
             par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
             par = par5
