@@ -184,20 +184,20 @@ win_high = 655      # height of GUI window
 win = Tk()
 win.title('Gui VPR')
 win.geometry("{}x{}".format(win_width, win_high))
-win.configure(background=bg_color)
+win.configure(background=ttk.Style().lookup('TFrame', 'background'))   # same bg-color for win and Frame
 
 style = ttk.Style(win)
 style.configure('lefttab.TNotebook', tabposition='nw')
 style.configure('TNotebook.Tab', font=(font_type, font_size+2, 'bold'))
 
 tabControl = ttk.Notebook(win, style='lefttab.TNotebook')
-  
+
 tab_rv = ttk.Frame(tabControl)
 tab_res = ttk.Frame(tabControl)
 
 tabControl.add(tab_rv, text ='RV plots')
 tabControl.add(tab_res, text ='Residuals')
-tabControl.pack(expand = 1, fill ="both")
+tabControl.pack(expand=1, fill="both", side='top')
 
 
 ###### POSITIONS ######
@@ -234,7 +234,7 @@ ttk.Style().configure("TButton", padding=2,   background="#fdfdfd", font=(font_t
 ttk.Style().configure("B2.TButton", padding=1,   background="#fdfdfd", font=(font_type,font_size-1,''), borderwidth =1)
 
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
-b_exit.place(x=win_width-82,y=win_high-50, width=60)
+b_exit.pack(side='right', padx=30)
 
 b_rvo1 = Button(tab_rv, text='Search data file', command = bt_rvo1, background="#fdfdfd")
 b_rvo1.place(x=win_width-590, y=lh, height=25)
@@ -281,8 +281,7 @@ b_oset2_n.place(x=x0+200, y=7*lh, width=width_bt*0.8, height=22)
 filename1 = StringVar()
 filename2 = StringVar()
 
-e_run = ScrolledText(win)
-e_run.place(x=x0, y=fr_high+lh*3, width=600, height=60)
+e_run = ScrolledText(win, background='#f0f0f0')
 
 e_rvo1 = Entry(file_bar, textvariable=filename1, width=40)
 e_rvo1.insert(0, 'tmp.rvo.dat')
@@ -354,7 +353,8 @@ cb_cmpocen.trace("w", update_changes)
 
 ###### LABELS ######
 
-Label(master=win, text='Current command:', font=(font_type, font_size, 'bold')).place(x=x0, y=fr_high+2*lh)
+Label(master=win, text='Current command:').pack(side='top', anchor="w", padx=5)
+e_run.pack(side='left', padx=5, pady=(0, 5))
 
 Label(tab_rv, text='rvo file 1', font=(font_type, font_size, 'bold'), background=bg_frame).place(x=x0, y=lh)
 
