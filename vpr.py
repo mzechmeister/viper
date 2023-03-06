@@ -139,6 +139,24 @@ class VPR():
         self.stat_o = np.percentile(self.rv-self.RV, [17,50,83], axis=1)
         self.med_e_rvo = np.median(self.e_rv, axis=1)
 
+    def plot_par(self):
+        parfile = self.file.replace('.rvo.dat', '.par.dat')
+        # for now just to get the colnames; not handled: oset, ocen, cen, ...
+        par = np.genfromtxt(parfile, dtype=None, names=True,
+                            deletechars='',   # to keep the dash for chunks
+                            encoding=None).view(np.recarray)
+        gplot.mxtics().mytics()
+        colnames = par.dtype.names[:-1]
+        gplot.put(f'colnames(x) = word("{" ".join(colnames)}", x); Ncol={len(colnames)}')
+        gplot.bind('''"$" "i=(i+1)%3; set xlabel i==0 ? 'Number n' : i==1? 'Order o' : 'BJD'; repl"; i=0''')
+
+        gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
+        #gplot(par.BJD, par.n, par.order, par.ip0, par.e_ip0, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+        gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+        print('press "$" to toggle between n/o/BJD')
+        print('press "@" to browse the parameters')
+        pause('Parameters')
+
     def info(self):
         print('Number of chunks:', self.orders.size)
         self.rms = np.std(self.RV)
@@ -273,7 +291,7 @@ def run(cmd=None):
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-offset', help='RV plotting offset for rvo plot', default=400, type=float)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
-    argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo'])
+    argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo', 'par'])
     argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
@@ -314,6 +332,9 @@ def run(cmd=None):
 
     if 'rvo' in tasks:
         vpr.plot_rv(n=1)
+
+    if 'par' in tasks:
+        vpr.plot_par()
 
     if 'nrvo' in tasks:
         vpr.plot_nrvo()
