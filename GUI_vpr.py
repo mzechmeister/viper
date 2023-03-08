@@ -33,7 +33,7 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
 
     global opt
     if '-save' in str(args):    
-        args = options[opt]
+        args = options[opt] + ' -save'
     else:
         opt = options.index(str(args))
 
