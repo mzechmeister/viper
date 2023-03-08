@@ -29,11 +29,11 @@ from scipy.optimize import curve_fit
 from scipy.interpolate import CubicSpline
 from astropy.io import fits
 import astropy.units as u
-from param import Params
 
 from gplot import *
 gplot.colors('classic')
 gplot2 = Gplot()
+from param import Params
 from pause import pause
 
 from model import model, model_bnd, IPs, show_model, pade
@@ -215,7 +215,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     lmax = min(wave_obs[iset][-1], wave_tpl[order][-1], wave_cell[-1])
 
     # trim the observation to a range valid for the model
-  #  vcut = 100   # [km/s]
+    #  vcut = 100   # [km/s]
     flag_obs[np.log(wave_obs) < np.log(lmin)+vcut/c] |= flag.out
     flag_obs[np.log(wave_obs) > np.log(lmax)-vcut/c] |= flag.out
 
@@ -266,7 +266,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     specs_molec = []
     par_atm = parfix_atm = []
     if 'add' in telluric:
-        molec_pres = []		# present molecules in given wavelength range
+        molec_pres = []   # present molecules in given wavelength range
         # select present molecules for telluric forward modeling
         specs_molec = np.zeros((0, len(lnwave_j)))
         for mol in range(len(molec)):
@@ -330,8 +330,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par.rv = rv_guess if (tplname or createtpl) else (0, 0)   # else: do not fit for RV
 
     # guess for normalization
-    parfix_norm = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
-    par.norm = [parfix_norm] + [0]*deg_norm
+    norm_guess = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
+    par.norm = [norm_guess] + [0]*deg_norm
 
     if deg_norm_rat:
         # rational polynom
@@ -341,20 +341,19 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par.wave = np.polyfit(pixel_ok-xcen, wave_obs_ok, deg_wave)[::-1]
     parguess = Params(par)
 
-    # guess additional background
-    par_bkg = []
-    parfix_bkg = [0]
-
     # guess IP - read in from instrument file
     par.ip = [Inst.ip_guess['s']]
     par.atm = par_atm
 
+    # guess additional background
+    par_bkg = []
+    parfix_bkg = [0]
     if deg_bkg:
         par.bkg = [0] #* deg_bkg
 
     if demo:
         # disturb guess
-        par.norm = parguess.norm = [parfix_norm*1.3] + [0]*deg_norm
+        par.norm = parguess.norm = [norm_guess*1.3] + [0]*deg_norm
         # b = par_wave_guess = [wave_ob[0], (wave_obs[-1]-wave_obs[0])/wave_obs.size] # [6128.8833940969, 0.05453566108124]
         par.wave = parguess.wave = [*np.polyfit(pixel[[400,-300]]-xcen-10, wave_obs[[400,-300]], 1)[::-1]] + [0]*(deg_wave-1)
         par.ip = [par.ip[0]*1.5]
@@ -363,9 +362,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         par.ip = Inst.ip_guess[ip]
     elif ip in ('sg', 'mg', 'asg'):
         par.ip += [2.]   # exponent of super Gaussian
-    elif ip in ('asg',):
-        par.ip += [1.]   # asymmetry parameter
-    elif ip in ('ag', 'agr'):
+    elif ip in ('ag', 'agr', 'asg'):
         par.ip += [1.]   # skewness parameter (offset to get iterations)
     elif ip in ('bg',):
         par.ip += [par_ip[-1]]   # symmetric biGaussian
@@ -386,7 +383,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     fixed = lambda x: [(pk, 0) for pk in x]
     if demo & 16:
         # A wrapper to fit the continuum
-        par_d16 = Params(rv=(rv_guess, 0), norm=[parfix_norm],  wave=fixed(parguess.wave), ip=fixed(parguess.ip), atm=fixed(parfix_atm), parfix_bkg=[(0, 0)])
+        par_d16 = Params(rv=(rv_guess, 0), norm=[norm_guess],  wave=fixed(parguess.wave), ip=fixed(parguess.ip), atm=fixed(parfix_atm), parfix_bkg=[(0, 0)])
         p_norm, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_d16, res=False, dx=0.1, sig=sig[i_ok])
         parguess.norm[0] = p_norm.norm[0]
         pause('demo 16: S_par_norm')
@@ -421,7 +418,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if order in lookguess:
         if demo:
             par_wave_guess = par_wave
-            par_norm = [parfix_norm]
+            par_norm = [norm_guess]
         params_guess = Params(rv=par.rv, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=parfix_atm, bkg=par_bkg+parfix_bkg)
         prms = S_mod.show(params_guess, pixel_ok, spec_obs_ok, res=True, dx=0.1)
         pause('lookguess')
@@ -429,7 +426,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig[0]:
         # first kappa sigma clipping of outliers
-        params_guess = Params({'rv': rv_guess, 'norm': par.norm, 'wave': parguess.wave, 'ip': par.ip, 'atm': par_atm, 'bkg': par_bkg+parfix_bkg})
+        params_guess = Params(rv=rv_guess, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=par_atm, bkg=par_bkg+parfix_bkg)
         # check rv_guess is used instead of updated par.rv https://github.com/mzechmeister/viper/issues/19
         smod = S_mod(pixel, **params_guess)
         resid = spec_obs - smod
@@ -551,9 +548,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs, a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
         par_rv = rvs
 
-    show = 0
-    if (order in look) or (order in lookfast):
-        show = 1
+    show = (order in look) or (order in lookfast)
 
     if 1:
         # par from prefit, (not pre-clip)
@@ -722,7 +717,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
-#obsnames = [x for i,x in enumerate(obsnames) if i not in nexcl]
 obsnames = [x for x in obsnames if not any(pat in os.path.basename(x) for pat in nexcl)]
 
 N = len(obsnames)
@@ -760,8 +754,8 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 
 #### Telluric model ####
 if 'add' in telluric:
-    # read in telluric spectra for wavelength range of the instrument   
- #   wave_atm_all, specs_molec_all, molec = Tell(molec)
+    # read in telluric spectra for wavelength range of the instrument
+    # wave_atm_all, specs_molec_all, molec = Tell(molec)
 
     if molec[0] == 'all':
         molec = list(Inst.atmall.keys())
@@ -857,7 +851,6 @@ for n, obsname in enumerate(obsnames):
             # store residuals
             os.system('mkdir -p res; touch res.dat')
             os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
-        # pause()
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
@@ -870,7 +863,6 @@ for n, obsname in enumerate(obsnames):
 
     print(bjd, RV, e_RV, berv, *sum(zip(rv, e_rv), ()), filename, file=rvounit)
     print(file=parunit)
-    #vpr.plot_rvo(rv, e_rv)
 
 
 if createtpl:
