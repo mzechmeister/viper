@@ -424,9 +424,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if kapsig[0]:
         # first kappa sigma clipping of outliers
-        params_guess = Params(rv=rv_guess, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=par_atm, bkg=par.bkg)
-        # check rv_guess is used instead of updated par.rv https://github.com/mzechmeister/viper/issues/19
-        smod = S_mod(pixel, **params_guess)
+        smod = S_mod(pixel, **par3)
         resid = spec_obs - smod
         resid[flag_obs != 0] = np.nan
 
@@ -435,7 +433,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         pixel_ok = pixel[i_ok]
         wave_obs_ok = wave_obs[i_ok]
         spec_obs_ok = spec_obs[i_ok]
-        # seems params_guess is not reused (wanted or unwanted, speed vs. trap)
 
     if IP == 'bnd':
         # Non parametric fit with band matrix
