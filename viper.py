@@ -346,8 +346,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par.atm = par_atm
 
     # guess additional background
-    par_bkg = []
-    parfix_bkg = [0]
     if deg_bkg:
         par.bkg = [0] #* deg_bkg
 
@@ -383,7 +381,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     fixed = lambda x: [(pk, 0) for pk in x]
     if demo & 16:
         # A wrapper to fit the continuum
-        par_d16 = Params(rv=(rv_guess, 0), norm=[norm_guess],  wave=fixed(parguess.wave), ip=fixed(parguess.ip), atm=fixed(parfix_atm), parfix_bkg=[(0, 0)])
+        par_d16 = Params(rv=(rv_guess, 0), norm=[norm_guess],  wave=fixed(parguess.wave), ip=fixed(parguess.ip), atm=fixed(parfix_atm))
         p_norm, _ = S_mod.fit(pixel_ok, spec_obs_ok, par_d16, res=False, dx=0.1, sig=sig[i_ok])
         parguess.norm[0] = p_norm.norm[0]
         pause('demo 16: S_par_norm')
@@ -419,14 +417,14 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         if demo:
             par_wave_guess = par_wave
             par_norm = [norm_guess]
-        params_guess = Params(rv=par.rv, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=parfix_atm, bkg=par_bkg+parfix_bkg)
+        params_guess = Params(rv=par.rv, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=parfix_atm, bkg=par.bkg)
         prms = S_mod.show(params_guess, pixel_ok, spec_obs_ok, res=True, dx=0.1)
         pause('lookguess')
 
 
     if kapsig[0]:
         # first kappa sigma clipping of outliers
-        params_guess = Params(rv=rv_guess, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=par_atm, bkg=par_bkg+parfix_bkg)
+        params_guess = Params(rv=rv_guess, norm=par.norm, wave=parguess.wave, ip=par.ip, atm=par_atm, bkg=par.bkg)
         # check rv_guess is used instead of updated par.rv https://github.com/mzechmeister/viper/issues/19
         smod = S_mod(pixel, **params_guess)
         resid = spec_obs - smod
