@@ -1,3 +1,4 @@
+#! /usr/bin/env python3
 # -*- coding: iso-8859-1 -*-
 
 # GUI to start viper.py, showing most important options
