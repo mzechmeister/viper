@@ -30,7 +30,7 @@ def bt_start():
     x = 2 * np.ones(len(cb_demo))
     demo = np.poly1d(ar_demo[::-1])(x)[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() +" -molec "+e_molec.get() 
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() #+" -molec "+e_molec.get() 
 
 #+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
 
@@ -68,6 +68,15 @@ def bt_start():
         str_arg += " -tellshift "
     if cb_wgt.get():
         str_arg += " -wgt "
+
+    str_arg += " -molec "
+    if combo_inst.get() in ('TLS', 'CES', 'OES', 'KECK'):
+        cb_atm2, molec2 = cb_atm[:2], molec[:2]
+    elif combo_inst.get() in ('CRIRES', 'cplCRIRES'):
+        cb_atm2, molec2 = cb_atm[2:], molec[2:]
+    for m, atm in enumerate(cb_atm2):        
+        if atm.get():
+             str_arg += str(molec2[m])+" "
 
     print(str_arg)
 
@@ -110,7 +119,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 940     # width of GUI window	# 840
-win_high = 690      # height of GUI window	# 630
+win_high = 740      # height of GUI window	# 630
 xy0 = 20
 y1 = 5
 x1 = 10
@@ -150,9 +159,10 @@ fr3.grid_propagate(False)
 fr3.grid_columnconfigure(0, weight=1)
 fr3.grid_columnconfigure(1, weight=1)
 
-fr4 = Frame(master=win, height=135, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
+fr4 = Frame(master=win, height=185, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
 fr4.grid(row=2, column = 2, sticky="nw",padx=(0, xy0),pady=(6,0))
 fr4.grid_propagate(False)
+
 
 ###### BUTTONS ######
 
@@ -238,9 +248,9 @@ e_overs = Entry(fr2)
 e_overs.insert(0, '1')
 e_overs.grid(row=5, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-e_molec = Entry(fr4)
-e_molec.insert(0, 'all')
-e_molec.grid(row=2, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=3)
+#e_molec = Entry(fr4)
+#e_molec.insert(0, 'all')
+#e_molec.grid(row=2, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=3)
 
 ###### COMBOBOXES ######
 
@@ -279,7 +289,6 @@ ttk.Checkbutton(fr2, text="     tell shift", variable=cb_tellshift).grid(row=11,
 
 cb_demo = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
 ttk.Checkbutton(fr3, text="     raw data", variable=cb_demo[0]).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-
 ttk.Checkbutton(fr3, text="     plot IP", variable=cb_demo[1]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(fr3, text="     stellar tpl", variable=cb_demo[2]).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(fr3, text="     forward model", variable=cb_demo[3]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
@@ -300,6 +309,19 @@ cb_lookfast.set(1)
 cb_look = IntVar()
 ttk.Checkbutton(fr3, text="     look", variable=cb_look).grid(row=8, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
 
+cb_atm = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
+ttk.Checkbutton(fr4, text="   H2O", variable=cb_atm[0]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(fr4, text="   O2", variable=cb_atm[1]).grid(row=2, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+
+ttk.Checkbutton(fr4, text="   H2O", variable=cb_atm[2]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(fr4, text="   CH4", variable=cb_atm[3]).grid(row=4, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(fr4, text="   CO", variable=cb_atm[4]).grid(row=4, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(fr4, text="   CO2", variable=cb_atm[5]).grid(row=4, column=3, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(fr4, text="   N2O", variable=cb_atm[6]).grid(row=4, column=4, sticky="nw", padx=(xy0,x1), pady=y1)
+
+molec = ['H2O', 'O2', 'H2O', 'CH4', 'CO', 'CO2', 'N2O']
+for mol in cb_atm:
+    mol.set(1)
 
 ###### LABELS ######
 
@@ -315,8 +337,10 @@ Label(fr1, text='tag:', background=bg_frame).grid(row=4, column=5, sticky="nw", 
 Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
 Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
 Label(fr2, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=9, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr4, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
-Label(fr4, text='Optical: H2O O2; NIR: H2O CH4 N2O CO2 CO', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=3)
+
+Label(fr4, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=5)
+Label(fr4, text='Optical (TLS, CES, OES, KECK):', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=5)
+Label(fr4, text='Near Infrared (CRIRES+):', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=5)
 
 Label(fr2, text='nset:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 Label(fr2, text='oset:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
