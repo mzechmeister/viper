@@ -11,6 +11,7 @@ from tkinter.filedialog import askopenfilename
 from tkinter import ttk
 from gplot import *
 import numpy as np
+import importlib
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -39,7 +40,7 @@ def bt_start():
     if combo_tell.get():
         str_arg += " -telluric " + str(combo_tell.get())
     if e_kapsig.get():
-        str_arg += " -kapsig "+ str(e_kapsig.get())
+        str_arg += " -kapsig "+ str(e_kapsig.get()) 
     if cb_lookpar.get():
         str_arg += " -lookpar "
     if cb_look.get():
@@ -60,15 +61,18 @@ def bt_start():
         str_arg += " -tag " + str(e_tag.get())
     if e_flag.get() != '' and cb_flagfile.get():
          str_arg += " -flagfile "+ str(e_flag.get())
-    if cb_nocell.get():
-        str_arg += " -nocell "
+  #  if cb_nocell.get():
+   #     str_arg += " -nocell "
     if cb_createtpl.get():
         str_arg += " -createtpl "
     if cb_tellshift.get():
         str_arg += " -tellshift "
     if cb_wgt.get():
         str_arg += " -wgt "
-
+    if cb_cell.get():
+        str_arg += " -fts " + viperdir + e_cell.get()
+    else:
+        str_arg += " -nocell " 
     str_arg += " -molec "
     if combo_inst.get() in ('TLS', 'CES', 'OES', 'KECK'):
         cb_atm2, molec2 = cb_atm[:2], molec[:2]
@@ -88,17 +92,12 @@ def bt_start():
 
     print('---Finished viper.py---')
 
-def bt_data():
-    data_file = askopenfilename(master=win)
-    if data_file:
-        e_dat.delete(0, END)
-        e_dat.insert(0, data_file)
 
-def bt_tpl():
-    tpl_file = askopenfilename(master=win)
-    if tpl_file:
-        e_tpl.delete(0, END)
-        e_tpl.insert(0, tpl_file)
+def bt_file(e_file):
+    file = askopenfilename(master=win)
+    if file:
+        e_file.delete(0, END)
+        e_file.insert(0, file)
 
 def bt_exit():
     exit()
@@ -111,6 +110,14 @@ def new(event):
     fr3.config(width=(win_width-46)/2)
     fr4.config(width=(win_width-46)/2)
 
+def FTS_default(*args):
+    Inst = importlib.import_module('inst.inst_'+combo_inst.get())
+    FTS = Inst.FTS
+ #   default=viperdir + FTS.__defaults__[0]
+    default=FTS.__defaults__[0]
+    e_cell.delete(0, END)
+    e_cell.insert(0, default)
+
 ###### SETTING ######
 
 font_type = 'Arial'
@@ -119,7 +126,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 940     # width of GUI window	# 840
-win_high = 740      # height of GUI window	# 630
+win_high = 760      # height of GUI window	# 630
 xy0 = 20
 y1 = 5
 x1 = 10
@@ -138,7 +145,7 @@ win.columnconfigure(3, weight=1)
 
 # options: solid, sunken, ridge, groove, raised
 # groove, ridge need bd=2 or more
-fr1 = Frame(win, height=148, width=win_width-40, bg=bg_frame, bd=2, relief='groove')
+fr1 = Frame(win, height=168, width=win_width-40, bg=bg_frame, bd=2, relief='groove')
 fr1.grid(row=0, column = 1, sticky="nw",padx=20,pady=(xy0,6), columnspan=2)
 fr1.grid_propagate(False)
 fr1.grid_columnconfigure(2, weight=1)
@@ -174,11 +181,17 @@ b_exit.grid(row=3, column=2, sticky="ne", padx=(0,xy0), pady = xy0)
 b_go = ttk.Button(master=win, text='Start', command = bt_start)
 b_go.grid(row=3, column=2, sticky="ne", padx=(0,130), pady = xy0)
 
-b_dat = Button(fr1, text='Search data file', command = bt_data, background="#fdfdfd", width=15)
+b_dat = Button(fr1, text='Search data file', command = lambda: bt_file(e_dat), background="#fdfdfd", width=15)
 b_dat.grid(row=1, column=7, sticky="nw", padx=xy0)
 
-b_tpl = Button(fr1,text='Search tpl file', command = bt_tpl, background="#fdfdfd", width=15)
+b_tpl = Button(fr1,text='Search tpl file', command = lambda: bt_file(e_tpl), background="#fdfdfd", width=15)
 b_tpl.grid(row=2, column=7, sticky="nw", padx=xy0)
+
+b_cell = Button(fr1,text='Search Cell file', command = lambda: bt_file(e_cell), background="#fdfdfd", width=15)
+b_cell.grid(row=3, column=7, sticky="nw", padx=xy0)
+
+b_flag = Button(fr1,text='Search flag file', command = lambda: bt_file(e_flag), background="#fdfdfd", width=15)
+b_flag.grid(row=4, column=7, sticky="nw", padx=xy0)
 
 ###### ENTRIES ######
 
@@ -190,15 +203,18 @@ e_tpl = Entry(fr1, width = 200)
 e_tpl.insert(0, 'data/TLS/Deconv/HARPS*fits')
 e_tpl.grid(row=2, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
+e_cell = Entry(fr1, width = 200)
+e_cell.grid(row=3, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
+
 e_flag = Entry(fr1, width = 200)
 e_flag.insert(0, '')
-e_flag.grid(row=3, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
+e_flag.grid(row=4, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
 e_targ = Entry(fr1, width=70)
-e_targ.grid(row=4, column=4, sticky="nw", padx=x1, pady=y1)
+e_targ.grid(row=5, column=4, sticky="nw", padx=x1, pady=y1)
 
 e_tag = Entry(fr1, width=35)
-e_tag.grid(row=4, column=6, sticky="nw", padx=xy0, pady=y1, columnspan=2)
+e_tag.grid(row=5, column=6, sticky="nw", padx=xy0, pady=y1, columnspan=2)
 
 e_nset = Entry(fr2)#, width=15)
 e_nset.insert(0, ':1')
@@ -256,7 +272,8 @@ e_overs.grid(row=5, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
 combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES'], width=10)
 combo_inst.set('TLS')
-combo_inst.grid(row=4, column=1, sticky="nw", padx=x1, pady=y1)
+combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
+combo_inst.bind('<<ComboboxSelected>>', lambda event: FTS_default())
 
 combo_ip = ttk.Combobox(fr2, values=['g', 'ag', 'agr', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
 combo_ip.set('g')
@@ -274,14 +291,18 @@ combo_tell.grid(row=7, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
 ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)
 
+cb_cell = IntVar()
+ttk.Checkbutton(fr1, text="   Cell file:", variable=cb_cell).grid(row=3, column=0, sticky="nw", padx=x1, pady=y1)
+cb_cell.set(1)
+
 cb_flagfile = IntVar()
-ttk.Checkbutton(fr1, text="   flag file:", variable=cb_flagfile).grid(row=3, column=0, sticky="nw", padx=x1, pady=y1)
+ttk.Checkbutton(fr1, text="   flag file:", variable=cb_flagfile).grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
 
 cb_wgt = IntVar()
 ttk.Checkbutton(fr2, text="     weighted error", variable=cb_wgt).grid(row=8, column=2, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
 
-cb_nocell = IntVar()
-ttk.Checkbutton(fr2, text="     no cell", variable=cb_nocell).grid(row=x1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+#cb_nocell = IntVar()
+#ttk.Checkbutton(fr2, text="     no cell", variable=cb_nocell).grid(row=x1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_createtpl = IntVar()
 ttk.Checkbutton(fr2, text="     create tpl", variable=cb_createtpl).grid(row=x1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_tellshift = IntVar()
@@ -329,10 +350,10 @@ for mol in cb_atm:
 Label(fr1, text='data files', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=x1, pady=y1)
 Label(fr1, text='template file', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=2, column=0, sticky="nw", padx=x1, pady=y1)
 
-Label(fr1, text='spectrograph:', background=bg_frame).grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
+Label(fr1, text='spectrograph:', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=x1, pady=y1)
 
-Label(fr1, text='targ:', background=bg_frame).grid(row=4, column=3, sticky="nw", padx=xy0, pady=y1)
-Label(fr1, text='tag:', background=bg_frame).grid(row=4, column=5, sticky="nw", padx=xy0, pady=y1)
+Label(fr1, text='targ:', background=bg_frame).grid(row=5, column=3, sticky="nw", padx=xy0, pady=y1)
+Label(fr1, text='tag:', background=bg_frame).grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
 
 Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
 Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
@@ -365,5 +386,6 @@ Label(fr2,text='tsig:', background=bg_frame).grid(row=8, column=0, sticky="nw", 
 Label(fr3, text='Plot fitted chunks', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=7, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
 
 ###### MAIN ######
+FTS_default()
 
 win.mainloop()
