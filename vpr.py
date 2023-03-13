@@ -250,7 +250,7 @@ class VPR():
         print('saving as', filename)
         np.savetxt(filename, [*zip(self.BJD, self.RV, self.e_RV)], header='BJD RV e_RV')
 
-def plot_res(folder, o=[1], n=[1]):
+def plot_res(folder, o=[1], n=[1], sep=1.):
     '''
     Plot stacked residuals.
 
@@ -270,7 +270,7 @@ def plot_res(folder, o=[1], n=[1]):
     gplot.array(A=o, Sp=n)
     gplot.array(d3color=[0x1F77B4, 0xFF7F0E, 0x2CA02C, 0xD62728, 0x9467BD, 0x8C564B])
     print("type '(' and ')' to go through the orders o or '[' and ']' to go through epochs n")
-    gplot(f'for [n=nbeg:nend] for [o=obeg:oend] sprintf("{folder}/%03d_%03d.dat", Sp[int(n)], A[int(o)]) us 1:($2+int(nbeg==nend?o:n)/3.) lc rgb d3color[1+ int(nbeg==nend?o:n)%5] pt 7 ps 0.5 t "".Sp[n]."-".A[o]')
+    gplot(f'for [n=nbeg:nend] for [o=obeg:oend] sprintf("{folder}/%03d_%03d.dat", Sp[int(n)], A[int(o)]) us 1:($2+{sep}*int(nbeg==nend?o:n)) lc rgb d3color[1+ int(nbeg==nend?o:n)%5] pt 7 ps 0.5 t "".Sp[n]."-".A[o]')
     # colored y2ticlabel are not really possible :(
     # gplot+('A us (1700):(int(nbeg==nend?$1:0)/3.):2:(d3color[1+ int(nbeg==nend?$1:n)%5]) with labels tc rgb var')
     # gplot+('A us (NaN):(int(nbeg==nend?$1:0)/3.):yticlabel(2) t ""')
@@ -295,12 +295,15 @@ def run(cmd=None):
     argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
+    argopt('-ressep', help='Separation between traces (tip: ~5 rms).', default=1., type=float)
 
     args = vars(parser.parse_args(cmd))
 
     resopt = args.pop('res')
+    ressep = args.pop('ressep')
+
     if resopt is not None:
-        plot_res(resopt, o=args['oset'], n=args['nset'])
+        plot_res(resopt, o=args['oset'], n=args['nset'], sep=ressep)
         return
 
     args.pop('nset')
