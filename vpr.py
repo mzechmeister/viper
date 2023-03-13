@@ -227,23 +227,29 @@ class VPR():
         gap = 40   # [m/s] separation between orders
         No = self.orders.size
         # parula http://www.gnuplotting.org/tag/palette + alpha 0x77
-        colors = [0x770072bd, # blue
-                  0x77d95319, # orange
-                  0x77edb120, # yellow
-                  0x777e2f8e, # purple
-                  0x7777ac30, # green
-                  0x774dbeee, # light-blue
-                  0x77a2142f, # red
+        colors = [0x0072bd, # blue
+                  0xd95319, # orange
+                  0xedb120, # yellow
+                  0x7e2f8e, # purple
+                  0x77ac30, # green
+                  0x4dbeee, # light-blue
+                  0xa2142f, # red
                  ]
-        gplot.put('array colors[8] =  %s ' % colors)
-        gplot.bind('''"$" "i=!i; set xlabel i? 'BJD - 2 450 000':'spectrum number n'; repl";  i=0''')
-        gplot.bind('''")" "off = off + 1; repl"; off = 0''')
-        gplot.bind('''"(" "off = off - 1; repl";''')
+        gplot.array(colors=colors, orders=self.orders)
+        gplot.rmar(20)
+        gplot.macro()
 
-        gplot(f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0+1):(column(o+1)-(o-off)*{gap}):{No}+1+o:(colors[(o-1)%7+1]) w e lc rgb var t "",',
-              self.orders, self.stat_o, self.med_e_rvo, f'us (N+2):(o=int($0)+1, -(o-off)*{gap}):(sprintf("%3d (%.2f, %.2f)",$1,($4-$2)/2, $5)):(colors[(o-1)%7+1]-0x77000000) w labels left tc rgb var t "",',
-              self.rms, self.medunc, f'us (N+2):(0):(sprintf("     %.2f m/s (%.2f)",$1, $2)) w labels left t "",',
-              A.BJD, A.RV, A.e_RV, A.A.filename, ' us (i? $1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t ""')
+        do_lbl = ''
+        for i, (o, rms, medunc) in enumerate(zip(self.orders, (self.stat_o[2]-self.stat_o[0])/2, self.med_e_rvo), 1):
+            do_lbl += f'set label {i} "-- {o:3d}: {rms:.2f} ({medunc:.2f})" at graph 1, first ({i}+off)*{gap} tc rgb colors[({i}-1)%7+1]; '
+        gplot.var(alpha=0x77000000, i=0, off=-No//2, do_lbl=f''' '{do_lbl}' ''')
+
+        gplot.bind('''"$" "i = !i; set xlabel i? 'BJD - 2 450 000':'spectrum number n'; repl"; @do_lbl''')
+        gplot.bind('''")" "off = off - 1; @do_lbl; repl"''')
+        gplot.bind('''"(" "off = off + 1; @do_lbl; repl"''')
+
+        gplot(f'for [o=1:{No}]', A.BJD, A.rv-A.RV, self.e_rv, f'us (i? $1-2450000:$0+1):(column(o+1)+(o+off)*{gap}):{No}+1+o:(alpha+colors[(o-1)%7+1]) w e lc rgb var t "",',
+              A.BJD, A.RV, A.e_RV, A.A.filename, f' us (i? $1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "{self.rms:.2f} m/s ({self.medunc:.2f})"')
         pause('nrvo\n')
 
     def save(self, filename):
