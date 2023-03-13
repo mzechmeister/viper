@@ -164,4 +164,4 @@ class Params(nesteddict):
         return p
 
     def vary(self):
-        return {k: v for k,v in self.flat().items() if v.unc is not 0}
+        return {k: v for k,v in self.flat().items() if v.unc != 0}

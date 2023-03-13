@@ -336,6 +336,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if deg_norm_rat:
         # rational polynom
         par.norm += [5e-7] * deg_norm_rat   # a tiny scale hint (zero didn't iterate)
+        #par.norm += [ 5e-7**(i+1) for i in range(deg_norm_rat)]   # a tiny scale hint (zero didn't iterate)
 
     # guess wavelength solution
     par.wave = np.polyfit(pixel_ok-xcen, wave_obs_ok, deg_wave)[::-1]
@@ -363,7 +364,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     elif ip in ('ag', 'agr', 'asg'):
         par.ip += [1.]   # skewness parameter (offset to get iterations)
     elif ip in ('bg',):
-        par.ip += [par_ip[-1]]   # symmetric biGaussian
+        par.ip += [par.ip[-1]]   # symmetric biGaussian
     parguess.ip = par.ip
 
     # set weighting parameter for tellurics
