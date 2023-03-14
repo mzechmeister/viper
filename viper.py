@@ -288,7 +288,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             ind_H2O[np.asarray(molec)=='H2O'] = 1
 
             if len(par_atm[ind_H2O==1]) != 0:
-                specs_molec = [specs_molec[ind_H2O==1][0], np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(4,1), axis=0)]
+                specs_molec = [specs_molec[ind_H2O==1][0], np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(-1,1), axis=0)]
                 par_atm = [(1, np.inf),(1, np.inf)]
 
             else:
