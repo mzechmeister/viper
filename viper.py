@@ -266,30 +266,39 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     specs_molec = []
     par_atm = parfix_atm = []
     if 'add' in telluric:
-        molec_pres = []   # present molecules in given wavelength range
         # select present molecules for telluric forward modeling
         specs_molec = np.zeros((0, len(lnwave_j)))
         for mol in range(len(molec)):
             s_mol = slice(*np.searchsorted(wave_atm_all[mol], [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
             spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
+            specs_molec = np.r_[specs_molec, [spec_mol]]
             # chose just present molecules in wavelength range
             if np.nanstd(spec_mol) > 0.0001:
-                specs_molec = np.r_[specs_molec, [spec_mol]]
-                molec_pres.append(molec[mol])
+                par_atm.append((1, np.inf))
+            else:
+                par_atm.append((np.nan, 0))	# fix parameter
 
         if telluric == 'add2' and len(molec) > 1:
             # use combined coeff for all non-water tellurics instead of one for each molecule
             # water tellurics grow with airmass and pwv
-            # non-water telluics grow with airmass and dpened on seasonal changes
-            if 'H2O' in molec_pres:
-                specs_molec = [specs_molec[np.asarray(molec_pres)=='H2O'][0], np.prod(specs_molec[np.asarray(molec_pres)!='H2O'],axis=0)]
+            # non-water telluics grow with airmass and depend on seasonal changes
+            par_atm = np.asarray(par_atm)
+            ind_H2O = np.zeros(len(molec))
+            ind_H2O[np.asarray(molec)=='H2O'] = 1
+
+            if len(par_atm[ind_H2O==1]) != 0:
+                specs_molec = [specs_molec[ind_H2O==1][0], np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(4,1), axis=0)]
+                par_atm = [(1, np.inf),(1, np.inf)]
+
             else:
-                specs_molec = np.prod(specs_molec[np.asarray(molec_pres)!='H2O'],axis=0)
+                specs_molec = np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(4,1),axis=0)
+                par_atm = [(1, np.inf)]
 
         # parameter to scale each telluric model:
         # add parameter for telluric position shift if selected
-        par_atm = parfix_atm = np.ones(len(specs_molec)+int(tellshift))
+        if tellshift:
+            par_atm.append((1, np.inf))
 
     if demo & 1:
         # pre-look raw input
@@ -909,4 +918,3 @@ if not createtpl and (look in orders or lookfast in orders):
     vpr.plot_RV(tag+'.rvo.dat')
 if look in orders:
     pause(tag, 'done.')
-
