@@ -277,6 +277,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             if np.nanstd(spec_mol) > 0.0001:
                 par_atm.append((1, np.inf))
             else:
+                # fix parameter and set it to nan if molecule is not present in order
                 par_atm.append((np.nan, 0))	# fix parameter
 
         if telluric == 'add2' and len(molec) > 1:
@@ -284,18 +285,15 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             # water tellurics grow with airmass and pwv
             # non-water telluics grow with airmass and depend on seasonal changes
             par_atm = np.asarray(par_atm)
-            ind_H2O = np.zeros(len(molec))
-            ind_H2O[np.asarray(molec)=='H2O'] = 1
+            idx_H2O = np.asarray(molec) == 'H2O'
 
-            if len(par_atm[ind_H2O==1]) != 0:
-                specs_molec = [specs_molec[ind_H2O==1][0], np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(-1,1), axis=0)]
+            if any(idx_H2O):
+                specs_molec = [specs_molec[idx_H2O][0], np.nanprod(specs_molec[~idx_H2O]*(par_atm[~idx_H2O][:,0]).reshape(-1,1), axis=0)]
                 par_atm = [(1, np.inf),(1, np.inf)]
-
             else:
-                specs_molec = np.nanprod(specs_molec[ind_H2O==0]*(par_atm[ind_H2O==0][:,0]).reshape(4,1),axis=0)
+                specs_molec = np.nanprod(specs_molec[~idx_H2O]*(par_atm[~idx_H2O][:,0]).reshape(-1,1),axis=0)
                 par_atm = [(1, np.inf)]
-
-        # parameter to scale each telluric model:
+               
         # add parameter for telluric position shift if selected
         if tellshift:
             par_atm.append((1, np.inf))
