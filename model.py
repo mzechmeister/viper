@@ -148,9 +148,7 @@ class model:
 
         if len(self.fluxes_molec):
             # telluric forward modelling
-            flux_atm = np.ones(len(self.fluxes_molec[0]))
-            for coeff_mol, flux_mol in zip(coeff_atm, self.fluxes_molec):
-                flux_atm *= flux_mol**np.abs(coeff_mol)
+            flux_atm = np.nanprod(np.power(self.fluxes_molec, np.abs(coeff_atm[:len(self.fluxes_molec)])[:, np.newaxis]), axis=0)
 
             # variable telluric wavelength shift; one shift for all molecules
             if len(coeff_atm) == len(self.fluxes_molec)+1:
