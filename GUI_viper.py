@@ -12,6 +12,7 @@ from tkinter import ttk
 from gplot import *
 import numpy as np
 import importlib
+from tkinter.scrolledtext import ScrolledText
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -31,14 +32,10 @@ def bt_start():
     x = 2 * np.ones(len(cb_demo))
     demo = np.poly1d(ar_demo[::-1])(x)[0]
 
-    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() #+" -molec "+e_molec.get() 
+    str_arg = e_dat.get()+"' "+e_tpl.get()+" -inst "+combo_inst.get()+" -deg_norm "+e_deg_norm.get()+" -deg_wave "+e_deg_wave.get()+" -deg_bkg "+e_deg_bkg.get()+" -nset "+str(e_nset.get())+" -oset "+e_oset.get()+" -chunks "+e_ch.get()+" -demo "+str(int(demo))+" -rv_guess "+e_vg.get() +" -ip "+combo_ip.get() +" -iphs "+e_iphs.get() +" -tsig "+ e_tsig.get() +" -vcut "+e_vcut.get() 
 
-#+" -atmmask "+str(cb_atmmask.get()) +" -atmmod "+str(cb_atmmod.get())
-
-    if combo_stepRV.get():
-        str_arg += " -stepRV " + str(combo_stepRV.get())
-    if combo_tell.get():
-        str_arg += " -telluric " + str(combo_tell.get())
+ #   if combo_stepRV.get():
+  #      str_arg += " -stepRV " + str(combo_stepRV.get())
     if e_kapsig.get():
         str_arg += " -kapsig "+ str(e_kapsig.get()) 
     if cb_lookpar.get():
@@ -73,14 +70,19 @@ def bt_start():
         str_arg += " -fts " + viperdir + e_cell.get()
     else:
         str_arg += " -nocell " 
-    str_arg += " -molec "
-    if combo_inst.get() in ('TLS', 'CES', 'OES', 'KECK'):
-        cb_atm2, molec2 = cb_atm[:2], molec[:2]
-    elif combo_inst.get() in ('CRIRES', 'cplCRIRES'):
-        cb_atm2, molec2 = cb_atm[2:], molec[2:]
-    for m, atm in enumerate(cb_atm2):        
-        if atm.get():
-             str_arg += str(molec2[m])+" "
+    if combo_tell.get():
+        str_arg += " -telluric " + str(combo_tell.get())
+        str_arg += " -molec "
+        if combo_inst.get() in ('TLS', 'CES', 'OES', 'KECK'):
+            cb_atm2, molec2 = cb_atm[:2], molec[:2]
+        elif combo_inst.get() in ('CRIRES', 'cplCRIRES'):
+            cb_atm2, molec2 = cb_atm[2:], molec[2:]
+        for m, atm in enumerate(cb_atm2):        
+            if atm.get():
+                str_arg += str(molec2[m])+" "
+
+    e_run.delete('0.0', END)
+    e_run.insert(INSERT,"python3 viper.py "+str_arg)
 
     print(str_arg)
 
@@ -108,7 +110,6 @@ def new(event):
     fr1.config(width=win_width-40)
     fr2.config(width=(win_width-46)/2)
     fr3.config(width=(win_width-46)/2)
-    fr4.config(width=(win_width-46)/2)
 
 def FTS_default(*args):
     Inst = importlib.import_module('inst.inst_'+combo_inst.get())
@@ -125,10 +126,10 @@ font_size = 12
 bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
-win_width = 940     # width of GUI window	# 840
-win_high = 760      # height of GUI window	# 630
+win_width = 1060     # width of GUI window	
+win_high = 780      # height of GUI window	
 xy0 = 20
-y1 = 5
+y1 = 3
 x1 = 10
 
 win = Tk()
@@ -140,11 +141,13 @@ win.configure(background=bg_color)
 ###### FRAMES #######
 win.bind("<Configure>", new)
 win.columnconfigure(0, weight=1)
-win.columnconfigure(3, weight=1)
-#win.rowconfigure(0, weight=1)
+win.columnconfigure(2, weight=1)
+win.rowconfigure(3, weight=1)
 
 # options: solid, sunken, ridge, groove, raised
 # groove, ridge need bd=2 or more
+
+# Frame for data input
 fr1 = Frame(win, height=168, width=win_width-40, bg=bg_frame, bd=2, relief='groove')
 fr1.grid(row=0, column = 1, sticky="nw",padx=20,pady=(xy0,6), columnspan=2)
 fr1.grid_propagate(False)
@@ -153,33 +156,52 @@ fr1.grid_columnconfigure(4, weight=1)
 fr1.grid_rowconfigure(0, weight=1)
 fr1.grid_rowconfigure(5, weight=1)
 
-fr2 = Frame(master=win, height=428, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
-fr2.grid(row=1, column = 1, sticky="nw",padx=(xy0,6),pady=0, rowspan=2)
+# Frame for parameter selection data reduction
+fr2 = Frame(master=win, height=568, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
+fr2.grid(row=1, column = 1, sticky="nw",padx=(xy0,6),pady=0, rowspan=4)
 fr2.grid_propagate(False)
+fr2.grid_columnconfigure(0, weight=1)
 fr2.grid_columnconfigure(1, weight=1)
-fr2.grid_columnconfigure(3, weight=1)
-#fr2.grid_rowconfigure(0, weight=1)
 
-fr3 = Frame(master=win, height=303, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
+# Frame for parameter selection plotting
+fr3 = Frame(master=win, height=273, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
 fr3.grid(row=1, column = 2, sticky="nw",padx=(0, xy0),pady=0)
 fr3.grid_propagate(False)
 fr3.grid_columnconfigure(0, weight=1)
 fr3.grid_columnconfigure(1, weight=1)
 
-fr4 = Frame(master=win, height=185, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
-fr4.grid(row=2, column = 2, sticky="nw",padx=(0, xy0),pady=(6,0))
-fr4.grid_propagate(False)
+# Sub-Frames of fr2
+lfr_data = LabelFrame(fr2, text="Data", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_data.grid(row=1, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
 
+lfr_model = LabelFrame(fr2, text="Model", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_model.grid(row=1, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
+
+lfr_tpl = LabelFrame(fr2, text="Template", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_tpl.grid(row=2, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
+
+lfr_stat = LabelFrame(fr2, text="Fit Parameters", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_stat.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
+
+lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
+
+
+for lfr in [lfr_data, lfr_tpl, lfr_model, lfr_stat, lfr_tell]:
+    lfr.grid_columnconfigure(1, weight=1)
+
+for c in range(0,5,1):
+    lfr_tell.grid_columnconfigure(c, weight=1)
 
 ###### BUTTONS ######
 
 ttk.Style().configure("TButton", padding=2,   background="#fdfdfd", font=(font_type,font_size,'bold'), borderwidth =2)
 
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
-b_exit.grid(row=3, column=2, sticky="ne", padx=(0,xy0), pady = xy0)
+b_exit.grid(row=4, column=2, sticky="se", padx=(0,xy0), pady = 20)
 
 b_go = ttk.Button(master=win, text='Start', command = bt_start)
-b_go.grid(row=3, column=2, sticky="ne", padx=(0,130), pady = xy0)
+b_go.grid(row=4, column=2, sticky="se", padx=(0,130), pady = 20)
 
 b_dat = Button(fr1, text='Search data file', command = lambda: bt_file(e_dat), background="#fdfdfd", width=15)
 b_dat.grid(row=1, column=7, sticky="nw", padx=xy0)
@@ -216,57 +238,56 @@ e_targ.grid(row=5, column=4, sticky="nw", padx=x1, pady=y1)
 e_tag = Entry(fr1, width=35)
 e_tag.grid(row=5, column=6, sticky="nw", padx=xy0, pady=y1, columnspan=2)
 
-e_nset = Entry(fr2)#, width=15)
+e_nset = Entry(lfr_data)#, width=15)
 e_nset.insert(0, ':1')
-e_nset.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+e_nset.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-e_oset = Entry(fr2)
+e_oset = Entry(lfr_data)
 e_oset.insert(0, '20')
-e_oset.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+e_oset.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-e_ch = Entry(fr2)
+e_ch = Entry(lfr_data)
 e_ch.insert(0, '1')
-e_ch.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+e_ch.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-e_deg_norm = Entry(fr2)
-e_deg_norm.insert(0, '3')
-e_deg_norm.grid(row=5, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
-
-e_deg_wave = Entry(fr2)
-e_deg_wave.insert(0, '3')
-e_deg_wave.grid(row=6, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
-
-e_deg_bkg = Entry(fr2)
-e_deg_bkg.insert(0, '1')
-e_deg_bkg.grid(row=7, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
-
-e_tsig = Entry(fr2)
-e_tsig.insert(0, '1')
-e_tsig.grid(row=8, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
-
-e_iphs = Entry(fr2)
-e_iphs.insert(0, '50')
-e_iphs.grid(row=2, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
-
-e_vg = Entry(fr2)
-e_vg.insert(0, '1')
-e_vg.grid(row=3, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
-
-e_vcut = Entry(fr2)
+e_vcut = Entry(lfr_data)
 e_vcut.insert(0, '100')
-e_vcut.grid(row=4, column=3, sticky="nw", padx=(x1,xy0), pady=(y1,0))
+e_vcut.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
-e_kapsig = Entry(fr2)
-e_kapsig.insert(0, '4.5')
-e_kapsig.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+e_iphs = Entry(lfr_model)
+e_iphs.insert(0, '50')
+e_iphs.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
-e_overs = Entry(fr2)
+e_deg_norm = Entry(lfr_model)
+e_deg_norm.insert(0, '3')
+e_deg_norm.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
+
+e_deg_wave = Entry(lfr_model)
+e_deg_wave.insert(0, '3')
+e_deg_wave.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
+
+e_deg_bkg = Entry(lfr_model)
+e_deg_bkg.insert(0, '1')
+e_deg_bkg.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
+
+e_vg = Entry(lfr_tpl)
+e_vg.insert(0, '1')
+e_vg.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=(0,0))
+
+e_overs = Entry(lfr_tpl)
 e_overs.insert(0, '1')
-e_overs.grid(row=5, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+e_overs.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=0)
 
-#e_molec = Entry(fr4)
-#e_molec.insert(0, 'all')
-#e_molec.grid(row=2, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=3)
+e_kapsig = Entry(lfr_stat)
+e_kapsig.insert(0, '4.5')
+e_kapsig.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+
+e_tsig = Entry(lfr_tell, width=8)
+e_tsig.insert(0, '1')
+e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+
+e_run = ScrolledText(win, background=bg_frame)
+e_run.grid(row=3, column = 2, sticky="nw",padx=(0, xy0),pady=(0,10))
 
 ###### COMBOBOXES ######
 
@@ -275,17 +296,17 @@ combo_inst.set('TLS')
 combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
 combo_inst.bind('<<ComboboxSelected>>', lambda event: FTS_default())
 
-combo_ip = ttk.Combobox(fr2, values=['g', 'ag', 'agr', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
+combo_ip = ttk.Combobox(lfr_model, values=['g', 'ag', 'agr', 'bg', 'mcg', 'mg', 'sg', 'bnd'])
 combo_ip.set('g')
-combo_ip.grid(row=1, column=3, sticky="nw", padx=(x1,xy0), pady=y1)
+combo_ip.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-combo_stepRV = ttk.Combobox(fr2, values=['', 'a', 'm'])
-combo_stepRV.set('')
-combo_stepRV.grid(row=6, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+#combo_stepRV = ttk.Combobox(fr2, values=['', 'a', 'm'])
+#combo_stepRV.set('')
+#combo_stepRV.grid(row=6, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-combo_tell = ttk.Combobox(fr2, values=['', 'add', 'add2', 'mask', 'sig'])
+combo_tell = ttk.Combobox(lfr_tell, values=['', 'add', 'add2', 'mask', 'sig'], width=6)
 combo_tell.set('')
-combo_tell.grid(row=7, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+combo_tell.grid(row=0, column=1, sticky="nw", padx=(x1), pady=y1, columnspan=2)
 
 ###### CHECKBOXES ######
 
@@ -299,15 +320,31 @@ cb_flagfile = IntVar()
 ttk.Checkbutton(fr1, text="   flag file:", variable=cb_flagfile).grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
 
 cb_wgt = IntVar()
-ttk.Checkbutton(fr2, text="     weighted error", variable=cb_wgt).grid(row=8, column=2, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+ttk.Checkbutton(lfr_stat, text="     weighted error", variable=cb_wgt).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
 
 #cb_nocell = IntVar()
 #ttk.Checkbutton(fr2, text="     no cell", variable=cb_nocell).grid(row=x1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_createtpl = IntVar()
-ttk.Checkbutton(fr2, text="     create tpl", variable=cb_createtpl).grid(row=x1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tpl, text="     create tpl", variable=cb_createtpl).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
 cb_tellshift = IntVar()
-ttk.Checkbutton(fr2, text="     tell shift", variable=cb_tellshift).grid(row=11, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
+ttk.Checkbutton(lfr_tell, text="     tell shift", variable=cb_tellshift).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+
+cb_atm = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
+ttk.Checkbutton(lfr_tell, text="   H2O", variable=cb_atm[0]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tell, text="   O2", variable=cb_atm[1]).grid(row=4, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+
+ttk.Checkbutton(lfr_tell, text="   H2O", variable=cb_atm[2]).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tell, text="   CH4", variable=cb_atm[3]).grid(row=6, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tell, text="   CO", variable=cb_atm[4]).grid(row=6, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tell, text="   CO2", variable=cb_atm[5]).grid(row=6, column=3, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_tell, text="   N2O", variable=cb_atm[6]).grid(row=6, column=4, sticky="nw", padx=(xy0,x1), pady=y1)
+
+molec = ['H2O', 'O2', 'H2O', 'CH4', 'CO', 'CO2', 'N2O']
+for mol in cb_atm:
+    mol.set(1)
+
+# plotting options
 cb_demo = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
 ttk.Checkbutton(fr3, text="     raw data", variable=cb_demo[0]).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(fr3, text="     plot IP", variable=cb_demo[1]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
@@ -325,27 +362,13 @@ ttk.Checkbutton(fr3, text="     lookres", variable=cb_lookres).grid(row=5, colum
 cb_infoprec = IntVar()
 ttk.Checkbutton(fr3, text="     infoprec", variable=cb_infoprec).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookfast = IntVar()
+
 ttk.Checkbutton(fr3, text="     lookfast", variable=cb_lookfast).grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookfast.set(1)
 cb_look = IntVar()
 ttk.Checkbutton(fr3, text="     look", variable=cb_look).grid(row=8, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
 
-cb_atm = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
-ttk.Checkbutton(fr4, text="   H2O", variable=cb_atm[0]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr4, text="   O2", variable=cb_atm[1]).grid(row=2, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
-
-ttk.Checkbutton(fr4, text="   H2O", variable=cb_atm[2]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr4, text="   CH4", variable=cb_atm[3]).grid(row=4, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr4, text="   CO", variable=cb_atm[4]).grid(row=4, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr4, text="   CO2", variable=cb_atm[5]).grid(row=4, column=3, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr4, text="   N2O", variable=cb_atm[6]).grid(row=4, column=4, sticky="nw", padx=(xy0,x1), pady=y1)
-
-molec = ['H2O', 'O2', 'H2O', 'CH4', 'CO', 'CO2', 'N2O']
-for mol in cb_atm:
-    mol.set(1)
-
 ###### LABELS ######
-
 
 Label(fr1, text='data files', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=x1, pady=y1)
 Label(fr1, text='template file', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=2, column=0, sticky="nw", padx=x1, pady=y1)
@@ -355,35 +378,37 @@ Label(fr1, text='spectrograph:', background=bg_frame).grid(row=5, column=0, stic
 Label(fr1, text='targ:', background=bg_frame).grid(row=5, column=3, sticky="nw", padx=xy0, pady=y1)
 Label(fr1, text='tag:', background=bg_frame).grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
 
-Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
-Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=3)
-Label(fr2, text='Advanced', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=9, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
+Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
 
-Label(fr4, text='Molecular specifies (for telluric add)', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(xy0,y1), columnspan=5)
-Label(fr4, text='Optical (TLS, CES, OES, KECK):', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=5)
-Label(fr4, text='Near Infrared (CRIRES+):', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=5)
 
-Label(fr2, text='nset:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr2, text='oset:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr2, text='chunks:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_data, text='nset:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_data, text='oset:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_data, text='chunks:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_data,text='vcut:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=(y1))
 
-Label(fr2,text='IP:', background=bg_frame).grid(row=1, column=2, sticky="nw", padx=x1, pady=y1)
-Label(fr2,text='iphs:', background=bg_frame).grid(row=2, column=2, sticky="nw", padx=x1, pady=y1)
-Label(fr2,text='rvguess:', background=bg_frame).grid(row=3, column=2, sticky="nw", padx=x1, pady=y1)
-Label(fr2,text='vcut:', background=bg_frame).grid(row=4, column=2, sticky="nw", padx=x1, pady=y1)
+Label(lfr_model,text='IP:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_model,text='iphs:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_model,text='deg_norm:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_model,text='deg_wave:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_model,text='deg_bkg:', background=bg_frame).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
-Label(fr2,text='deg_norm:', background=bg_frame).grid(row=5, column=2, sticky="nw", padx=x1, pady=y1)
-Label(fr2,text='deg_wave:', background=bg_frame).grid(row=6, column=2, sticky="nw", padx=x1, pady=y1)
-Label(fr2,text='deg_bkg:', background=bg_frame).grid(row=7, column=2, sticky="nw", padx=x1, pady=y1)
+Label(lfr_tpl,text='rvguess:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_tpl,text='oversampl:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
-Label(fr2,text='kapsig:', background=bg_frame).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr2,text='oversampl:', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr2,text='stepRV:', background=bg_frame).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Label(lfr_stat,text='kapsig:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
-Label(fr2,text='telluric:', background=bg_frame).grid(row=7, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(fr2,text='tsig:', background=bg_frame).grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+#Label(fr2,text='stepRV:', background=bg_frame).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+
+Label(lfr_tell,text='telluric:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+Label(lfr_tell,text='tsig:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+
+Label(lfr_tell, text='Optical molecules (TLS, CES, OES, KECK):', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
+Label(lfr_tell, text='Near Infrared molecules (CRIRES+):', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
 
 Label(fr3, text='Plot fitted chunks', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=7, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+
+Label(master=win, text='Current command:', background=bg_color).grid(row=2, column = 2, sticky="nw",padx=(0, xy0),pady=10)
 
 ###### MAIN ######
 FTS_default()
