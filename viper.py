@@ -285,13 +285,13 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             # water tellurics grow with airmass and pwv
             # non-water telluics grow with airmass and depend on seasonal changes
             par_atm = np.asarray(par_atm)
-            idx_H2O = np.asarray(molec) == 'H2O'
+            is_H2O = np.asarray(molec) == 'H2O'
 
-            if any(idx_H2O):
-                specs_molec = [specs_molec[idx_H2O][0], np.nanprod(specs_molec[~idx_H2O]*(par_atm[~idx_H2O][:,0]).reshape(-1,1), axis=0)]
+            if any(is_H2O):
+                specs_molec = [specs_molec[is_H2O][0], np.nanprod(specs_molec[~is_H2O]*(par_atm[~is_H2O][:,0]).reshape(-1,1), axis=0)]
                 par_atm = [(1, np.inf),(1, np.inf)]
             else:
-                specs_molec = np.nanprod(specs_molec[~idx_H2O]*(par_atm[~idx_H2O][:,0]).reshape(-1,1),axis=0)
+                specs_molec = np.nanprod(specs_molec[~is_H2O]*(par_atm[~is_H2O][:,0]).reshape(-1,1),axis=0)
                 par_atm = [(1, np.inf)]
                
         # add parameter for telluric position shift if selected
