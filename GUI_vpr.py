@@ -8,11 +8,14 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+from hbox import Help_Box
 
 import numpy as np
 import sys
 import vpr
 vpr.pause = print   # mainloop of the gui will pause
+
+viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
 ###### FUNCIONS BUTTONS ######
 
@@ -108,6 +111,14 @@ def bt_swap():
     filename2.set(f1)
     refresh_oset('12')
     update_changes()
+
+def text_from_file(text):
+     with open(viperdir+"vpr.py") as search:
+         for line in search:
+             line = line.rstrip()  
+             if text in line:
+                  infotext = (line.split('help')[1]).split("'")[1]
+     return infotext
 
 
 cbo1, cbo2 = [], []			# oset checkboxes
@@ -367,13 +378,19 @@ combo_avg.grid(row=0, column=1, sticky="nw", padx=xy0, pady=(5,0))
 ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)
 
 cb_ocen = IntVar()
-ttk.Checkbutton(lfr_cen, text="     ocen rvo 1", variable=cb_ocen).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_ocen1 = ttk.Checkbutton(lfr_cen, text="     ocen rvo 1", variable=cb_ocen)
+l_ocen1.grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_ocen1, text = text_from_file("'-ocen'"))
 
 cb_cmpocen = IntVar()
-ttk.Checkbutton(lfr_cen, text="     ocen rvo 2", variable=cb_cmpocen).grid(row=2, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_ocen2 = ttk.Checkbutton(lfr_cen, text="     ocen rvo 2", variable=cb_cmpocen)
+l_ocen2.grid(row=2, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_ocen2, text = text_from_file("'-cmpocen'"))
 
 cb_cen = IntVar()
-ttk.Checkbutton(lfr_cen, text="     cen RVs to zero median", variable=cb_cen).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_cen = ttk.Checkbutton(lfr_cen, text="     cen RVs to zero median", variable=cb_cen)
+l_cen.grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_cen, text = text_from_file("'-cen'"))
 
 cb_cen.trace("w", update_changes)
 cb_ocen.trace("w", update_changes)
@@ -386,12 +403,21 @@ Label(frm_rv1, text='rvo file 1', font=(font_type, font_size, 'bold'), backgroun
 
 Label(frm_rv1, text='rvo file 2', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=5)
 
-Label(lfr_plot, text='sort by:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
-Label(lfr_plot, text='offset rvo:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_sort = Label(lfr_plot, text='sort by:', background=bg_frame)
+l_sort.grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_sort, text = text_from_file("'-sort'"))
 
-Label(lfr_other, text='average:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_off = Label(lfr_plot, text='offset rvo:', background=bg_frame)
+l_off.grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_off, text = text_from_file("'-offset'"))
 
-Label(lfr_other, text='output:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+l_aver = Label(lfr_other, text='average:', background=bg_frame)
+l_aver.grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_aver, text = text_from_file("'-avg'"))
+
+l_out = Label(lfr_other, text='output:', background=bg_frame)
+l_out.grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Help_Box(widget = l_out, text = text_from_file("'-save'"))
 
 Label(frm_res, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0)
 
