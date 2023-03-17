@@ -120,12 +120,12 @@ def refresh_oset(num):
         if e_rvo1.get():
             global cb_orders1, cbo1, o_rvo1 
             o_rvo1 = get_orders(e_rvo1.get())
-            cb_orders1, cbo1 = create_cb(o_rvo1, cbo1, cb_orders1, 0)
+            cb_orders1, cbo1 = create_cb(o_rvo1, cbo1, cb_orders1, lfr_oset1)
     if '2' in num:
         if e_rvo2.get():
             global cb_orders2, cbo2, o_rvo2 
             o_rvo2 = get_orders(e_rvo2.get())
-            cb_orders2, cbo2 = create_cb(o_rvo2, cbo2, cb_orders2, 4)
+            cb_orders2, cbo2 = create_cb(o_rvo2, cbo2, cb_orders2, lfr_oset2)
 
 def set_oset(cb_orders, value):
     # set all oset variables to one value
@@ -147,7 +147,7 @@ def get_orders(file):
 
     return orders_all
 
-def create_cb(orders_all, cbo, cb_orders, pos):
+def create_cb(orders_all, cbo, cb_orders, frm):
     # creates checkboxes for oset
     if cbo != []:
         # delete old checkboxes
@@ -158,9 +158,9 @@ def create_cb(orders_all, cbo, cb_orders, pos):
 
     for i, o in enumerate(orders_all):
         cb_orders.append(IntVar())
-        yi, xi =  divmod(i, 10)
-        c = ttk.Checkbutton(frm_rv2, text="  "+str(o),  variable=cb_orders[i])
-        c.grid(row=4+yi+pos, column=xi, sticky="nw", padx=15, pady=2)
+        yi, xi =  divmod(i, 5)
+        c = ttk.Checkbutton(frm, text="  "+str(o),  variable=cb_orders[i])
+        c.grid(row=yi, column=xi, sticky="nw", padx=15, pady=2)
         cbo.append(c)
         cb_orders[i].set(1)
         cb_orders[i].trace("w", update_changes)
@@ -179,7 +179,7 @@ bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
 
 win_width = 840     # width of GUI window
-win_high = 710      # height of GUI window
+win_high = 820      # height of GUI window
 
 win = Tk()
 win.title('Gui VPR')
@@ -219,26 +219,43 @@ def new(event):
 win.bind("<Configure>", new)
 win.columnconfigure(0, weight=1)
 
+# Frame of RV Tab
 frm_rv = Frame(tab_rv, height=fr_high, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
-frm_rv.grid(row=0, column = 0, sticky="nw",padx=10,pady=10)
+frm_rv.grid(row=0, column = 0, sticky="news",padx=10,pady=10)
 frm_rv.grid_propagate(False)
+frm_rv.columnconfigure(0, weight=1)
+frm_rv.columnconfigure(1, weight=1)
 
-frm_rv1 = Frame(frm_rv, bg=bg_frame, bd=0)
-frm_rv1.pack(padx=10, pady=(10,0), fill='both', side='top')
-frm_rv1.grid_columnconfigure(0, weight=1)
-frm_rv1.grid_columnconfigure(3, weight=1)
+# Frame reading in rvo files
+frm_rv1 = Frame(frm_rv, bg=bg_frame, bd=2, relief='groove')
+#frm_rv1.pack(padx=10, pady=(10,10), ipady = (3), fill='both', side='top')
+frm_rv1.grid(row=0, column=0, sticky="news", padx=10, pady=10, ipady=5, columnspan=2)
+frm_rv1.grid_columnconfigure(1, weight=1)
 
-frm_rv2 = Frame(frm_rv, height=200, width=win_width-20, bg=bg_frame, bd=0, relief='groove')
-frm_rv2.pack(padx=10, fill='both', side='top')
+# Sub Frames for parameters
+lfr_oset1 = LabelFrame(frm_rv, text="oset rvo 1", bg=bg_frame, bd=2)
+lfr_oset1.grid(row=1, column=0, sticky="news", padx=(10,0), pady=5, ipady=5, columnspan=1)
 
-for cc in range(0,10,1):
-    frm_rv2.grid_columnconfigure(cc, weight=1)
+lfr_oset2 = LabelFrame(frm_rv, text="oset rvo 2", bg=bg_frame, bd=2)
+lfr_oset2.grid(row=1, column=1, sticky="news", padx=10, pady=5, ipady=5, columnspan=1)
 
-frm_rv3 = Frame(frm_rv, height=200, width=win_width-20, bg=bg_frame, bd=0, relief='groove')
-frm_rv3.pack(padx=10, fill='both', side='top')
-for cc in (1,3,5):
-    frm_rv3.grid_columnconfigure(cc, weight=1)
+lfr_cen = LabelFrame(frm_rv, text="center RV values", bg=bg_frame, bd=2)
+lfr_cen.grid(row=2, column=0, sticky="news", padx=(10,0), pady=5, ipady=5, columnspan=1)
 
+lfr_plot = LabelFrame(frm_rv, text="Plotting Options", bg=bg_frame, bd=2)
+lfr_plot.grid(row=2, column=1, sticky="news", padx=10, pady=5, ipady=5, columnspan=1)
+
+lfr_other = LabelFrame(frm_rv, text="Other", bg=bg_frame, bd=2)
+lfr_other.grid(row=3, column=0, sticky="news", padx=(10,10), pady=5, ipady=5, columnspan=2)
+
+#lfr_other.grid_columnconfigure(1, weight=1)
+#lfr_other.grid_columnconfigure(2, weight=1)
+
+for cc in range(0,5,1):
+    lfr_oset1.grid_columnconfigure(cc, weight=1)
+    lfr_oset2.grid_columnconfigure(cc, weight=1)
+
+# Frame for Residual Tab
 frm_res = Frame(tab_res, height=fr_high, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
 frm_res.grid(row=0, column = 0, sticky="nw",padx=10,pady=10)
 frm_res.grid_propagate(False)
@@ -251,16 +268,19 @@ ttk.Style().configure("B2.TButton", padding=1,   background="#fdfdfd", font=(fon
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
 b_exit.pack(side='right', anchor="s", padx=20, pady = 20)
 
-b_rvo1 = Button(frm_rv1, text='Search data file', command = bt_rvo1, background="#fdfdfd")
-b_rvo1.grid(row=0, column=1, sticky="ne", padx=xy0, pady=(xy0,xy0))
+b_rvo1 = Button(frm_rv1, text='Search data file', command = bt_rvo1, background="#fdfdfd", width=15)
+b_rvo1.grid(row=0, column=2, sticky="ne", padx=xy0, pady=(xy0,3))
 
-b_swap = Button(frm_rv1, text='swap', command = bt_swap, background="#fdfdfd")
-b_swap.grid(row=1, column=2, sticky="ne", padx=xy0)
+b_rvo2 = Button(frm_rv1,text='Search data file', command = bt_rvo2, background="#fdfdfd", width=15)
+b_rvo2.grid(row=1, column=2, sticky="ne", padx=xy0, pady=(5))
 
-b_rvo2 = Button(frm_rv1,text='Search data file', command = bt_rvo2, background="#fdfdfd")
-b_rvo2.grid(row=0, column=4, sticky="ne", padx=xy0, pady=(xy0,xy0))
+b_swap = Button(frm_rv1, text='swap', command = bt_swap, background="#fdfdfd", width=15)
+b_swap.grid(row=2, column=1, sticky="ne", padx=xy0, pady = 0, rowspan=2)
 
-conf = {'side': 'left', 'anchor': 's', 'padx': (20,0), 'pady': 20}
+b_save = ttk.Button(lfr_other, text='Save', command = lambda: call_vpr('-save'))
+b_save.grid(row=1, column=2, sticky="nw", padx=xy0)
+
+conf = {'side': 'right', 'anchor': 's', 'padx': (0,20), 'pady': 20}
 
 b_rvbjd = ttk.Button(frm_rv, text='Plot BJD-RV', command = call_vpr)
 b_rvbjd.pack(**conf)
@@ -271,25 +291,22 @@ b_rvo.pack(**conf)
 b_nrvo = ttk.Button(frm_rv, text='Plot no-rv', command = lambda: call_vpr('-plot nrvo'))
 b_nrvo.pack(**conf)
 
-b_cmp = ttk.Button(frm_rv, text='Compare', command = lambda: call_vpr(cmp=True))
-b_cmp.pack(**{**conf, 'side': 'right', 'padx': 20})
+b_cmp = ttk.Button(frm_rv1, text='Compare', command = lambda: call_vpr(cmp=True), width=15)
+b_cmp.grid(row=2, column=2, sticky="ne", padx=xy0, pady = 0)
+#b_cmp.pack(**{**conf, 'side': 'right', 'padx': 20})
 
-b_save = ttk.Button(frm_rv3, text='Save', command = lambda: call_vpr('-save'))
-b_save.grid(row=2, column=3, sticky="nw", padx=xy0, pady=5)
+b_oset1_a = ttk.Button(lfr_oset1, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 1))
+b_oset1_a.grid(row=8, column=0, sticky="sw", padx=xy0, pady=5, columnspan=2)
+b_oset1_n = ttk.Button(lfr_oset1, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 0))
+b_oset1_n.grid(row=8, column=2, sticky="sw", padx=xy0, pady=5, columnspan=2)
+
+b_oset2_a = ttk.Button(lfr_oset2, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders2, 1))
+b_oset2_a.grid(row=8, column=0, sticky="sw", padx=xy0, pady=5, columnspan=2)
+b_oset2_n = ttk.Button(lfr_oset2, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_orders2, 0))
+b_oset2_n.grid(row=8, column=2, sticky="sw", padx=xy0, pady=5, columnspan=2)
 
 b_res = ttk.Button(frm_res, text='Plot res', command = lambda: call_vpr(res=True))
 b_res.grid(row=xy0, column=2, sticky="se", padx=xy0, pady=(xy0,xy0))
-
-b_oset1_a = ttk.Button(frm_rv2, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 1))
-b_oset1_a.grid(row=2, column=2, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
-b_oset1_n = ttk.Button(frm_rv2, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 0))
-b_oset1_n.grid(row=2, column=4, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
-
-b_oset2_a = ttk.Button(frm_rv2, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders2, 1))
-b_oset2_a.grid(row=7, column=2, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
-b_oset2_n = ttk.Button(frm_rv2, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_orders2, 0))
-b_oset2_n.grid(row=7, column=4, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
-
 
 ###### ENTRIES ######
 
@@ -300,28 +317,28 @@ Label(master=win, text='Current command:').pack(side='top', anchor="w", padx=xy0
 e_run = ScrolledText(win, background='#f0f0f0')
 e_run.pack(side='left', padx=xy0, pady=(0, xy0))
 
-e_rvo1 = Entry(frm_rv1, textvariable=filename1, width=200)
+e_rvo1 = Entry(frm_rv1, textvariable=filename1, width=100)
 e_rvo1.insert(0, 'tmp.rvo.dat')
 e_rvo1.bind("<Return>", (lambda event: update_changes(refresh=1)))
-e_rvo1.grid(row=1, column=0, sticky="nw", padx=xy0, pady=(0,xy0), columnspan=2)
+e_rvo1.grid(row=0, column=1, sticky="new", padx=xy0, pady=(xy0))
 
-e_rvo2 = Entry(frm_rv1, textvariable=filename2, width=200)
+e_rvo2 = Entry(frm_rv1, textvariable=filename2, width=100)
 e_rvo2.insert(0, '')
 e_rvo2.bind("<Return>", (lambda event: update_changes(refresh=2)))
-e_rvo2.grid(row=1, column=3, sticky="nw", padx=xy0, pady=(0,xy0), columnspan=2)
+e_rvo2.grid(row=1, column=1, sticky="new", padx=xy0, pady=(xy0))
 
-e_sort = Entry(frm_rv3, width=xy0)
+e_sort = Entry(lfr_plot, width=10)
 e_sort.insert(0, 'BJD')
-e_sort.grid(row=1, column=3, sticky="nw", padx=xy0, pady=xy0)
+e_sort.grid(row=0, column=1, sticky="nw", padx=xy0, pady=(5,0))
 
-e_offset = Entry(frm_rv3, width=xy0)
+e_offset = Entry(lfr_plot, width=10)
 e_offset.insert(0, 400)
 e_offset.bind("<Return>", (lambda event: update_changes()))
-e_offset.grid(row=1, column=5, sticky="nw", padx=(xy0), pady=xy0)
+e_offset.grid(row=1, column=1, sticky="nw", padx=(xy0), pady=(5,0))
 
-e_out = Entry(frm_rv3, width=30)
+e_out = Entry(lfr_other, width=35)
 e_out.insert(0, 'tmp.dat')
-e_out.grid(row=2, column=1, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
+e_out.grid(row=1, column=1, sticky="nw", padx=xy0, pady=(5,0), columnspan=1)
 
 e_dir = Entry(frm_res)
 e_dir.insert(0, 'res')
@@ -339,10 +356,10 @@ e_oset_r.grid(row=3, column=1, sticky="nw", padx=xy0, pady=xy0)
 
 ###### COMBOBOXES ######
 
-combo_avg = ttk.Combobox(frm_rv3, values=['mean', 'wmean'], width=8)
+combo_avg = ttk.Combobox(lfr_other, values=['mean', 'wmean'], width=8)
 combo_avg.set('wmean')
 combo_avg.bind('<<ComboboxSelected>>', (lambda event: update_changes()))
-combo_avg.grid(row=1, column=1, sticky="nw", padx=xy0, pady=xy0)
+combo_avg.grid(row=0, column=1, sticky="nw", padx=xy0, pady=(5,0))
 
 
 ###### CHECKBOXES ######
@@ -350,13 +367,13 @@ combo_avg.grid(row=1, column=1, sticky="nw", padx=xy0, pady=xy0)
 ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)
 
 cb_ocen = IntVar()
-ttk.Checkbutton(frm_rv3, text="     ocen rvo 1", variable=cb_ocen).grid(row=0, column=2, sticky="nw", padx=xy0, pady=(xy0), columnspan=2)
+ttk.Checkbutton(lfr_cen, text="     ocen rvo 1", variable=cb_ocen).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
 cb_cmpocen = IntVar()
-ttk.Checkbutton(frm_rv3, text="     ocen rvo 2", variable=cb_cmpocen).grid(row=0, column=4, sticky="nw", padx=xy0, pady=(xy0), columnspan=2)
+ttk.Checkbutton(lfr_cen, text="     ocen rvo 2", variable=cb_cmpocen).grid(row=2, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
 cb_cen = IntVar()
-ttk.Checkbutton(frm_rv3, text="     cen RVs to zero median", variable=cb_cen).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(xy0), columnspan=2)
+ttk.Checkbutton(lfr_cen, text="     cen RVs to zero median", variable=cb_cen).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
 cb_cen.trace("w", update_changes)
 cb_ocen.trace("w", update_changes)
@@ -365,18 +382,16 @@ cb_cmpocen.trace("w", update_changes)
 
 ###### LABELS ######
 
-Label(frm_rv1, text='rvo file 1', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0)
+Label(frm_rv1, text='rvo file 1', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=5)
 
-Label(frm_rv1, text='rvo file 2', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=3, sticky="nw", padx=xy0, pady=xy0)
+Label(frm_rv1, text='rvo file 2', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=5)
 
-Label(frm_rv2, text='oset rvo 1:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
-Label(frm_rv2, text='oset rvo 2:', background=bg_frame).grid(row=7, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
+Label(lfr_plot, text='sort by:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
+Label(lfr_plot, text='offset rvo:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
-Label(frm_rv3, text='average:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=xy0)
-Label(frm_rv3, text='sort by:', background=bg_frame).grid(row=1, column=2, sticky="nw", padx=xy0, pady=xy0)
-Label(frm_rv3, text='offset rvo:', background=bg_frame).grid(row=1, column=4, sticky="nw", padx=xy0, pady=xy0)
+Label(lfr_other, text='average:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
-Label(frm_rv3, text='output:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0)
+Label(lfr_other, text='output:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
 
 Label(frm_res, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0)
 
