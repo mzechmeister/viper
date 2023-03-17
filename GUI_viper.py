@@ -39,11 +39,11 @@ def bt_start():
     if e_kapsig.get():
         str_arg += " -kapsig "+ str(e_kapsig.get()) 
     if cb_lookpar.get():
-        str_arg += " -lookpar "
+        str_arg += " -lookpar " + e_lookpar.get()
     if cb_look.get():
-        str_arg += " -look "
+        str_arg += " -look " + e_look.get()
     if cb_lookfast.get():
-        str_arg += " -lookfast "
+        str_arg += " -lookfast " + e_lookfast.get()
     if cb_lookguess.get():
         str_arg += " -lookguess "
     if cb_lookres.get():
@@ -169,11 +169,10 @@ fr2.grid_columnconfigure(0, weight=1)
 fr2.grid_columnconfigure(1, weight=1)
 
 # Frame for parameter selection plotting
-fr3 = Frame(master=win, height=273, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
+fr3 = Frame(master=win, height=338, width=(win_width-46)/2, bg=bg_frame, bd=2, relief='groove')
 fr3.grid(row=1, column = 2, sticky="nw",padx=(0, xy0),pady=0)
 fr3.grid_propagate(False)
 fr3.grid_columnconfigure(0, weight=1)
-fr3.grid_columnconfigure(1, weight=1)
 
 # Sub-Frames of fr2
 lfr_data = LabelFrame(fr2, text="Data", bg=bg_frame, bd=2)#, width=win_width-40)
@@ -191,22 +190,35 @@ lfr_stat.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)#, width=win_width-40)
 lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
 
-
 for lfr in [lfr_data, lfr_tpl, lfr_model, lfr_stat, lfr_tell]:
     lfr.grid_columnconfigure(1, weight=1)
 
 for c in range(0,5,1):
     lfr_tell.grid_columnconfigure(c, weight=1)
 
+# Sub-Frames of fr3
+lfr_plot1 = LabelFrame(fr3, text="Data Analysis", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_plot1.grid(row=1, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5)
+
+lfr_plot2 = LabelFrame(fr3, text="Plot fitted chunks", bg=bg_frame, bd=2)#, width=win_width-40)
+lfr_plot2.grid(row=2, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5)
+
+lfr_plot1.grid_columnconfigure(0, weight=1)
+lfr_plot1.grid_columnconfigure(1, weight=1)
+lfr_plot1.grid_columnconfigure(2, weight=1)
+
+lfr_plot2.grid_columnconfigure(0, weight=1)
+lfr_plot2.grid_columnconfigure(1, weight=1)
+
 ###### BUTTONS ######
 
 ttk.Style().configure("TButton", padding=2,   background=bg_button, font=(font_type,font_size,'bold'), borderwidth =2)
 
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
-b_exit.grid(row=4, column=2, sticky="se", padx=(0,xy0), pady = 20)
+b_exit.grid(row=4, column=2, sticky="se", padx=(0,xy0), pady = (10,20))
 
 b_go = ttk.Button(master=win, text='Start', command = bt_start)
-b_go.grid(row=4, column=2, sticky="se", padx=(0,130), pady = 20)
+b_go.grid(row=4, column=2, sticky="se", padx=(0,130), pady = (10,20))
 
 b_dat = Button(fr1, text='Search data file', command = lambda: bt_file(e_dat), background=bg_button, width=15)
 b_dat.grid(row=1, column=7, sticky="nw", padx=xy0)
@@ -291,8 +303,17 @@ e_tsig = Entry(lfr_tell, width=8)
 e_tsig.insert(0, '1')
 e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
+e_lookpar = Entry(lfr_plot1)
+e_lookpar.grid(row=6, column=1, sticky="news", padx=(10,xy0), pady=y1, columnspan=2)
+
+e_lookfast = Entry(lfr_plot2)
+e_lookfast.grid(row=8, column=1, sticky="news", padx=(0,xy0), pady=y1, columnspan=2)
+
+e_look = Entry(lfr_plot2)
+e_look.grid(row=9, column=1, sticky="news", padx=(0,xy0), pady=y1, columnspan=2)
+
 e_run = ScrolledText(win, background=bg_frame)
-e_run.grid(row=3, column = 2, sticky="news",padx=(0, xy0),pady=(0,10))
+e_run.grid(row=3, column = 2, sticky="news",padx=(0, xy0),pady=(0,5))
 
 ###### COMBOBOXES ######
 
@@ -351,27 +372,27 @@ for mol in cb_atm:
 
 # plotting options
 cb_demo = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
-ttk.Checkbutton(fr3, text="     raw data", variable=cb_demo[0]).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     plot IP", variable=cb_demo[1]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     stellar tpl", variable=cb_demo[2]).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     forward model", variable=cb_demo[3]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     fit continuum", variable=cb_demo[4]).grid(row=1, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     wavelength solution", variable=cb_demo[5]).grid(row=2, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(fr3, text="     fit vguess", variable=cb_demo[6]).grid(row=3, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     raw data", variable=cb_demo[0]).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     plot IP", variable=cb_demo[1]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     stellar tpl", variable=cb_demo[2]).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     forward model", variable=cb_demo[3]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     fit continuum", variable=cb_demo[4]).grid(row=1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     wavelength solution", variable=cb_demo[5]).grid(row=2, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     fit vguess", variable=cb_demo[6]).grid(row=3, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookguess = IntVar()
-ttk.Checkbutton(fr3, text="     lookguess", variable=cb_lookguess).grid(row=4, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
-cb_lookpar = IntVar()
-ttk.Checkbutton(fr3, text="     lookpar", variable=cb_lookpar).grid(row=5, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     lookguess", variable=cb_lookguess).grid(row=4, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookres = IntVar()
-ttk.Checkbutton(fr3, text="     lookres", variable=cb_lookres).grid(row=5, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     lookres", variable=cb_lookres).grid(row=5, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_infoprec = IntVar()
-ttk.Checkbutton(fr3, text="     infoprec", variable=cb_infoprec).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot1, text="     infoprec", variable=cb_infoprec).grid(row=5, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookfast = IntVar()
+cb_lookpar = IntVar()
+ttk.Checkbutton(lfr_plot1, text="     lookpar:", variable=cb_lookpar).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
-ttk.Checkbutton(fr3, text="     lookfast", variable=cb_lookfast).grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot2, text="     lookfast:", variable=cb_lookfast).grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookfast.set(1)
 cb_look = IntVar()
-ttk.Checkbutton(fr3, text="     look", variable=cb_look).grid(row=8, column=1, sticky="nw", padx=(xy0,x1), pady=y1)
+ttk.Checkbutton(lfr_plot2, text="     look:", variable=cb_look).grid(row=9, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
 ###### LABELS ######
 
@@ -384,7 +405,7 @@ Label(fr1, text='targ:', background=bg_frame).grid(row=5, column=3, sticky="nw",
 Label(fr1, text='tag:', background=bg_frame).grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
 
 Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
-Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
+Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1))
 
 
 Label(lfr_data, text='nset:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
@@ -411,7 +432,7 @@ Label(lfr_tell,text='tsig:', background=bg_frame).grid(row=1, column=0, sticky="
 Label(lfr_tell, text='Optical molecules (TLS, CES, OES, KECK):', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
 Label(lfr_tell, text='Near Infrared molecules (CRIRES+):', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
 
-Label(fr3, text='Plot fitted chunks', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=7, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+#Label(fr3, text='Plot fitted chunks', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=7, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
 
 Label(master=win, text='Current command:', background=bg_color).grid(row=2, column = 2, sticky="nw",padx=(0, xy0),pady=10)
 
