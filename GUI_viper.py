@@ -83,6 +83,7 @@ def bt_start():
 
     e_run.delete('0.0', END)
     e_run.insert(INSERT,"python3 viper.py "+str_arg)
+    e_run.update()
 
     print(str_arg)
 
@@ -125,6 +126,10 @@ font_type = 'Arial'
 font_size = 12
 bg_frame = '#f1f1f1'    # bg color big frame
 bg_color = '#e6e1e1'    # bg color small frames
+bg_button = "#fdfdfd"
+#bg_frame = 'SlateGray1'	# bg color small frames
+#bg_color = 'SkyBlue3'		# bg color big frame
+#bg_button = 'alice blue'	# azure
 
 win_width = 1060     # width of GUI window	
 win_high = 780      # height of GUI window	
@@ -195,7 +200,7 @@ for c in range(0,5,1):
 
 ###### BUTTONS ######
 
-ttk.Style().configure("TButton", padding=2,   background="#fdfdfd", font=(font_type,font_size,'bold'), borderwidth =2)
+ttk.Style().configure("TButton", padding=2,   background=bg_button, font=(font_type,font_size,'bold'), borderwidth =2)
 
 b_exit = ttk.Button(master=win, text='EXIT', command = bt_exit)
 b_exit.grid(row=4, column=2, sticky="se", padx=(0,xy0), pady = 20)
@@ -203,16 +208,16 @@ b_exit.grid(row=4, column=2, sticky="se", padx=(0,xy0), pady = 20)
 b_go = ttk.Button(master=win, text='Start', command = bt_start)
 b_go.grid(row=4, column=2, sticky="se", padx=(0,130), pady = 20)
 
-b_dat = Button(fr1, text='Search data file', command = lambda: bt_file(e_dat), background="#fdfdfd", width=15)
+b_dat = Button(fr1, text='Search data file', command = lambda: bt_file(e_dat), background=bg_button, width=15)
 b_dat.grid(row=1, column=7, sticky="nw", padx=xy0)
 
-b_tpl = Button(fr1,text='Search tpl file', command = lambda: bt_file(e_tpl), background="#fdfdfd", width=15)
+b_tpl = Button(fr1,text='Search tpl file', command = lambda: bt_file(e_tpl), background=bg_button, width=15)
 b_tpl.grid(row=2, column=7, sticky="nw", padx=xy0)
 
-b_cell = Button(fr1,text='Search Cell file', command = lambda: bt_file(e_cell), background="#fdfdfd", width=15)
+b_cell = Button(fr1,text='Search Cell file', command = lambda: bt_file(e_cell), background=bg_button, width=15)
 b_cell.grid(row=3, column=7, sticky="nw", padx=xy0)
 
-b_flag = Button(fr1,text='Search flag file', command = lambda: bt_file(e_flag), background="#fdfdfd", width=15)
+b_flag = Button(fr1,text='Search flag file', command = lambda: bt_file(e_flag), background=bg_button, width=15)
 b_flag.grid(row=4, column=7, sticky="nw", padx=xy0)
 
 ###### ENTRIES ######
@@ -287,7 +292,7 @@ e_tsig.insert(0, '1')
 e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
 e_run = ScrolledText(win, background=bg_frame)
-e_run.grid(row=3, column = 2, sticky="nw",padx=(0, xy0),pady=(0,10))
+e_run.grid(row=3, column = 2, sticky="news",padx=(0, xy0),pady=(0,10))
 
 ###### COMBOBOXES ######
 
