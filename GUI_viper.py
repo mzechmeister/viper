@@ -13,6 +13,7 @@ from gplot import *
 import numpy as np
 import importlib
 from tkinter.scrolledtext import ScrolledText
+from hbox import Help_Box
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -95,6 +96,13 @@ def bt_start():
 
     print('---Finished viper.py---')
 
+def text_from_file(text):
+     with open(viperdir+"viper.py") as search:
+         for line in search:
+             line = line.rstrip()  
+             if text in line:
+                  infotext = (line.split('help')[1]).split("'")[1]
+     return infotext
 
 def bt_file(e_file):
     file = askopenfilename(master=win)
@@ -339,22 +347,32 @@ combo_tell.grid(row=0, column=1, sticky="nw", padx=(x1), pady=y1, columnspan=2)
 ttk.Style().configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)
 
 cb_cell = IntVar()
-ttk.Checkbutton(fr1, text="   Cell file:", variable=cb_cell).grid(row=3, column=0, sticky="nw", padx=x1, pady=y1)
-cb_cell.set(1)
+l_cell = ttk.Checkbutton(fr1, text="   Cell file:", variable=cb_cell)
+l_cell.grid(row=3, column=0, sticky="nw", padx=x1, pady=y1)
+Help_Box(widget = l_cell, text = text_from_file("'-fts'") + " If checkbox is unset, no use of cell FTS for the modelling.")
+cb_cell.set(1) 
 
 cb_flagfile = IntVar()
-ttk.Checkbutton(fr1, text="   flag file:", variable=cb_flagfile).grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
+l_flag = ttk.Checkbutton(fr1, text="   flag file:", variable=cb_flagfile)
+l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
+Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
 cb_wgt = IntVar()
-ttk.Checkbutton(lfr_stat, text="     weighted error", variable=cb_wgt).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+l_wei = ttk.Checkbutton(lfr_stat, text="     weighted error", variable=cb_wgt)
+l_wei.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+Help_Box(widget = l_wei, text = text_from_file("'-wgt'"))
 
 #cb_nocell = IntVar()
 #ttk.Checkbutton(fr2, text="     no cell", variable=cb_nocell).grid(row=x1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_createtpl = IntVar()
-ttk.Checkbutton(lfr_tpl, text="     create tpl", variable=cb_createtpl).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+l_create = ttk.Checkbutton(lfr_tpl, text="     create tpl", variable=cb_createtpl)
+l_create.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
 cb_tellshift = IntVar()
+Help_Box(widget = l_create, text = text_from_file("'-createtpl'"))
 
-ttk.Checkbutton(lfr_tell, text="     tell shift", variable=cb_tellshift).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+l_tshift = ttk.Checkbutton(lfr_tell, text="     tell shift", variable=cb_tellshift)
+l_tshift.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+Help_Box(widget = l_tshift, text = text_from_file("'-tellshift'"))
 
 cb_atm = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
 ttk.Checkbutton(lfr_tell, text="   H2O", variable=cb_atm[0]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
@@ -372,62 +390,114 @@ for mol in cb_atm:
 
 # plotting options
 cb_demo = [IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()]
-ttk.Checkbutton(lfr_plot1, text="     raw data", variable=cb_demo[0]).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(lfr_plot1, text="     plot IP", variable=cb_demo[1]).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-ttk.Checkbutton(lfr_plot1, text="     stellar tpl", variable=cb_demo[2]).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+
+l_raw = ttk.Checkbutton(lfr_plot1, text="     raw data", variable=cb_demo[0])
+l_raw.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_raw, text = "Plot the raw input data, template and cell.")
+l_pip = ttk.Checkbutton(lfr_plot1, text="     plot IP", variable=cb_demo[1])
+l_pip.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_pip, text = "Plot start guess for IP.")
+l_stpl = ttk.Checkbutton(lfr_plot1, text="     stellar tpl", variable=cb_demo[2])
+l_stpl.grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_stpl, text = "Plot model for stellar template.")
 ttk.Checkbutton(lfr_plot1, text="     forward model", variable=cb_demo[3]).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(lfr_plot1, text="     fit continuum", variable=cb_demo[4]).grid(row=1, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(lfr_plot1, text="     wavelength solution", variable=cb_demo[5]).grid(row=2, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 ttk.Checkbutton(lfr_plot1, text="     fit vguess", variable=cb_demo[6]).grid(row=3, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
 cb_lookguess = IntVar()
-ttk.Checkbutton(lfr_plot1, text="     lookguess", variable=cb_lookguess).grid(row=4, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+l_lguess = ttk.Checkbutton(lfr_plot1, text="     lookguess", variable=cb_lookguess)
+l_lguess.grid(row=4, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_lguess, text = "Plot model using start guess of parameters.")
 cb_lookres = IntVar()
-ttk.Checkbutton(lfr_plot1, text="     lookres", variable=cb_lookres).grid(row=5, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_res = ttk.Checkbutton(lfr_plot1, text="     lookres", variable=cb_lookres)
+l_res.grid(row=5, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_res, text = text_from_file("'-lookres'"))
 cb_infoprec = IntVar()
-ttk.Checkbutton(lfr_plot1, text="     infoprec", variable=cb_infoprec).grid(row=5, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+l_infop = ttk.Checkbutton(lfr_plot1, text="     infoprec", variable=cb_infoprec)
+l_infop.grid(row=5, column=2, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_infop, text = text_from_file("'-infoprec'"))
 cb_lookfast = IntVar()
 cb_lookpar = IntVar()
-ttk.Checkbutton(lfr_plot1, text="     lookpar:", variable=cb_lookpar).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_lpar = ttk.Checkbutton(lfr_plot1, text="     lookpar:", variable=cb_lookpar)
+l_lpar.grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_lpar, text = text_from_file("'-lookpar'"))
 
-ttk.Checkbutton(lfr_plot2, text="     lookfast:", variable=cb_lookfast).grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_lfast = ttk.Checkbutton(lfr_plot2, text="     lookfast:", variable=cb_lookfast)
+l_lfast.grid(row=8, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_lfast, text = text_from_file("'-lookfast'"))
 cb_lookfast.set(1)
 cb_look = IntVar()
-ttk.Checkbutton(lfr_plot2, text="     look:", variable=cb_look).grid(row=9, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_look = ttk.Checkbutton(lfr_plot2, text="     look:", variable=cb_look)
+l_look.grid(row=9, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_look, text = text_from_file("'-look'"))
 
 ###### LABELS ######
 
 Label(fr1, text='data files', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=x1, pady=y1)
 Label(fr1, text='template file', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=2, column=0, sticky="nw", padx=x1, pady=y1)
 
-Label(fr1, text='spectrograph:', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=x1, pady=y1)
+l_inst = Label(fr1, text='spectrograph:', background=bg_frame)
+l_inst.grid(row=5, column=0, sticky="nw", padx=x1, pady=y1)
+Help_Box(widget = l_inst, text = text_from_file("'-inst'"))
 
-Label(fr1, text='targ:', background=bg_frame).grid(row=5, column=3, sticky="nw", padx=xy0, pady=y1)
-Label(fr1, text='tag:', background=bg_frame).grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
+l_targ = Label(fr1, text='targ:', background=bg_frame)
+l_targ.grid(row=5, column=3, sticky="nw", padx=xy0, pady=y1)
+Help_Box(widget = l_targ, text = text_from_file("'-targ'"))
+l_tag = Label(fr1, text='tag:', background=bg_frame)
+l_tag.grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
+Help_Box(widget = l_tag, text = text_from_file("'-tag'"))
 
 Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
 Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1))
 
+l_nset = Label(lfr_data, text='nset:', background=bg_frame)
+l_nset.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_nset, text = text_from_file("'-nset'"))
+l_oset = Label(lfr_data, text='oset:', background=bg_frame)
+l_oset.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_oset, text = text_from_file("'-oset'"))
+l_ch = Label(lfr_data, text='chunks:', background=bg_frame)
+l_ch.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_ch, text = text_from_file("'-chunks'"))
+l_vcut = Label(lfr_data,text='vcut:', background=bg_frame)
+l_vcut.grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=(y1))
+Help_Box(widget = l_vcut, text = text_from_file("'-vcut'"))
 
-Label(lfr_data, text='nset:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_data, text='oset:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_data, text='chunks:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_data,text='vcut:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=(y1))
+l_ip = Label(lfr_model,text='IP:', background=bg_frame)
+l_ip.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_ip, text = text_from_file("'-ip'"))
+l_iphs = Label(lfr_model,text='iphs:', background=bg_frame)
+l_iphs.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_iphs, text = text_from_file("'-iphs'"))
+l_norm = Label(lfr_model,text='deg_norm:', background=bg_frame)
+l_norm.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_norm, text = text_from_file("'-deg_norm'"))
+l_wave = Label(lfr_model,text='deg_wave:', background=bg_frame)
+l_wave.grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_wave, text = text_from_file("'-deg_wave'"))
+l_bkg = Label(lfr_model,text='deg_bkg:', background=bg_frame)
+l_bkg.grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_bkg, text = text_from_file("'-deg_bkg'"))
 
-Label(lfr_model,text='IP:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_model,text='iphs:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_model,text='deg_norm:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_model,text='deg_wave:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_model,text='deg_bkg:', background=bg_frame).grid(row=4, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_rvg = Label(lfr_tpl,text='rvguess:', background=bg_frame)
+l_rvg.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_rvg, text = text_from_file("'-rv_guess'"))
+l_overs = Label(lfr_tpl,text='oversampl:', background=bg_frame)
+l_overs.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_overs, text = text_from_file("'-oversampling'"))
 
-Label(lfr_tpl,text='rvguess:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-Label(lfr_tpl,text='oversampl:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
-
-Label(lfr_stat,text='kapsig:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+l_kaps = Label(lfr_stat,text='kapsig:', background=bg_frame)
+l_kaps.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
+Help_Box(widget = l_kaps, text = text_from_file("'-kapsig'"))
 
 #Label(fr2,text='stepRV:', background=bg_frame).grid(row=6, column=0, sticky="nw", padx=(xy0,x1), pady=y1)
 
-Label(lfr_tell,text='telluric:', background=bg_frame).grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=y1)
-Label(lfr_tell,text='tsig:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+l_tell = Label(lfr_tell,text='telluric:', background=bg_frame)
+l_tell.grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+Help_Box(widget = l_tell, text = text_from_file("'-telluric'"))
+l_tsig = Label(lfr_tell,text='tsig:', background=bg_frame)
+l_tsig.grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+Help_Box(widget = l_tsig, text = text_from_file("'-tsig'"))
 
 Label(lfr_tell, text='Optical molecules (TLS, CES, OES, KECK):', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
 Label(lfr_tell, text='Near Infrared molecules (CRIRES+):', background=bg_frame).grid(row=5, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
