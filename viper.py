@@ -160,7 +160,7 @@ if __name__ == "__main__":
     argopt('obspath', help='Filename of observation.', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tplname', help='Filename of template.', nargs='?', type=str)
     argopt('-inst', help='Instrument.', default='TLS', choices=insts)
-    argopt('-fts', help='Filename of template.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
+    argopt('-fts', help='Filename of FTS Cell.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, bg: biGaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks.', default=1, type=int)
     argopt('-createtpl', help='Removal of telluric features and combination of tpl files.', action='store_true')
