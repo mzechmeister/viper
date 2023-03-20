@@ -324,6 +324,8 @@ def run(cmd=None):
 
     if savefile:
         vpr.save(savefile)
+        
+    gplot.reset()    
 
     if tagcmp or cmposet or cmpocen:
         if tagcmp: args['tag'] = tagcmp
