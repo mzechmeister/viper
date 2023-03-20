@@ -283,27 +283,28 @@ b_rvo1 = Button(frm_rv1, text='Search data file', command = bt_rvo1, background=
 b_rvo1.grid(row=0, column=2, sticky="ne", padx=xy0, pady=(xy0,3))
 
 b_rvo2 = Button(frm_rv1,text='Search data file', command = bt_rvo2, background="#fdfdfd", width=15)
-b_rvo2.grid(row=1, column=2, sticky="ne", padx=xy0, pady=(5))
+b_rvo2.grid(row=1, column=2, sticky="ne", padx=xy0, pady=(3))
 
 b_swap = Button(frm_rv1, text='swap', command = bt_swap, background="#fdfdfd", width=15)
-b_swap.grid(row=2, column=1, sticky="ne", padx=xy0, pady = 0, rowspan=2)
+b_swap.grid(row=2, column=1, sticky="ne", padx=xy0, pady = 3, rowspan=2)
 
 b_save = ttk.Button(lfr_other, text='Save', command = lambda: call_vpr('-save'))
 b_save.grid(row=1, column=2, sticky="nw", padx=xy0)
 
+b_cmp = ttk.Button(frm_rv1, text='Compare', command = lambda: call_vpr(cmp=True), width=15)
+b_cmp.grid(row=2, column=2, sticky="ne", padx=xy0, pady = 3)
+
 conf = {'side': 'right', 'anchor': 's', 'padx': (0,20), 'pady': 20}
-
-b_rvbjd = ttk.Button(frm_rv, text='Plot BJD-RV', command = call_vpr)
-b_rvbjd.pack(**conf)
-
-b_rvo = ttk.Button(frm_rv, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
-b_rvo.pack(**conf)
 
 b_nrvo = ttk.Button(frm_rv, text='Plot no-rv', command = lambda: call_vpr('-plot nrvo'))
 b_nrvo.pack(**conf)
 
-b_cmp = ttk.Button(frm_rv1, text='Compare', command = lambda: call_vpr(cmp=True), width=15)
-b_cmp.grid(row=2, column=2, sticky="ne", padx=xy0, pady = 0)
+b_rvo = ttk.Button(frm_rv, text='Plot o-rv', command = lambda: call_vpr('-plot rvo'))
+b_rvo.pack(**conf)
+
+b_rvbjd = ttk.Button(frm_rv, text='Plot BJD-RV', command = call_vpr)
+b_rvbjd.pack(**conf)
+
 #b_cmp.pack(**{**conf, 'side': 'right', 'padx': 20})
 
 b_oset1_a = ttk.Button(lfr_oset1, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 1))
@@ -331,12 +332,12 @@ e_run.pack(side='left', padx=xy0, pady=(0, xy0))
 e_rvo1 = Entry(frm_rv1, textvariable=filename1, width=100)
 e_rvo1.insert(0, 'tmp.rvo.dat')
 e_rvo1.bind("<Return>", (lambda event: update_changes(refresh=1)))
-e_rvo1.grid(row=0, column=1, sticky="new", padx=xy0, pady=(xy0))
+e_rvo1.grid(row=0, column=1, sticky="sew", padx=xy0, pady=(5))
 
 e_rvo2 = Entry(frm_rv1, textvariable=filename2, width=100)
 e_rvo2.insert(0, '')
 e_rvo2.bind("<Return>", (lambda event: update_changes(refresh=2)))
-e_rvo2.grid(row=1, column=1, sticky="new", padx=xy0, pady=(xy0))
+e_rvo2.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
 
 e_sort = Entry(lfr_plot, width=10)
 e_sort.insert(0, 'BJD')
@@ -399,7 +400,7 @@ cb_cmpocen.trace("w", update_changes)
 
 ###### LABELS ######
 
-Label(frm_rv1, text='rvo file 1', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=5)
+Label(frm_rv1, text='rvo file 1', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="sw", padx=xy0, pady=5)
 
 Label(frm_rv1, text='rvo file 2', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=5)
 
