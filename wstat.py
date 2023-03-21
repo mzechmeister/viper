@@ -49,7 +49,7 @@ def wmom(y, w=None, moment=1, axis=None, e=None, dim=(), keepdims=False):
    array([   0.,    1.,    8.,   27.,   64.,  125.,  216.,  343.,  512.,  729.])
 
    """
-   y = np.array(y, dtype=np.float)
+   y = np.array(y, dtype=float)
 
    d = range(y.ndim)
    if axis is not None:
@@ -258,7 +258,7 @@ def wstd(y, e, axis=None, dim=(), ret_err=False):
    >>> wstat.wstd(x, x*0+1,dim=1, ret_err=True)
 
    """
-   w = np.zeros_like(e, dtype=np.float)
+   w = np.zeros_like(e, dtype=float)
    with np.errstate(invalid='ignore'):
        ind = e > 0
    w[ind] = 1. / e[ind]**2
@@ -345,7 +345,7 @@ def wstd_v00(y, e, axis=None, ret_err=False):
    """
    if y.ndim==1:
       e = np.array(e)
-      w = np.zeros_like(e, dtype=np.float)
+      w = np.zeros_like(e, dtype=float)
       ind = e > 0
       w[ind] = 1. / e[ind]**2
       #if len(y)==1: return y,e
