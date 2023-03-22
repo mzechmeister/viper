@@ -66,7 +66,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
     return Y, e_Y
 
 class VPR():
-    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False, offset = 400):
+    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False, offset = 400, parcolx = None, parcoly = None):
         '''
         oset: slice,list
         '''
@@ -75,6 +75,8 @@ class VPR():
         self.oset = oset
         self.avgtyp = avg
         self.offset = offset
+        self.parcolx = parcolx
+        self.parcoly = parcoly
         print(self.tag)
 
         if gp:
@@ -147,14 +149,22 @@ class VPR():
                             encoding=None).view(np.recarray)
         gplot.mxtics().mytics()
         colnames = par.dtype.names[:-1]
+ 
+        gplot.var(colx = 0)
+        if self.parcolx:
+             gplot.var(colx = ['n', 'order', 'BJD'].index(self.parcolx))
+        
         gplot.put(f'colnames(x) = word("{" ".join(colnames)}", x); Ncol={len(colnames)}')
-        gplot.bind('''"$" "i=(i+1)%3; set xlabel i==0 ? 'Number n' : i==1? 'Order o' : 'BJD'; repl"; i=0''')
+        gplot.bind('''"$" "i=(i+1)%3; set xlabel i==0 ? 'Number n' : i==1? 'Order o' : 'BJD'; repl"; i=colx''')
 
-        gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
+        if self.parcoly:
+            gplot(par.BJD, par.n, par.order, par[self.parcoly], par['e_'+ self.parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
+        else:
+            gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
         #gplot(par.BJD, par.n, par.order, par.ip0, par.e_ip0, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
-        gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+            gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+            print('press "@" to browse the parameters')
         print('press "$" to toggle between n/o/BJD')
-        print('press "@" to browse the parameters')
         pause('Parameters')
 
     def info(self):
@@ -298,6 +308,8 @@ def run(cmd=None):
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-offset', help='RV plotting offset for rvo plot', default=400, type=float)
     argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
+    argopt('-parcolx', help='Column name for plot par x-axis', default='', type=str)
+    argopt('-parcoly', help='Column name for plot par y-axis', default='', type=str)
     argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo', 'par'])
     argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
