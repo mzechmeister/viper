@@ -586,6 +586,11 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             par = par5
 
     if createtpl:
+        if tplname:
+            # model just the tellurics; exclude stellar lines
+            S_star = lambda x: 0*x+1
+            S_mod = model(S_star, lnwave_j, spec_cell_j, specs_molec, IP, **modset)
+            
         # modeled telluric spectrum
         spec_model = np.nan * np.empty_like(pixel)
         spec_model[iset] = S_mod(pixel[iset], **par)
@@ -600,12 +605,12 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_cor[spec_cor<3*err_cor] = np.nan
 
         wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
-        spec_cor = np.interp(wave_model/(1+berv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
+        spec_cor = np.interp(wave_model/(1+berv/c)*(1+par.rv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
 
         # downweighting by telluric spectrum and errors
         weight = spec_model / (err_cor/np.nanmedian(spec_cor))**2
         # weight[spec_model<0.2] = 0.00001   # downweight deep telluric lines
-        weight = np.interp(wave_model / (1+berv/c), wave_model, weight)
+        weight = np.interp(wave_model / (1+berv/c) * (1+par.rv/c), wave_model, weight)
 
         # save telluric corrected spectrum
         spec_all[o,0][n] = wave_model   # updated wavelength
