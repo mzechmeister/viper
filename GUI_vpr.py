@@ -37,10 +37,12 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
     global opt
     if '-save' in str(args):    
         args = options[opt] + ' -save'
+    elif '-plot par' in str(args):
+        opt = '-par'
     else:
         opt = options.index(str(args))
 
-    if not res:
+    if not res and '-plot par' not in str(args):
         str_arg = e_rvo1.get() + ' -avg ' + combo_avg.get()
 
         if cb_cen.get():
@@ -71,16 +73,22 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
             if cb_cmpocen.get():
                 str_arg += " -cmpocen"
 
-    else:
+    elif res:
         str_arg = " -res "+str(e_dir.get())
 
         if e_oset_r.get():
             str_arg += " -oset "+e_oset_r.get()
         if e_nset_r.get():
             str_arg += " -nset "+e_nset_r.get()
+    else:
+        str_arg = e_parf.get().split('.par')[0] 
 
     if args:
         str_arg += " " + args
+
+    if '-plot par' in str(args): 
+        str_arg += '-parcolx '+str(cb_parx.get())
+        str_arg += ' -parcoly '+str(cb_pary.get())
 
     e_run.delete('0.0', END)
     e_run.insert(INSERT,"python3 vpr.py "+str_arg)
@@ -103,6 +111,12 @@ def bt_rvo2():
         filename2.set(file2)
         refresh_oset('2')
         update_changes()
+
+def bt_par(e_file):
+    file = askopenfilename()
+    if file:
+        e_file.delete(0, END)
+        e_file.insert(0, file)
 
 def bt_swap():
     f1 = filename1.get()
@@ -178,6 +192,50 @@ def create_cb(orders_all, cbo, cb_orders, frm):
 
     return cb_orders, cbo
 
+
+def get_parameters():
+    parfile = e_parf.get()#.split('.')[0]
+
+    par = np.genfromtxt(parfile, dtype=None, names=True,
+                            deletechars='',   # to keep the dash for chunks
+                            encoding=None).view(np.recarray)
+    colnames = par.dtype.names[:-1]
+
+    s = ttk.Style()         
+    s.configure('par.TRadiobutton', background=bg_frame)
+
+    global cb_parx, cb_pary
+    cb_parx, cb_pary = StringVar(), StringVar()
+
+    # parameters x axis
+    l = LabelFrame(frm_par1, text='', bg=bg_frame, bd=2)
+    l.grid(row=1, column=0, sticky="news", padx=5, pady=5, ipady=5, columnspan=1)
+
+    for i, c in enumerate(colnames[:3]):
+        cc = ttk.Radiobutton(l, text="  "+str(c),  variable=cb_parx, value=c, style = 'par.TRadiobutton')
+        cc.grid(row=i, column=0, sticky="new", padx=15, pady=2)
+    cb_parx.set('n')
+
+    # parameters y axis
+    lfr_par = []
+    par_groups = ['rv', 'norm', 'wave', 'ip', 'atm', 'bkg']
+    for i, cn in enumerate(par_groups):
+        yi, xi =  divmod(i, 6)
+        l = LabelFrame(frm_par1, text=cn, bg=bg_frame, bd=2)
+        l.grid(row=3+yi, column=xi, sticky="news", padx=5, pady=5, ipady=5, columnspan=1)
+        frm_par1.grid_columnconfigure(i, weight=1)
+        lfr_par.append(l)
+
+    for i, c in enumerate(colnames[4:][::2]):
+        pos = par_groups.index(re.sub(r'[0-9]', '', c))
+        cc = ttk.Radiobutton(lfr_par[pos], text="  "+str(c),  variable=cb_pary, value=c, style = 'par.TRadiobutton')
+        cc.grid(row=i+5, column=0, sticky="new", padx=15, pady=2)
+    
+    cb_parx.trace("w", lambda *args: call_vpr('-plot par '))
+    cb_pary.trace("w", lambda *args: call_vpr('-plot par '))
+
+    return cb_pary, cb_parx
+
 def bt_exit():
     exit()
 
@@ -204,9 +262,11 @@ style.configure('TNotebook.Tab', font=(font_type, font_size+2, 'bold'))
 tabControl = ttk.Notebook(win, style='lefttab.TNotebook')
 
 tab_rv = ttk.Frame(tabControl)
+tab_par = ttk.Frame(tabControl)
 tab_res = ttk.Frame(tabControl)
 
 tabControl.add(tab_rv, text ='RV plots')
+tabControl.add(tab_par, text ='Parameters')
 tabControl.add(tab_res, text ='Residuals')
 tabControl.pack(expand=1, fill="both", side='top')
 
@@ -225,6 +285,7 @@ def new(event):
     win_width = win.winfo_width()
     win_height = event.height
     frm_rv.config(width=win_width-20)
+    frm_par.config(width=win_width-20)
     frm_res.config(width=win_width-20)
 
 win.bind("<Configure>", new)
@@ -243,7 +304,7 @@ frm_rv1 = Frame(frm_rv, bg=bg_frame, bd=2, relief='groove')
 frm_rv1.grid(row=0, column=0, sticky="news", padx=10, pady=10, ipady=5, columnspan=2)
 frm_rv1.grid_columnconfigure(1, weight=1)
 
-# Sub Frames for parameters
+# Sub Frames for RV parameters
 lfr_oset1 = LabelFrame(frm_rv, text="oset rvo 1", bg=bg_frame, bd=2)
 lfr_oset1.grid(row=1, column=0, sticky="news", padx=(10,0), pady=5, ipady=5, columnspan=1)
 
@@ -265,6 +326,17 @@ lfr_other.grid(row=3, column=0, sticky="news", padx=(10,10), pady=5, ipady=5, co
 for cc in range(0,5,1):
     lfr_oset1.grid_columnconfigure(cc, weight=1)
     lfr_oset2.grid_columnconfigure(cc, weight=1)
+
+
+# Frame for Parameter plots
+frm_par = Frame(tab_par, height=100, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
+frm_par.grid(row=0, column = 0, sticky="news",padx=10,pady=(10,0))
+frm_par.grid_propagate(False)
+frm_par.grid_columnconfigure(1, weight=1)
+
+frm_par1 = Frame(tab_par, height=fr_high-100, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
+frm_par1.grid(row=1, column = 0, sticky="news",padx=10,pady=(0,10))
+frm_par1.grid_propagate(False)
 
 # Frame for Residual Tab
 frm_res = Frame(tab_res, height=fr_high, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
@@ -305,6 +377,9 @@ b_rvo.pack(**conf)
 b_rvbjd = ttk.Button(frm_rv, text='Plot BJD-RV', command = call_vpr)
 b_rvbjd.pack(**conf)
 
+b_fpar = Button(frm_par,text='Search data file', command = lambda: bt_par(e_parf), background="#fdfdfd", width=15)
+b_fpar.grid(row=1, column=2, sticky="ne", padx=10, pady=0)
+
 #b_cmp.pack(**{**conf, 'side': 'right', 'padx': 20})
 
 b_oset1_a = ttk.Button(lfr_oset1, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_orders1, 1))
@@ -324,6 +399,7 @@ b_res.grid(row=xy0, column=2, sticky="se", padx=xy0, pady=(xy0,xy0))
 
 filename1 = StringVar()
 filename2 = StringVar()
+parfile = StringVar()
 
 Label(master=win, text='Current command:').pack(side='top', anchor="w", padx=xy0)
 e_run = ScrolledText(win, background='#f0f0f0')
@@ -351,6 +427,13 @@ e_offset.grid(row=1, column=1, sticky="nw", padx=(xy0), pady=(5,0))
 e_out = Entry(lfr_other, width=35)
 e_out.insert(0, 'tmp.dat')
 e_out.grid(row=1, column=1, sticky="nw", padx=xy0, pady=(5,0), columnspan=1)
+
+
+e_parf = Entry(frm_par, textvariable=parfile, width=120)
+e_parf.insert(0, 'tmp.par.dat')
+e_parf.bind("<Return>", (lambda event: get_parameters()))
+e_parf.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
+
 
 e_dir = Entry(frm_res)
 e_dir.insert(0, 'res')
@@ -420,6 +503,14 @@ l_out = Label(lfr_other, text='output:', background=bg_frame)
 l_out.grid(row=1, column=0, sticky="nw", padx=xy0, pady=(5,0))
 Help_Box(widget = l_out, text = text_from_file("'-save'"))
 
+Label(frm_par, text='Plot parameters', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan = 2)
+
+Label(frm_par, text='parfile:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=5)
+
+Label(frm_par1, text='Parameters x-axis', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan = 5)
+
+Label(frm_par1, text='Parameters y-axis', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan = 5)
+
 Label(frm_res, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0)
 
 Label(frm_res, text='directory:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=xy0)
@@ -431,6 +522,11 @@ Label(frm_res, text='oset:', background=bg_frame).grid(row=3, column=0, sticky="
 if sys.argv[1:]:
     e_rvo1.delete(0, END)
     e_rvo1.insert(0, sys.argv[1])
-refresh_oset('12')
+
+if os.path.isfile(e_rvo1.get()):
+    refresh_oset('12')
+
+if os.path.isfile(e_parf.get()):
+    get_parameters()
 
 win.mainloop()
