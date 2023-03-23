@@ -66,7 +66,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
     return Y, e_Y
 
 class VPR():
-    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False, offset = 400, parcolx = None, parcoly = None):
+    def __init__(self, tag, oset=None, ocen=None, avg='wmean', gp='', sort='', cen=False, offset = 400):
         '''
         oset: slice,list
         '''
@@ -75,8 +75,6 @@ class VPR():
         self.oset = oset
         self.avgtyp = avg
         self.offset = offset
-        self.parcolx = parcolx
-        self.parcoly = parcoly
         print(self.tag)
 
         if gp:
@@ -141,7 +139,7 @@ class VPR():
         self.stat_o = np.percentile(self.rv-self.RV, [17,50,83], axis=1)
         self.med_e_rvo = np.median(self.e_rv, axis=1)
 
-    def plot_par(self):
+    def plot_par(self, parcolx = None, parcoly = None):
         parfile = self.file.replace('.rvo.dat', '.par.dat')
         # for now just to get the colnames; not handled: oset, ocen, cen, ...
         par = np.genfromtxt(parfile, dtype=None, names=True,
@@ -151,14 +149,17 @@ class VPR():
         colnames = par.dtype.names[:-1]
  
         gplot.var(colx = 0)
-        if self.parcolx:
-             gplot.var(colx = ['n', 'order', 'BJD'].index(self.parcolx))
+        if parcolx:            
+             gplot.xlabel("'%s'" % parcolx)
+             gplot.var(colx = ['n', 'order', 'BJD'].index(parcolx))
         
         gplot.put(f'colnames(x) = word("{" ".join(colnames)}", x); Ncol={len(colnames)}')
         gplot.bind('''"$" "i=(i+1)%3; set xlabel i==0 ? 'Number n' : i==1? 'Order o' : 'BJD'; repl"; i=colx''')
 
-        if self.parcoly:
-            gplot(par.BJD, par.n, par.order, par[self.parcoly], par['e_'+ self.parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
+        if parcoly:
+            gplot.ylabel("'%s'" % parcoly)
+            gplot.var(coly = colnames.index(parcoly)+1)
+            gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
         else:
             gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
         #gplot(par.BJD, par.n, par.order, par.ip0, par.e_ip0, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
@@ -331,6 +332,8 @@ def run(cmd=None):
     cmpocen = args.pop('cmpocen')
     tasks = args.pop('tasks')
     savefile = args.pop('save')
+    parcolx = args.pop('parcolx')
+    parcoly = args.pop('parcoly')
 
     vpr = VPR(**args)
 
@@ -358,7 +361,7 @@ def run(cmd=None):
         vpr.plot_rv(n=1)
 
     if 'par' in tasks:
-        vpr.plot_par()
+        vpr.plot_par(parcolx, parcoly)
 
     if 'nrvo' in tasks:
         vpr.plot_nrvo()
