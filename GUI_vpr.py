@@ -36,7 +36,7 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
 
     global opt
     if '-save' in str(args):    
-        args = options[opt] + ' -save'
+        args = options[opt] + ' -save ' + e_out.get()
     elif '-plot par' in str(args):
         opt = '-par'
     else:
