@@ -76,10 +76,26 @@ def call_vpr(args='-plot rv', cmp=False, res=False):
     elif res:
         str_arg = " -res "+str(e_dir.get())
 
-        if e_oset_r.get():
-            str_arg += " -oset "+e_oset_r.get()
-        if e_nset_r.get():
-            str_arg += " -nset "+e_nset_r.get()
+        if cb_resn != []:
+            str_arg += " -nset ["
+            for i,n in enumerate (cb_resn):
+                if n.get():
+                    print(i,n.get(),res_num)
+                    str_arg += str(res_num[i])+","
+            str_arg += "]"
+        if cb_reso != []:
+            str_arg += " -oset ["
+            for i,o in enumerate (cb_reso):
+                if o.get():
+                    str_arg += str(res_orders[i])+","
+            str_arg += "]"
+        if e_ressep.get():
+            str_arg += " -ressep "+e_ressep.get()
+
+    #    if e_oset_r.get():
+     #       str_arg += " -oset "+e_oset_r.get()
+      #  if e_nset_r.get():
+       #     str_arg += " -nset "+e_nset_r.get()
     else:
         str_arg = e_parf.get().split('.par')[0] 
 
@@ -138,6 +154,9 @@ def text_from_file(text):
 cbo1, cbo2 = [], []			# oset checkboxes
 cb_orders1, cb_orders2 = [], []		# Var() of  oset checkboxes 
 o_rvo1, o_rvo2 = [], []			# orders in RV files
+cb_reso, cb_resn = [], []
+res1, res2 = [], []
+res_num, res_orders = [], []
 
 def refresh_oset(num):
     # refresh oset checkboxes (when using new RV file)
@@ -235,6 +254,41 @@ def get_parameters():
     cb_pary.trace("w", lambda *args: call_vpr('-plot par '))
 
     return cb_pary, cb_parx
+
+def sel_res(cb_reso, cb_resn, res1, res2):
+    list_dat = np.array(sorted(os.listdir(e_dir.get())))
+    num, orders = [], []
+    for dat in list_dat:
+        no = (dat.split(".")[0]).split("_")
+        num.append(int(no[0]))
+        orders.append(int(no[1]))
+
+    global res_num, res_orders
+    res_num = np.unique(num)
+    res_orders = np.unique(orders)
+
+    for i, o in enumerate(res_orders):
+        cb_reso.append(IntVar())
+        yi, xi =  divmod(i, 5)
+        c = ttk.Checkbutton(lreso, text="  "+str(o),  variable=cb_reso[i])
+        c.grid(row=yi+1, column=xi, sticky="nw", padx=15, pady=2)
+        res1.append(c)
+        cb_reso[i].set(1)
+        cb_reso[i].trace("w", lambda *args: call_vpr(res=True))
+        lreso.grid_columnconfigure(xi, weight=1)
+
+    for i, n in enumerate(res_num):
+        cb_resn.append(IntVar())
+        yi, xi =  divmod(i, 5)
+        c = ttk.Checkbutton(lresn, text="  "+str(n),  variable=cb_resn[i])
+        c.grid(row=yi+1, column=xi, sticky="nw", padx=15, pady=2)
+        res2.append(c)
+        if i == 0: cb_resn[0].set(1)
+        cb_resn[i].trace("w", lambda *args: call_vpr(res=True))
+        lresn.grid_columnconfigure(xi, weight=1)
+
+    return res_num, res_orders
+
 
 def bt_exit():
     exit()
@@ -340,8 +394,22 @@ frm_par1.grid_propagate(False)
 
 # Frame for Residual Tab
 frm_res = Frame(tab_res, height=fr_high, width=win_width-20, bg=bg_frame, bd=2, relief='groove')
-frm_res.grid(row=0, column = 0, sticky="nw",padx=10,pady=10)
+frm_res.grid(row=0, column = 0, sticky="news",padx=10,pady=10)
 frm_res.grid_propagate(False)
+frm_res.grid_columnconfigure(0, weight=1)
+frm_res.grid_columnconfigure(1, weight=1)
+
+lres = LabelFrame(frm_res, text='Input', bg=bg_frame, bd=2)
+lres.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
+#lres.grid_propagate(False)
+lres.grid_columnconfigure(1, weight=1)
+
+lreso = LabelFrame(frm_res, text='oset', bg=bg_frame, bd=2)
+lreso.grid(row=7, column=1, sticky="news", padx=(5,10), pady=5, ipady=5, columnspan=1)
+
+lresn = LabelFrame(frm_res, text='nset', bg=bg_frame, bd=2)
+lresn.grid(row=7, column=0, sticky="news", padx=(10,5), pady=5, ipady=5, columnspan=1)
+
 
 ###### BUTTONS ######
 
@@ -393,7 +461,19 @@ b_oset2_n = ttk.Button(lfr_oset2, text='select none', style = 'B2.TButton', comm
 b_oset2_n.grid(row=8, column=2, sticky="sw", padx=xy0, pady=5, columnspan=2)
 
 b_res = ttk.Button(frm_res, text='Plot res', command = lambda: call_vpr(res=True))
-b_res.grid(row=xy0, column=2, sticky="se", padx=xy0, pady=(xy0,xy0))
+#b_res.grid(row=12, column=1, sticky="se", padx=xy0, pady=(xy0,xy0))
+b_res.pack(**conf)
+
+b_reso_a = ttk.Button(lreso, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_reso, 1))
+b_reso_a.grid(row=0, column=0, sticky="ne", padx=20, pady=5, columnspan=6)
+b_reso_n = ttk.Button(lreso, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_reso, 0))
+b_reso_n.grid(row=0, column=0, sticky="ne", padx=110, pady=5, columnspan=6)
+
+b_resn_a = ttk.Button(lresn, text='select all', style = 'B2.TButton', command = lambda: set_oset(cb_resn, 1))
+b_resn_a.grid(row=0, column=0, sticky="ne", padx=20, pady=5, columnspan=6)
+b_resn_n = ttk.Button(lresn, text='select none', style = 'B2.TButton', command = lambda: set_oset(cb_resn, 0))
+b_resn_n.grid(row=0, column=0, sticky="ne", padx=110, pady=5, columnspan=6)
+
 
 ###### ENTRIES ######
 
@@ -435,18 +515,23 @@ e_parf.bind("<Return>", (lambda event: get_parameters()))
 e_parf.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
 
 
-e_dir = Entry(frm_res)
+e_dir = Entry(lres, width = 60)
 e_dir.insert(0, 'res')
-#e_dir.bind("<Return>", (lambda event: sel_res))
-e_dir.grid(row=1, column=1, sticky="nw", padx=xy0, pady=xy0)
+e_dir.bind("<Return>", (lambda event: sel_res(cb_reso, cb_resn, res1, res2)))
+e_dir.grid(row=1, column=1, sticky="new", padx=xy0, pady=3)
 
-e_nset_r = Entry(frm_res)
+e_ressep = Entry(lres, width = 20)
+e_ressep.insert(0, 5)
+e_ressep.bind("<Return>", (lambda event:  call_vpr(res=True)))
+e_ressep.grid(row=2, column=1, sticky="nw", padx=xy0, pady=3)
+#, lambda *args: call_vpr(res=True)
+#e_nset_r = Entry(frm_res)
 #e_nset_r.insert(0, '')
-e_nset_r.grid(row=2, column=1, sticky="nw", padx=xy0, pady=xy0)
+#e_nset_r.grid(row=2, column=1, sticky="nw", padx=xy0, pady=xy0)
 
-e_oset_r = Entry(frm_res)
+#e_oset_r = Entry(frm_res)
 #e_oset_r.insert(0, '')
-e_oset_r.grid(row=3, column=1, sticky="nw", padx=xy0, pady=xy0)
+#e_oset_r.grid(row=3, column=1, sticky="nw", padx=xy0, pady=xy0)
 
 
 ###### COMBOBOXES ######
@@ -513,9 +598,15 @@ Label(frm_par1, text='Parameters y-axis', font=(font_type, font_size, 'bold'), b
 
 Label(frm_res, text='Plot residual', font=(font_type, font_size, 'bold'), background=bg_frame).grid(row=0, column=0, sticky="nw", padx=xy0, pady=xy0)
 
-Label(frm_res, text='directory:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=xy0)
-Label(frm_res, text='nset:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0)
-Label(frm_res, text='oset:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=xy0, pady=xy0)
+Label(frm_res, text='For large number of nset, it is recommended to first chose one single order before using "select all" on nset.', background=bg_frame, fg='red4').grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
+
+Label(lres, text='directory:', background=bg_frame).grid(row=1, column=0, sticky="nw", padx=xy0, pady=3)
+
+l_ressep = Label(lres, text='offset res:', background=bg_frame)
+l_ressep.grid(row=2, column=0, sticky="nw", padx=xy0, pady=3)
+Help_Box(widget = l_ressep, text = text_from_file("'-ressep'"))
+#Label(frm_res, text='nset:', background=bg_frame).grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0)
+#Label(frm_res, text='oset:', background=bg_frame).grid(row=3, column=0, sticky="nw", padx=xy0, pady=xy0)
 
 
 ###### MAIN ######
@@ -528,5 +619,8 @@ if os.path.isfile(e_rvo1.get()):
 
 if os.path.isfile(e_parf.get()):
     get_parameters()
+
+if os.path.isdir(e_dir.get()):
+    sel_res(cb_reso, cb_resn, res1, res2)
 
 win.mainloop()
