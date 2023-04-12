@@ -159,11 +159,13 @@ class VPR():
         if parcoly:
             gplot.ylabel("'%s'" % parcoly)
             gplot.var(coly = colnames.index(parcoly)+1)
-            gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
+         #   gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
+            gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:(sprintf("BJD: %%.6f\\nn: %%d\\norder: %%d", $1,$2,$3))  with labels hypertext point pt 0 t"", "" us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3)  w e palett t "%s"' % str(parfile))
         else:
             gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
         #gplot(par.BJD, par.n, par.order, par.ip0, par.e_ip0, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
-            gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+        #    gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
+            gplot(f'"{parfile}"' + 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:(sprintf("BJD: %%.6f\\nn: %%d\\norder: %%d", $1,$2,$3))  with labels hypertext point pt 0 t"", "" us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett t "%s"' % str(parfile))
             print('press "@" to browse the parameters')
         print('press "$" to toggle between n/o/BJD')
         pause('Parameters')
