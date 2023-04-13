@@ -3,7 +3,7 @@
 # ./vpr.py
 
 import argparse
-
+import os
 import numpy as np
 
 from wstat import wsem
@@ -76,6 +76,9 @@ class VPR():
         self.avgtyp = avg
         self.offset = offset
         print(self.tag)
+        
+        if not os.path.isfile(self.file):
+            return        
 
         if gp:
            gplot.put(gp)
