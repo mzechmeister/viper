@@ -19,6 +19,8 @@ iset = '600:3600'
 ip_guess = {'s': 300_000/110_000/ np.sqrt(np.log(256))}   # convert FHWM resolution to sigma
 ip_guess['ag'] = ip_guess['agr'] = [ip_guess['s'], -1.1]
 
+atmall = {'H2O': 'lib/atmos/H2O.fits', 'O2': 'lib/atmos/O2.fits'}
+
 from pause import *
 def Spectrum(filename, order=None, targ=None):
     offset = 0
