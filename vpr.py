@@ -5,6 +5,7 @@
 import argparse
 import os
 import numpy as np
+from astropy.io import fits
 
 from wstat import wsem
 
@@ -70,8 +71,13 @@ class VPR():
         '''
         oset: slice,list
         '''
-        self.tag = tag.replace('.rvo.dat', '')
-        self.file = file = self.tag + '.rvo.dat'
+        if tag.endswith('.fits'):
+            self.file = file = tag
+            self.tag = tag.replace('.fits', '')    
+        else:    
+            self.tag = tag.replace('.rvo.dat', '')
+            self.file = file = self.tag + '.rvo.dat'  
+
         self.oset = oset
         self.avgtyp = avg
         self.offset = offset
@@ -83,14 +89,20 @@ class VPR():
         if gp:
            gplot.put(gp)
 
-        try:
-            self.Afull = np.genfromtxt(file, dtype=None, names=True,
-            deletechars='',   # to keep the dash for chunks
-            encoding=None).view(np.recarray)
-        except:
-            self.Afull = np.genfromtxt(file, dtype=None,
-            deletechars='',   # to keep the dash for chunks
-            names=True).view(np.recarray)
+        if self.file.endswith('.fits'):
+            hdu = fits.open(self.file, dtype=None)
+            self.Afull = hdu[1].data.view(np.recarray)
+            mat = hdu[1].data      
+        else:
+            try:
+                self.Afull = np.genfromtxt(file, dtype=None, names=True,
+                deletechars='',   # to keep the dash for chunks
+                encoding=None).view(np.recarray)
+            except:
+                self.Afull = np.genfromtxt(file, dtype=None,
+                deletechars='',   # to keep the dash for chunks
+                names=True).view(np.recarray)    
+            mat = np.genfromtxt(file, skip_header=1)  
 
         if sort:
             self.Afull.sort(order=sort)
@@ -111,7 +123,6 @@ class VPR():
         # remove columns not in oset; keep BJD, etc. and other orders
         self.A = self.Afull[[col for col in colnames if col.endswith(tuple(self.onames)) or not col.startswith(('e_rv', 'rv'))]]
 
-        mat = np.genfromtxt(file, skip_header=1)
         self.full_rv, self.full_e_rv = mat.T[4:-1:2], mat.T[5::2]
 
         self.rv = np.array(self.A[self.onames].tolist()).T
@@ -143,11 +154,18 @@ class VPR():
         self.med_e_rvo = np.median(self.e_rv, axis=1)
 
     def plot_par(self, parcolx = None, parcoly = None):
-        parfile = self.file.replace('.rvo.dat', '.par.dat')
-        # for now just to get the colnames; not handled: oset, ocen, cen, ...
-        par = np.genfromtxt(parfile, dtype=None, names=True,
+
+        if self.file.endswith('.fits'):
+            hdu = fits.open(self.file, dtype=None)
+            par = hdu[2].data.view(np.recarray)
+            parfile = self.file   
+        else:
+            parfile = self.file.replace('.rvo.dat', '.par.dat')
+            # for now just to get the colnames; not handled: oset, ocen, cen, ...
+            par = np.genfromtxt(parfile, dtype=None, names=True,
                             deletechars='',   # to keep the dash for chunks
                             encoding=None).view(np.recarray)
+
         gplot.mxtics().mytics()
         colnames = par.dtype.names[:-1]
  
@@ -357,7 +375,8 @@ def run(cmd=None):
             plot_cmp(vpr, vprcmp)
     elif args['oset'] is None and not args['cen'] and not args['ocen']:
         if 'rv' in tasks:
-            plot_RV(vpr.file)
+            #plot_RV(vpr.file)
+            vpr.plot_RV()
     else:
         if 'rv' in tasks:
             vpr.plot_RV()
