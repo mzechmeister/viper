@@ -39,6 +39,7 @@ from pause import pause
 from model import model, model_bnd, IPs, show_model, pade
 from targ import Targ
 import vpr
+import convert_output
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -186,6 +187,7 @@ if __name__ == "__main__":
     argopt('-nocell', help='Do the calibration without using the FTS.', action='store_true')
     argopt('-nset', help='Index for spectrum.', default=':', type=arg2slice)
     argopt('-oset', help='Index for order.', default=oset, type=arg2slice)
+          argopt('-output_format', nargs='*', help='Format of output files for rvo and par data (par, fits, cpl).', default=['par'], dest='oformat', type=str)
     argopt('-oversampling', help='Oversampling factor for the template data.', default=None, type=int)
     argopt('-rv_guess', help='RV guess.', default=1., type=float)   # slightly offsetted
     argopt('-stepRV', help='Step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess).', choices=['a', 'm'], type=str)
@@ -912,6 +914,8 @@ if createtpl:
     Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
 
 rvounit.close()
+parunit.close()
+convert_output.convert_data(tag, fits ='fits' in oformat, cpl='cpl' in oformat)
 
 T = time.time() - T
 Tfmt = lambda t: time.strftime("%Hh%Mm%Ss", time.gmtime(t))
