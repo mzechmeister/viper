@@ -288,7 +288,13 @@ class VPR():
 
     def save(self, filename):
         print('saving as', filename)
-        np.savetxt(filename, [*zip(self.BJD, self.RV, self.e_RV)], header='BJD RV e_RV')
+
+        if filename.endswith('.fits'):
+            from astropy.table import Table
+            tab = Table(np.asarray([*zip(self.BJD, self.RV, self.e_RV)]), names=["BJD", "RV", "e_RV"])
+            tab.write(filename, format='fits', overwrite=True)
+        else:
+            np.savetxt(filename, [*zip(self.BJD, self.RV, self.e_RV)], header='BJD RV e_RV')
 
 def plot_res(folder, o=[1], n=[1], sep=1.):
     '''
@@ -335,7 +341,7 @@ def run(cmd=None):
     argopt('-parcolx', help='Column name for plot par x-axis', default='', type=str)
     argopt('-parcoly', help='Column name for plot par y-axis', default='', type=str)
     argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo', 'par'])
-    argopt('-save', nargs='?', help='Filename to save altered RVs.', const='tmp.dat', metavar='FILENAME')
+    argopt('-save', nargs='?', help='Filename to save altered RVs.  Supported formats: .dat and .fits.', const='tmp.dat', metavar='FILENAME')
     argopt('-sort', nargs='?', help='sort by column name', const='BJD')
     argopt('-res', help='Plot residuals stacked (folder name)', nargs='?',  const='res', type=str)
     argopt('-ressep', help='Separation between traces (tip: ~5 rms).', default=1., type=float)
