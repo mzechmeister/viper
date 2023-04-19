@@ -15,6 +15,7 @@ from model import IPs
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
+
 font_type = 'Arial'
 font_size = 12
 bg_frame = '#f1f1f1'    # bg color big frame
@@ -22,7 +23,7 @@ bg_color = '#e6e1e1'    # bg color small frames
 bg_button = "#fdfdfd"   # bg buttons
 
 win_width = 1060     # width of GUI window	
-win_high = 780      # height of GUI window	
+win_high = 800      # height of GUI window	
 xy0 = 20
 y1 = 3
 x1 = 10
@@ -90,10 +91,6 @@ class GUI_viper():
         l_targ.grid(row=5, column=3, sticky="nw", padx=xy0, pady=y1)
         Help_Box(widget = l_targ, text = text_from_file("'-targ'"))
 
-        l_tag = ttk.Label(fr1, text='tag:')
-        l_tag.grid(row=5, column=5, sticky="nw", padx=xy0, pady=y1)
-        Help_Box(widget = l_tag, text = text_from_file("'-tag'"))
-
         # Entry
         self.e_dat = Entry(fr1, width = 200)
         self.e_dat.insert(0, 'data/TLS/hd189733/*')
@@ -110,12 +107,8 @@ class GUI_viper():
         self.e_flag.insert(0, '')
         self.e_flag.grid(row=4, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
-        self.e_targ = Entry(fr1, width=70)
+        self.e_targ = Entry(fr1, width = 200)
         self.e_targ.grid(row=5, column=4, sticky="nw", padx=x1, pady=y1)
-
-        self.e_tag = Entry(fr1, width=35)
-        self.e_tag.insert(0, 'tmp')
-        self.e_tag.grid(row=5, column=6, sticky="nw", padx=xy0, pady=y1, columnspan=2)
 
         # Checkboxes
         self.cb_cell = IntVar()
@@ -130,7 +123,7 @@ class GUI_viper():
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
-        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES'], width=10)
+        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES'], width=15)
         self.combo_inst.set('TLS')
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
         self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
@@ -171,11 +164,17 @@ class GUI_viper():
         self.lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)
         self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
 
+        lfr_out = LabelFrame(fr2, text="Output", bg=bg_frame, bd=2)
+        lfr_out.grid(row=4, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
+
         for lfr in [lfr_data, lfr_tpl, lfr_model, lfr_stat, self.lfr_tell]:
             lfr.grid_columnconfigure(1, weight=1)
 
         for c in range(0,5,1):
             self.lfr_tell.grid_columnconfigure(c, weight=1)
+
+        for c in range(1,4,1):
+            lfr_out.grid_columnconfigure(c, weight=1)
 
         # Label
         l_opt = ttk.Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'))
@@ -185,6 +184,7 @@ class GUI_viper():
         self.Label_list(lfr_model, ['ip', 'iphs', 'deg_norm', 'deg_wave', 'deg_bkg'])
         self.Label_list(lfr_tpl, ['rv_guess', 'oversampling'])
         self.Label_list(lfr_stat, ['kapsig'])
+        self.Label_list(lfr_out, ['tag', 'output_format'])
 
         l_tell = ttk.Label(self.lfr_tell,text='telluric:')
         l_tell.grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=y1)
@@ -196,7 +196,7 @@ class GUI_viper():
 
         # Entry
         self.e_nset = Entry(lfr_data)
-        self.e_nset.insert(0, ':1')
+        self.e_nset.insert(0, ':4')
         self.e_nset.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
         self.e_oset = Entry(lfr_data)
@@ -243,10 +243,15 @@ class GUI_viper():
         self.e_tsig.insert(0, '1')
         self.e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
+        self.e_tag = Entry(lfr_out)
+        self.e_tag.insert(0, 'tmp')
+        self.e_tag.grid(row=0, column=1, sticky="news", padx=(xy0,10), pady=y1, columnspan=3)
+
         # Checkboxes:
         self.cb_wgt = IntVar()
         self.cb_createtpl = IntVar()
         self.cb_tellshift = IntVar()
+        self.cb_format = [IntVar(), IntVar(), IntVar()]
 
         l_wei = ttk.Checkbutton(lfr_stat, text="     weighted error", variable=self.cb_wgt)
         l_wei.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
@@ -259,6 +264,16 @@ class GUI_viper():
         l_tshift = ttk.Checkbutton(self.lfr_tell, text="     tell shift", variable=self.cb_tellshift)
         l_tshift.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
         Help_Box(widget = l_tshift, text = text_from_file("'-tellshift'"))
+
+        l_dat = ttk.Checkbutton(lfr_out, text="  .dat", variable=self.cb_format[0])
+        l_dat.grid(row=1, column=1, sticky="nw", padx=(xy0,5), pady=y1)
+        self.cb_format[0].set(1)
+
+        l_fits = ttk.Checkbutton(lfr_out, text="  .fits (astropy)", variable=self.cb_format[1])
+        l_fits.grid(row=1, column=2, sticky="nw", padx=5, pady=y1)
+
+        l_cpl = ttk.Checkbutton(lfr_out, text="  .fits (CPL)", variable=self.cb_format[2])
+        l_cpl.grid(row=1, column=3, sticky="nw", padx=5, pady=y1)
 
         self.combo_ip = ttk.Combobox(lfr_model, values=[*IPs])	# IPs from model.py
         self.combo_ip.set('g')
@@ -444,6 +459,11 @@ class GUI_viper():
                 if atm.get():
                     str_arg += str(self.molec[m])+" "
 
+        oformat = np.array([f.get() for f in self.cb_format])
+        str_arg += " -output_format " + " ".join((np.array(["dat", "fits", "cpl"])[oformat==1]))
+
+        #self.cb_format
+
         self.e_run.delete('0.0', END)
         self.e_run.insert(INSERT,"python3 viper.py "+str_arg)
         self.e_run.update()
@@ -471,7 +491,8 @@ def main():
     win.rowconfigure(4, weight=2, uniform=1)
 
     s = ttk.Style()
-    s.configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)     
+    s.configure("TCheckbutton", background=bg_frame, bd=0, highlightthickness=0)  
+    s.configure('TRadiobutton', background=bg_frame)   
     s.configure("bold.TButton", padding=2, background=bg_button, font=(font_type,font_size,'bold'), borderwidth=2, width=15)
     s.configure("nbold.TButton", padding=2, background=bg_button, font=(font_type,font_size-1,''), borderwidth=2, width=15)     
     s.configure('TFrame', background=bg_frame)
