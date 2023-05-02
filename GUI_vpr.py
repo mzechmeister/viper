@@ -13,6 +13,7 @@ from hbox import Help_Box
 import numpy as np
 import sys
 import vpr
+from vpr import VPR
 vpr.pause = print   # mainloop of the gui will pause
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
@@ -114,27 +115,27 @@ class RV_plot(ttk.Frame):
         self.plt_cmp = False
         self.e_run = e_run
 
-        frm_rv = TabFrame(master, 'Plot RVs').frm
-        frm_rv.grid_rowconfigure(100, weight=1)
+        self.frm_rv = TabFrame(master, 'Plot RVs').frm
+        self.frm_rv.grid_rowconfigure(100, weight=1)
 
         # Frames
-        frm_rv1 = LabelFrame(frm_rv, text="Input", bg=bg_frame, bd=2)
+        frm_rv1 = LabelFrame(self.frm_rv, text="Input", bg=bg_frame, bd=2)
         frm_rv1.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         frm_rv1.grid_columnconfigure(1, weight=1)
 
-        self.lfr_oset1 = CBFrame(frm_rv, 'oset rvo 1', self.cbv_oset1).lfrm
+        self.lfr_oset1 = CBFrame(self.frm_rv, 'oset rvo 1', self.cbv_oset1).lfrm
         self.lfr_oset1.grid(row=2, column=0, sticky="news", padx=(10,0), pady=5, ipady=5)
 
-        self.lfr_oset2 = CBFrame(frm_rv, 'oset rvo 2', self.cbv_oset2).lfrm
+        self.lfr_oset2 = CBFrame(self.frm_rv, 'oset rvo 2', self.cbv_oset2).lfrm
         self.lfr_oset2.grid(row=2, column=1, sticky="news", padx=10, pady=5, ipady=5)
 
-        lfr_cen = LabelFrame(frm_rv, text="center RV values", bg=bg_frame, bd=2)
+        lfr_cen = LabelFrame(self.frm_rv, text="center RV values", bg=bg_frame, bd=2)
         lfr_cen.grid(row=3, column=0, sticky="news", padx=(10,0), pady=5, ipady=5)
 
-        lfr_plot = LabelFrame(frm_rv, text="Plotting Options", bg=bg_frame, bd=2)
+        lfr_plot = LabelFrame(self.frm_rv, text="Plotting Options", bg=bg_frame, bd=2)
         lfr_plot.grid(row=3, column=1, sticky="news", padx=10, pady=5, ipady=5)
 
-        lfr_other = LabelFrame(frm_rv, text="Other", bg=bg_frame, bd=2)
+        lfr_other = LabelFrame(self.frm_rv, text="Other", bg=bg_frame, bd=2)
         lfr_other.grid(row=4, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         lfr_other.grid_columnconfigure(1, weight=1)
 
@@ -168,12 +169,12 @@ class RV_plot(ttk.Frame):
         # Entry
         self.e_rvo1 = Entry(frm_rv1, textvariable=self.filename1, width=100)
         self.e_rvo1.insert(0, 'tmp.rvo.dat')
-        self.e_rvo1.bind("<Return>", (lambda event: self.update_changes(refresh=1)))
+        self.e_rvo1.bind("<Return>", (lambda event: self.update(refresh=1)))
         self.e_rvo1.grid(row=0, column=1, sticky="sew", padx=xy0, pady=(5))
 
         self.e_rvo2 = Entry(frm_rv1, textvariable=self.filename2, width=100)
         self.e_rvo2.insert(0, '')
-        self.e_rvo2.bind("<Return>", (lambda event: self.update_changes(refresh=2)))
+        self.e_rvo2.bind("<Return>", (lambda event: self.update(refresh=2)))
         self.e_rvo2.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
 
         self.e_sort = Entry(lfr_plot, width=10)
@@ -182,7 +183,7 @@ class RV_plot(ttk.Frame):
 
         self.e_offset = Entry(lfr_plot, width=10)
         self.e_offset.insert(0, 400)
-        self.e_offset.bind("<Return>", (lambda event: self.update_changes()))
+        self.e_offset.bind("<Return>", (lambda event: self.update()))
         self.e_offset.grid(row=1, column=1, sticky="nw", padx=(xy0), pady=(5,0))
 
         self.e_out = Entry(lfr_other, width=350)
@@ -192,7 +193,7 @@ class RV_plot(ttk.Frame):
         # Combobox
         self.combo_avg = ttk.Combobox(lfr_other, values=['mean', 'wmean'], width=8)
         self.combo_avg.set('wmean')
-        self.combo_avg.bind('<<ComboboxSelected>>', (lambda event: self.update_changes()))
+        self.combo_avg.bind('<<ComboboxSelected>>', (lambda event: self.update()))
         self.combo_avg.grid(row=0, column=1, sticky="nw", padx=xy0, pady=(5,0))
          
         # Checkbutton
@@ -211,9 +212,9 @@ class RV_plot(ttk.Frame):
         l_ocen2.grid(row=2, column=0, sticky="nw", padx=xy0, pady=(5,0))
         Help_Box(widget = l_ocen2, text = text_from_file("'-cmpocen'"))
 
-        self.cb_cen.trace("w", self.update_changes)
-        self.cb_ocen.trace("w", self.update_changes)
-        self.cb_cmpocen.trace("w", self.update_changes)
+        self.cb_cen.trace("w", self.update)
+        self.cb_ocen.trace("w", self.update)
+        self.cb_cmpocen.trace("w", self.update)
 
         # Buttons
         b_rvo1 = ttk.Button(frm_rv1, text='Search data file', style='nbold.TButton', command = self.bt_rvo1)
@@ -231,13 +232,13 @@ class RV_plot(ttk.Frame):
         b_save = ttk.Button(lfr_other, text='Save', style='nbold.TButton', command = lambda: self.show_plot('-save'))
         b_save.grid(row=1, column=2, sticky="ne", padx=xy0)
 
-        b_nrvo = ttk.Button(frm_rv, text='Plot no-rv', style='bold.TButton', command = lambda: self.show_plot('-plot nrvo'))
+        b_nrvo = ttk.Button(self.frm_rv, text='Plot no-rv', style='bold.TButton', command = lambda: self.show_plot('-plot nrvo'))
         b_nrvo.grid(row=100, column=0, sticky="se", padx=20, pady=(5,20), columnspan=10)
 
-        b_rvo = ttk.Button(frm_rv, text='Plot o-rv', style='bold.TButton', command = lambda: self.show_plot('-plot rvo'))
+        b_rvo = ttk.Button(self.frm_rv, text='Plot o-rv', style='bold.TButton', command = lambda: self.show_plot('-plot rvo'))
         b_rvo.grid(row=100, column=0, sticky="se", padx=180, pady=(5,20), columnspan=10)
 
-        b_rvbjd = ttk.Button(frm_rv, text='Plot BJD-RV', style='bold.TButton', command = lambda: self.show_plot())
+        b_rvbjd = ttk.Button(self.frm_rv, text='Plot BJD-RV', style='bold.TButton', command = lambda: self.show_plot())
         b_rvbjd.grid(row=100, column=0, sticky="se", padx=340, pady=(5,20), columnspan=10)
 
         if sys.argv[1:]:
@@ -245,32 +246,31 @@ class RV_plot(ttk.Frame):
             self.e_rvo1.insert(0, sys.argv[1])
 
         if os.path.isfile(self.e_rvo1.get()):
-            self.refresh_oset('1')
+            self.update(refresh=1, plot=0)
 
     def bt_rvo1(self):
         file1 = askopenfilename()
         if file1:
             self.filename1.set(file1)
-            self.update_changes(refresh=1)
+            self.update(refresh=1)
 
     def bt_rvo2(self):
         file1 = askopenfilename()
         if file1:
             self.filename2.set(file1)
-            self.update_changes(refresh=2)
+            self.update(refresh=2)
 
     def bt_swap(self):
         f1 = self.filename1.get()
         f2 = self.filename2.get()
         self.filename1.set(f2)
         self.filename2.set(f1)
-        self.update_changes(refresh=12)
+        self.update(refresh=12)
 
     def get_orders(self, file):
         # get all available orders from RV file
-        Afull = np.genfromtxt(file, dtype=None, names=True,
-            deletechars='',   # to keep the dash for chunks
-            encoding=None).view(np.recarray)
+
+        Afull = VPR(tag=file).Afull 
         colnames = Afull.dtype.names
 
         onames_all = np.array([col for col in colnames if col.startswith('rv')], dtype='O')
@@ -284,19 +284,22 @@ class RV_plot(ttk.Frame):
                 self.o_rvo1 = self.get_orders(self.e_rvo1.get())
                 self.cb_oset1, self.cbv_oset1 = CheckBoxes(self.lfr_oset1, self.o_rvo1, self.cb_oset1, self.cbv_oset1, 6)
                 set_oset(self.cbv_oset1, 1)
-                for c in self.cbv_oset1: c.trace("w", self.update_changes)
+                for c in self.cbv_oset1: c.trace("w", self.update)
         if '2' in num:
             if self.e_rvo2.get():
                 self.o_rvo2 = self.get_orders(self.e_rvo2.get())
                 self.cb_oset2, self.cbv_oset2 = CheckBoxes(self.lfr_oset2, self.o_rvo2, self.cb_oset2, self.cbv_oset2, 6)
                 set_oset(self.cbv_oset2, 1)
-                for c in self.cbv_oset2: c.trace("w", self.update_changes)
+                for c in self.cbv_oset2: c.trace("w", self.update)
 
-    def update_changes(self, *args, refresh = 0):
-        # Update when changing checkboxes
-        if refresh:
+    def update(self, *args, refresh = 0, plot = 1):
+        try:
             self.refresh_oset(str(refresh))
-        self.show_plot(self.plt_opt, cmp=self.plt_cmp)
+            if plot: self.show_plot(self.plt_opt, cmp=self.plt_cmp)
+            self.emsg.destroy()
+        except:
+            self.emsg = ttk.Label(self.frm_rv, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
+            self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
 
     def show_plot(self, args='-plot rv', cmp=False):
         # plot selected options
@@ -365,7 +368,7 @@ class Parameter(ttk.Frame):
         # Entry
         self.e_parf = Entry(lpar, width=120)
         self.e_parf.insert(0, 'tmp.par.dat')
-        self.e_parf.bind("<Return>", (lambda event: self.get_parameters()))
+        self.e_parf.bind("<Return>", (lambda event: self.update()))
         self.e_parf.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
 
         # Buttons
@@ -376,21 +379,36 @@ class Parameter(ttk.Frame):
         b_par.grid(row=100, column=0, sticky="se", padx=20, pady=20, columnspan=10)
 
         if os.path.isfile(self.e_parf.get()):
-            self.get_parameters()
+            self.update(plot=0)
 
     def bt_file(self):
         edir = askopenfilename()
         if edir:
             self.e_parf.delete(0, END)
             self.e_parf.insert(0, edir)
+            self.update()
+
+    def update(self, plot=1):
+        try:
             self.get_parameters()
+            if plot: self.show_plot()
+            self.emsg.destroy()
+        except:
+            self.emsg = ttk.Label(self.frm_par, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
+            self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
 
     def get_parameters(self):
         parfile = self.e_parf.get()#.split('.')[0]
 
-        par = np.genfromtxt(parfile, dtype=None, names=True,
+        if parfile.endswith('fits'):
+            from astropy.io import fits
+            hdu = fits.open(parfile, dtype=None)
+            par = hdu[2].data.view(np.recarray) 
+        else:
+            par = np.genfromtxt(parfile, dtype=None, names=True,
                             deletechars='',   # to keep the dash for chunks
                             encoding=None).view(np.recarray)
+
         colnames = par.dtype.names[:-1]
 
         # parameters x axis
@@ -444,21 +462,21 @@ class Residuals(ttk.Frame):
         self.e_run = e_run
 
         # Frames
-        frm_res = TabFrame(master, 'Plot residuals').frm
-        frm_res.grid_rowconfigure(100, weight=1)
+        self.frm_res = TabFrame(master, 'Plot residuals').frm
+        self.frm_res.grid_rowconfigure(100, weight=1)
 
-        lres = LabelFrame(frm_res, text='Input', bg=bg_frame, bd=2)
+        lres = LabelFrame(self.frm_res, text='Input', bg=bg_frame, bd=2)
         lres.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         lres.grid_columnconfigure(1, weight=1)
 
-        self.lreso = CBFrame(frm_res, 'oset', self.cbv_oset).lfrm
+        self.lreso = CBFrame(self.frm_res, 'oset', self.cbv_oset).lfrm
         self.lreso.grid(row=7, column=1, sticky="news", padx=(5,10), pady=5, ipady=5)
 
-        self.lresn = CBFrame(frm_res, 'nset', self.cbv_nset).lfrm
+        self.lresn = CBFrame(self.frm_res, 'nset', self.cbv_nset).lfrm
         self.lresn.grid(row=7, column=0, sticky="news", padx=(10,5), pady=5, ipady=5)
 
         # Labels
-        l_info = ttk.Label(frm_res, text='For large number of nset, it is recommended to first chose one single order before using "select all" on nset.', foreground='red4')
+        l_info = ttk.Label(self.frm_res, text='For large number of nset, it is recommended to first chose one single order before using "select all" on nset.', foreground='red4')
         l_info.grid(row=2, column=0, sticky="nw", padx=xy0, pady=xy0, columnspan=2)
 
         l_dir = ttk.Label(lres, text='directory:', font=(font_type, font_size-1, 'bold'))
@@ -483,11 +501,11 @@ class Residuals(ttk.Frame):
         b_fres = ttk.Button(lres, text='Search directory', style='nbold.TButton', command = lambda: self.bt_file())
         b_fres.grid(row=1, column=2, sticky="ne", padx=10, pady=0)
 
-        b_res = ttk.Button(frm_res, text='Plot res', style='bold.TButton', command = lambda: self.show_plot())
+        b_res = ttk.Button(self.frm_res, text='Plot res', style='bold.TButton', command = lambda: self.show_plot())
         b_res.grid(row=100, column=0, sticky="se", padx=20, pady=20, columnspan=10)
 
-        if os.path.isdir(self.e_dir.get()):
-            self.sel_res()
+        if os.path.isdir(self.e_dir.get()):        
+            self.update(plot=0)
 
     def bt_file(self):
         edir = askdirectory()
@@ -516,9 +534,14 @@ class Residuals(ttk.Frame):
         self.cbv_nset[0].set(1)
         for c in self.cbv_nset: c.trace("w", lambda *args: self.show_plot())   
 
-    def update(self):
-        self.sel_res()
-        self.show_plot()
+    def update(self, plot=1):
+        try:
+            self.sel_res()
+            if plot: self.show_plot()
+            self.emsg.destroy()
+        except:
+            self.emsg = ttk.Label(self.frm_res, text="Problem using input directory. Check if selected directory exists and is not empty.", foreground='red')
+            self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
 
     def show_plot(self):
         str_arg = " -res "+str(self.e_dir.get())
