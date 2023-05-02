@@ -138,6 +138,11 @@ class VPR():
             self.RV -= off
             self.rv -= off
 
+        if self.file.endswith('.fits'):
+            self.filenames = [name.decode('UTF-8') for name in self.A.filename]
+        else:
+            self.filenames = self.A.filename
+
         self.info()
 
         if ocen:
@@ -206,7 +211,7 @@ class VPR():
         gplot.var(cx=1)
         gplot.bind('''"$" "cx = !cx; set xlabel cx? 'BJD - 2 450 000' : 'observation number';  repl"''')
 
-        gplot(self.BJD, self.RV, self.e_RV, self.A.filename, ' us (cx?$1-2450000:$0+1):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us (cx?$1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "orders = %s"' % str(self.oset).replace('\n',''))
+        gplot(self.BJD, self.RV, self.e_RV, self.filenames, ' us (cx?$1-2450000:$0+1):2:(sprintf("%%s\\nn: %%d\\nBJD: %%.6f\\nRV: %%f +/- %%f", stringcolumn(4),$0+1,$1,$2,$3)) with labels  hypertext point pt 0 t"", "" us (cx?$1-2450000:$0+1):2:3 w e pt 7 lc "#77000000" t "orders = %s"' % str(self.oset).replace('\n',''))
         pause('RV time serie')
 
     def plot_rv(self, o=None, n=1):
