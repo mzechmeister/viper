@@ -59,7 +59,10 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('.model'):
+    if tplname.endswith('_tpl.model'):
+        # echelle template
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+    elif tplname.endswith('.model'):
         # echelle template
         pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
@@ -104,6 +107,6 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
         else:
             f[o] = np.ones(2048)
 
-    hdu.writeto(file_out+'.model', overwrite=True) 
+    hdu.writeto(file_out+'_tpl.model', overwrite=True) 
 
 
