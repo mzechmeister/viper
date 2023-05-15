@@ -84,6 +84,8 @@ def Tpl(tplname, order=None, targ=None):
         wave = gg['wavelen']
         wave = airtovac(wave)
         wave *= 1 + (berv*u.km/u.s/c).to_value('')
+    elif tplname.endswith('_tpl.model'):
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
     else:
         pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         wave *= 1 + (berv*u.km/u.s/c).to_value('')
@@ -111,6 +113,6 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
         else:
             f[order] = np.ones(len(f[order]))
 
-    hdu.writeto(file_out+'.model', overwrite=True)  
+    hdu.writeto(file_out+'_tpl.model', overwrite=True)  
   #  hdu.close()  
 
