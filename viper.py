@@ -607,12 +607,12 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_cor[spec_cor<3*err_cor] = np.nan
 
         wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
-        spec_cor = np.interp(wave_model/(1+berv/c)*(1+par.rv/c), wave_model, spec_cor/np.nanmedian(spec_cor))
+        spec_cor = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), spec_cor/np.nanmedian(spec_cor))
 
         # downweighting by telluric spectrum and errors
         weight = spec_model / (err_cor/np.nanmedian(spec_cor))**2
         # weight[spec_model<0.2] = 0.00001   # downweight deep telluric lines
-        weight = np.interp(wave_model / (1+berv/c) * (1+par.rv/c), wave_model, weight)
+        weight = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), weight)
 
         # save telluric corrected spectrum
         spec_all[o,0][n] = wave_model   # updated wavelength
@@ -893,12 +893,23 @@ if createtpl:
         weight_t[spec_t<0] = 0
         # weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
 
-        spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
-        wave_tpl_new[order] = np.nanmean(wave_t, axis=0)
+      #  spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
+        #wave_tpl_new[order] = np.nanmean(wave_t, axis=0)
+        wave_tpl_new[order] = wave_t[0]
 
         # flag outlier points and spectra
-        for nn in range(len(spec_t)):
-            weight_t[nn][np.abs(spec_t[nn]-spec_tpl_new[order])>0.1] = np.nan
+        for nn in range(1, len(spec_t)):
+            valid = np.isfinite(spec_t[nn])
+            spec_cubic = CubicSpline(wave_t[nn][valid], spec_t[nn][valid])(wave_t[0])
+            spec_t[nn][valid] = spec_cubic[valid]
+
+            # weight_cubic = CubicSpline(wave_t[nn][valid], weight_t[nn][valid])(wave_t[0])
+            # weight_t[nn][valid] = weight_cubic[valid]
+            weight_t[nn] = np.interp(wave_t[0], wave_t[nn], weight_t[nn])
+
+        spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
+        for nn in range(0, len(spec_t)):
+            weight_t[nn][np.abs(spec_t[nn]-spec_mean)>0.1] = np.nan
 
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         err_tpl_new[order] = np.nanstd(spec_t, axis=0)
@@ -908,7 +919,7 @@ if createtpl:
             for n in range(len(spec_t)):
                 gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
-        if order in look:
+      #  if order in look:
             pause()
 
     Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
