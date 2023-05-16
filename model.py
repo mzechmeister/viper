@@ -105,7 +105,13 @@ def IP_mg(vk, *a):
     # gplot(IP_k)
     return IP_k
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'asg': IP_asg, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'bnd': 'bnd'}
+def IP_lor(vk, s=2.2):
+    """Lorentzian IP"""
+    IP_k = 1/np.pi* np.abs(s)/(s**2+vk**2)
+    IP_k /= IP_k.sum()          # normalise IP
+    return IP_k
+
+IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'asg': IP_asg, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'lor' : IP_lor, 'bnd': 'bnd'}
 
 
 def poly(x, a):
