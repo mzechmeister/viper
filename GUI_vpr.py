@@ -245,8 +245,8 @@ class RV_plot(ttk.Frame):
             self.e_rvo1.delete(0, END)
             self.e_rvo1.insert(0, sys.argv[1])
 
-        if os.path.isfile(self.e_rvo1.get()):
-            self.update(refresh=1, plot=0)
+        #if os.path.isfile(self.e_rvo1.get()):
+        self.update(refresh=1, plot=0, destroy = 0)
 
     def bt_rvo1(self):
         file1 = askopenfilename()
@@ -292,11 +292,11 @@ class RV_plot(ttk.Frame):
                 set_oset(self.cbv_oset2, 1)
                 for c in self.cbv_oset2: c.trace("w", self.update)
 
-    def update(self, *args, refresh = 0, plot = 1):
+    def update(self, *args, refresh = 0, plot = 1, destroy = 1):
         try:
             self.refresh_oset(str(refresh))
             if plot: self.show_plot(self.plt_opt, cmp=self.plt_cmp)
-            self.emsg.destroy()
+            if destroy: self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_rv, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
@@ -378,8 +378,8 @@ class Parameter(ttk.Frame):
         b_par = ttk.Button(self.frm_par, text='Plot par', style='bold.TButton', command = lambda: self.show_plot())
         b_par.grid(row=100, column=0, sticky="se", padx=20, pady=20, columnspan=10)
 
-        if os.path.isfile(self.e_parf.get()):
-            self.update(plot=0)
+      #  if os.path.isfile(self.e_parf.get()):
+        self.update(plot=0, destroy = 0)
 
     def bt_file(self):
         edir = askopenfilename()
@@ -388,11 +388,11 @@ class Parameter(ttk.Frame):
             self.e_parf.insert(0, edir)
             self.update()
 
-    def update(self, plot=1):
+    def update(self, plot=1, destroy = 1):
         try:
             self.get_parameters()
             if plot: self.show_plot()
-            self.emsg.destroy()
+            if destroy: self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_par, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
@@ -504,8 +504,8 @@ class Residuals(ttk.Frame):
         b_res = ttk.Button(self.frm_res, text='Plot res', style='bold.TButton', command = lambda: self.show_plot())
         b_res.grid(row=100, column=0, sticky="se", padx=20, pady=20, columnspan=10)
 
-        if os.path.isdir(self.e_dir.get()):        
-            self.update(plot=0)
+        #if os.path.isdir(self.e_dir.get()):        
+        self.update(plot=0, destroy = 0)
 
     def bt_file(self):
         edir = askdirectory()
@@ -534,11 +534,11 @@ class Residuals(ttk.Frame):
         self.cbv_nset[0].set(1)
         for c in self.cbv_nset: c.trace("w", lambda *args: self.show_plot())   
 
-    def update(self, plot=1):
+    def update(self, plot=1, destroy = 1):
         try:
             self.sel_res()
             if plot: self.show_plot()
-            self.emsg.destroy()
+            if destroy: self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_res, text="Problem using input directory. Check if selected directory exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
