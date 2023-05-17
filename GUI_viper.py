@@ -448,7 +448,8 @@ class GUI_viper():
              str_arg += " -flagfile "+ str(self.e_flag.get())
 
         if self.cb_cell.get(): 
-             str_arg += " -fts " + viperdir + self.e_cell.get()
+            # str_arg += " -fts " + viperdir + self.e_cell.get()
+             str_arg += " -fts " + self.e_cell.get()
         else:
              str_arg += " -nocell " 
 
@@ -465,7 +466,7 @@ class GUI_viper():
         #self.cb_format
 
         self.e_run.delete('0.0', END)
-        self.e_run.insert(INSERT,"python3 viper.py "+str_arg)
+        self.e_run.insert(INSERT,"python3 viper.py '"+str_arg)
         self.e_run.update()
 
         print(str_arg)
