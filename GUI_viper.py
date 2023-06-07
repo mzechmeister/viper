@@ -123,7 +123,7 @@ class GUI_viper():
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
-        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES'], width=15)
+        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES', 'McDonald'], width=15)
         self.combo_inst.set('TLS')
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
         self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
@@ -379,8 +379,8 @@ class GUI_viper():
             self.cbv_atm.clear()
             self.l_molec.destroy()
 
-        if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK'):
-            self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules (TLS, CES, OES, KECK):')
+        if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'McDonald'):
+            self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules (TLS, CES, OES, KECK, McDonald):')
             self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
         elif str(self.combo_inst.get()) in ('CRIRES', 'cplCRIRES'):
             self.l_molec = ttk.Label(self.lfr_tell, text='Near Infrared molecules (CRIRES+):')
