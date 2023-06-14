@@ -30,8 +30,9 @@ class convert_data():
             self.write_cpl()
         if final:
             self.write_finalRV()            
-        # if not dat:
-        # rm par files ?       
+        if not dat:
+            os.remove(filename+'.rvo.dat') 
+            os.remove(filename+'.par.dat')      
         
     def write_fits(self):
         # convert data to fits files using astropy       
@@ -45,6 +46,9 @@ class convert_data():
             else:    
                 c = fits.Column(name=str(col), array=self.data_rvo[col], format='F')
             table.append(c)
+        hdr = fits.Header()
+        hdr.set('TYPE', 'rvo', 'RV data')
+        hdr.set('UNIT', 'm/s', 'Unit of RV data')
         table_rvo = fits.BinTableHDU.from_columns(table)
         
         # create par table
@@ -52,6 +56,9 @@ class convert_data():
         for h, col in enumerate(self.header_par):
             c = fits.Column(name=str(col), array=self.data_par[col], format='F')
             table.append(c)
+        hdr = fits.Header()
+        hdr.set('TYPE', 'par', 'parameter data')
+        hdr.set('UNIT', 'm/s', 'Unit of  RV data')
         table_par = fits.BinTableHDU.from_columns(table)
 
         # combine and write to file
@@ -66,6 +73,9 @@ class convert_data():
 
         hdr = cpl.core.PropertyList()
         tbl = cpl.core.Table(len(self.data_rvo))
+        
+        hdr.append(Property('TYPE', 'rvo', 'RV data'))
+        hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
 
         # save rvo data
         for h, col in enumerate(self.header_rvo):
@@ -80,6 +90,9 @@ class convert_data():
         # save par data       
         hdr = cpl.core.PropertyList()
         tbl = cpl.core.Table(len(self.data_par))
+        
+        hdr.append(Property('TYPE', 'par', 'parameter data'))
+        hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
 
         for h, col in enumerate(self.header_par):
            tbl.new_column(str(col), cpl.core.Type.DOUBLE)
