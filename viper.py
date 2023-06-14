@@ -187,7 +187,7 @@ if __name__ == "__main__":
     argopt('-nocell', help='Do the calibration without using the FTS.', action='store_true')
     argopt('-nset', help='Index for spectrum.', default=':', type=arg2slice)
     argopt('-oset', help='Index for order.', default=oset, type=arg2slice)
-    argopt('-output_format', nargs='*', help='Format of output files for rvo and par data (dat, fits, cpl).', default=['par'], dest='oformat', type=str)
+    argopt('-output_format', nargs='*', help='Format of output files for rvo and par data (dat, fits, cpl).', default=['dat'], dest='oformat', type=str)
     argopt('-oversampling', help='Oversampling factor for the template data.', default=None, type=int)
     argopt('-rv_guess', help='RV guess.', default=1., type=float)   # slightly offsetted
     argopt('-stepRV', help='Step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess).', choices=['a', 'm'], type=str)
@@ -863,7 +863,7 @@ for n, obsname in enumerate(obsnames):
             print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
             # store residuals
             os.system('mkdir -p res; touch res.dat')
-            os.system('cp res.dat res/%03d_%03d.dat' % (n, o))
+            os.system('mv res.dat res/%03d_%03d.dat' % (n, o))
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
