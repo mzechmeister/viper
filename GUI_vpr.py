@@ -168,7 +168,10 @@ class RV_plot(ttk.Frame):
 
         # Entry
         self.e_rvo1 = Entry(frm_rv1, textvariable=self.filename1, width=100)
-        self.e_rvo1.insert(0, 'tmp.rvo.dat')
+        if os.path.isfile('tmp.rvo.dat'):
+            self.e_rvo1.insert(0, 'tmp.rvo.dat')
+        elif os.path.isfile('tmp_rvo_par.fits'):
+            self.e_rvo1.insert(0, 'tmp_rvo_par.fits')
         self.e_rvo1.bind("<Return>", (lambda event: self.update(refresh=1)))
         self.e_rvo1.grid(row=0, column=1, sticky="sew", padx=xy0, pady=(5))
 
@@ -296,7 +299,7 @@ class RV_plot(ttk.Frame):
         try:
             self.refresh_oset(str(refresh))
             if plot: self.show_plot(self.plt_opt, cmp=self.plt_cmp)
-            if destroy: self.emsg.destroy()
+            if destroy and hasattr(self, 'emsg'): self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_rv, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
@@ -367,7 +370,10 @@ class Parameter(ttk.Frame):
 
         # Entry
         self.e_parf = Entry(lpar, width=120)
-        self.e_parf.insert(0, 'tmp.par.dat')
+        if os.path.isfile('tmp.par.dat'):
+            self.e_parf.insert(0, 'tmp.par.dat')
+        elif os.path.isfile('tmp_rvo_par.fits'):
+            self.e_parf.insert(0, 'tmp_rvo_par.fits')
         self.e_parf.bind("<Return>", (lambda event: self.update()))
         self.e_parf.grid(row=1, column=1, sticky="new", padx=xy0, pady=(5))
 
@@ -392,7 +398,7 @@ class Parameter(ttk.Frame):
         try:
             self.get_parameters()
             if plot: self.show_plot()
-            if destroy: self.emsg.destroy()
+            if destroy and hasattr(self, 'emsg'): self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_par, text="Problem using input file. Check if selected file exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
@@ -538,7 +544,7 @@ class Residuals(ttk.Frame):
         try:
             self.sel_res()
             if plot: self.show_plot()
-            if destroy: self.emsg.destroy()
+            if destroy and hasattr(self, 'emsg'): self.emsg.destroy()
         except:
             self.emsg = ttk.Label(self.frm_res, text="Problem using input directory. Check if selected directory exists and is not empty.", foreground='red')
             self.emsg.grid(row=0, column=0, sticky="nw", padx=(200,0), pady=(xy0,5), columnspan = 10)
