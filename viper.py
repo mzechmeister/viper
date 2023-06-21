@@ -901,15 +901,18 @@ if createtpl:
         for nn in range(1, len(spec_t)):
             valid = np.isfinite(spec_t[nn])
             spec_cubic = CubicSpline(wave_t[nn][valid], spec_t[nn][valid])(wave_t[0])
-            spec_t[nn][valid] = spec_cubic[valid]
+            spec_cubic[valid==0] = np.nan
+            spec_t[nn] = spec_cubic
 
             # weight_cubic = CubicSpline(wave_t[nn][valid], weight_t[nn][valid])(wave_t[0])
             # weight_t[nn][valid] = weight_cubic[valid]
-            weight_t[nn] = np.interp(wave_t[0], wave_t[nn], weight_t[nn])
+            weight_t[nn] = np.interp(wave_t[0], wave_t[nn][valid], weight_t[nn][valid])
+            weight_t[nn][valid==0] = np.nan
+            weight_t[nn][weight_t[nn]==0] = np.nan
 
-        spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
-        for nn in range(0, len(spec_t)):
-            weight_t[nn][np.abs(spec_t[nn]-spec_mean)>0.1] = np.nan
+      #  spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
+       # for nn in range(0, len(spec_t)):
+        #    weight_t[nn][np.abs(spec_t[nn]-spec_mean)>0.1] = np.nan
 
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         err_tpl_new[order] = np.nanstd(spec_t, axis=0)
