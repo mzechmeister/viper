@@ -180,7 +180,7 @@ class GUI_viper():
         l_opt = ttk.Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'))
         l_opt.grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=(10,y1), columnspan=3)
 
-        self.Label_list(lfr_data, ['nset', 'oset', 'chunks', 'vcut'])
+        self.Label_list(lfr_data, ['nset', 'oset', 'chunks', 'vcut', 'iset'])
         self.Label_list(lfr_model, ['ip', 'iphs', 'deg_norm', 'deg_wave', 'deg_bkg'])
         self.Label_list(lfr_tpl, ['rv_guess', 'oversampling'])
         self.Label_list(lfr_stat, ['kapsig'])
@@ -210,6 +210,9 @@ class GUI_viper():
         self.e_vcut = Entry(lfr_data)
         self.e_vcut.insert(0, '100')
         self.e_vcut.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
+
+        self.e_iset = Entry(lfr_data)
+        self.e_iset.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=y1) 
 
         self.e_iphs = Entry(lfr_model)
         self.e_iphs.insert(0, '50')
@@ -367,6 +370,9 @@ class GUI_viper():
         self.e_cell.delete(0, END)
         self.e_cell.insert(0, default)
 
+        self.e_iset.delete(0, END)
+        self.e_iset.insert(0, getattr(Inst, 'iset', ':'))
+
         # molecule selection for tellurics
         self.molec = list(Inst.atmall.keys())
         self.Telluric()
@@ -421,6 +427,7 @@ class GUI_viper():
         str_arg += " -oset "+self.e_oset.get()
         str_arg += " -chunks " + self.e_ch.get()
         str_arg += " -vcut " + self.e_vcut.get() 
+        str_arg += " -iset "+self.e_iset.get()
         str_arg += " -ip " + self.combo_ip.get() 
         str_arg += " -iphs " + self.e_iphs.get()
         str_arg += " -deg_norm " + self.e_deg_norm.get() 
