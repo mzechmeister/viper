@@ -11,6 +11,7 @@ from tkinter.scrolledtext import ScrolledText
 from hbox import Help_Box
 
 import numpy as np
+import re
 import sys
 import vpr
 from vpr import VPR
