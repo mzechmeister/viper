@@ -316,7 +316,10 @@ def plot_res(folder, o=[1], n=[1], sep=1.):
     gplot.bind('''"["  'n=nbeg=nend = n>1?n-1:1;   obeg=1; oend=No; set key tit "[n=".Sp[n]."]"; set y2label "order"; repl' ''')
     gplot.bind('''"]"  'n=nbeg=nend = n<Nn?n+1:Nn; obeg=1; oend=No; set key tit "[n=".Sp[n]."]"; set y2label "order"; repl' ''')
     gplot.key_invert()
-    gplot.term_qt_size('600,1000')
+    try:
+        gplot.term_qt_size('600,1000')
+    except:
+        pass
     gplot.xlabel("'pixel x'").ylabel("'residuals'").y2label("'spectrum number'")
     gplot.array(A=o, Sp=n)
     gplot.array(d3color=[0x1F77B4, 0xFF7F0E, 0x2CA02C, 0xD62728, 0x9467BD, 0x8C564B])
