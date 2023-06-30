@@ -28,14 +28,20 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
 
-    dateobs = hdr['DATE-OBS']
+    dateobs = hdr.get('DATE-OBS', hdr.get('FRAME'))
     exptime = hdr.get('EXP_TIME', hdr.get('EXPOSURE'))   # 20211018_guenther_TCEcell_0063.fits EXPOSURE (no exptime)
     ra = hdr.get('RA', np.nan)                          # 20211018_guenther_TCEcell_0184.fits no RA
     de = hdr.get('DEC', np.nan)
 
+    # 2021 the ANCHOR CCD was installed at TLS, which writes the end-time of 
+    # the observation instead of the start-time
+    # -> therefore the exptime has to be subracted instead of added  
+    if dateobs > '2021-03-15-00T00:00:00':
+        exptime *= -1.
+
     targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
     if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
+    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
     berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
