@@ -26,8 +26,13 @@ def Spectrum(filename='', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
 
-    dateobs = dateobs = hdr['DATE-OBS']+ 'T' + hdr['MIDTIME']
-    #exptime = hdr.get('EXPTIME')   
+    try:
+        dateobs = hdr['DATE-OBS']+ 'T' + hdr['MIDTIME']
+        exptime = 0
+    except:
+        dateobs = hdr['DATE-OBS']+ 'T' + hdr['UT']
+        exptime = hdr.get('EXPTIME')  
+        
     ra = hdr.get('RA', np.nan)                          
     de = hdr.get('DEC', np.nan)
 
