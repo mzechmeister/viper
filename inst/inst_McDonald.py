@@ -38,7 +38,7 @@ def Spectrum(filename='', order=None, targ=None):
 
     targdrs = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg))
     if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') #+ exptime * u.s
+    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
     berv = targ.radial_velocity_correction(obstime=midtime, location=mcdonald)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
