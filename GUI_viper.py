@@ -23,7 +23,7 @@ bg_color = '#e6e1e1'    # bg color small frames
 bg_button = "#fdfdfd"   # bg buttons
 
 win_width = 1060     # width of GUI window	
-win_high = 800      # height of GUI window	
+win_high = 820      # height of GUI window	
 xy0 = 20
 y1 = 3
 x1 = 10
@@ -162,7 +162,10 @@ class GUI_viper():
         lfr_stat.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 
         self.lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)
-        self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
+        self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5, columnspan=1)
+
+    #    self.lfr_tpl = LabelFrame(fr2, text="Create Template", bg=bg_frame, bd=2)
+     #   self.lfr_tpl.grid(row=3, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=1)
 
         lfr_out = LabelFrame(fr2, text="Output", bg=bg_frame, bd=2)
         lfr_out.grid(row=4, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
@@ -186,33 +189,29 @@ class GUI_viper():
         self.Label_list(lfr_stat, ['kapsig'])
         self.Label_list(lfr_out, ['tag', 'output_format'])
 
-        l_tell = ttk.Label(self.lfr_tell,text='telluric:')
-        l_tell.grid(row=0, column=0, sticky="nw", padx=(xy0,0), pady=y1)
-        Help_Box(widget = l_tell, text = text_from_file("'-telluric'"))
-
-        l_tsig = ttk.Label(self.lfr_tell,text='tsig:')
-        l_tsig.grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1)
-        Help_Box(widget = l_tsig, text = text_from_file("'-tsig'"))
+        self.l_tell = ttk.Label(self.lfr_tell,text='telluric:')
+        self.l_tell.grid(row=0, column=0, sticky="news", padx=(xy0,5), pady=y1)
+        Help_Box(widget = self.l_tell, text = text_from_file("'-telluric'"))
 
         # Entry
         self.e_nset = Entry(lfr_data)
         self.e_nset.insert(0, ':4')
-        self.e_nset.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+        self.e_nset.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_oset = Entry(lfr_data)
         self.e_oset.insert(0, '20')
-        self.e_oset.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+        self.e_oset.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_ch = Entry(lfr_data)
         self.e_ch.insert(0, '1')
-        self.e_ch.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
+        self.e_ch.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_vcut = Entry(lfr_data)
         self.e_vcut.insert(0, '100')
         self.e_vcut.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_iset = Entry(lfr_data)
-        self.e_iset.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=y1) 
+        self.e_iset.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0)) 
 
         self.e_iphs = Entry(lfr_model)
         self.e_iphs.insert(0, '50')
@@ -242,10 +241,6 @@ class GUI_viper():
         self.e_kapsig.insert(0, '4.5')
         self.e_kapsig.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-        self.e_tsig = Entry(self.lfr_tell, width=8)
-        self.e_tsig.insert(0, '1')
-        self.e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
-
         self.e_tag = Entry(lfr_out)
         self.e_tag.insert(0, 'tmp')
         self.e_tag.grid(row=0, column=1, sticky="news", padx=(xy0,10), pady=y1, columnspan=3)
@@ -264,10 +259,6 @@ class GUI_viper():
         l_create.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
         Help_Box(widget = l_create, text = text_from_file("'-createtpl'"))
 
-        l_tshift = ttk.Checkbutton(self.lfr_tell, text="     tell shift", variable=self.cb_tellshift)
-        l_tshift.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
-        Help_Box(widget = l_tshift, text = text_from_file("'-tellshift'"))
-
         l_dat = ttk.Checkbutton(lfr_out, text="  .dat", variable=self.cb_format[0])
         l_dat.grid(row=1, column=1, sticky="nw", padx=(xy0,5), pady=y1)
         self.cb_format[0].set(1)
@@ -282,9 +273,10 @@ class GUI_viper():
         self.combo_ip.set('g')
         self.combo_ip.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
-        self.combo_tell = ttk.Combobox(self.lfr_tell, values=['', 'add', 'add2', 'mask', 'sig'], width=6)
-        self.combo_tell.set('')
+        self.combo_tell = ttk.Combobox(self.lfr_tell, values=['', 'add', 'add2', 'mask', 'sig'], width=14)
+        self.combo_tell.set('mask')
         self.combo_tell.grid(row=0, column=1, sticky="nw", padx=(x1), pady=y1, columnspan=2)
+        self.combo_tell.bind('<<ComboboxSelected>>', lambda event: self.Update_tell())
 
     def fr_plot(self):
         # Frame for parameter selection plotting
@@ -375,9 +367,35 @@ class GUI_viper():
 
         # molecule selection for tellurics
         self.molec = list(Inst.atmall.keys())
-        self.Telluric()
 
-    def Telluric(self):
+        if str(self.combo_tell.get()) in ('add', 'add2'):
+            self.Telluric()
+
+    def Update_tell(self):
+
+        if hasattr(self, 'l_tsig'): self.l_tsig.destroy()
+        if hasattr(self, 'e_tsig'): self.e_tsig.destroy()
+        if hasattr(self, 'l_tshift'): self.l_tshift.destroy()
+
+        if str(self.combo_tell.get()) in ('add', 'add2', 'sig'):
+            self.l_tsig = ttk.Label(self.lfr_tell,text='tsig:')
+            self.l_tsig.grid(row=1, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+            Help_Box(widget = self.l_tsig, text = text_from_file("'-tsig'"))
+
+            self.e_tsig = Entry(self.lfr_tell, width=8)
+            self.e_tsig.insert(0, '1')
+            self.e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1, columnspan=2)
+
+        if str(self.combo_tell.get()) in ('add', 'add2'):
+            self.l_tshift = ttk.Checkbutton(self.lfr_tell, text="     tell shift", variable=self.cb_tellshift)
+            self.l_tshift.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
+            Help_Box(widget = self.l_tshift, text = text_from_file("'-tellshift'"))
+
+            self.Telluric(show=1)
+        else:
+            self.Telluric(show=0)
+
+    def Telluric(self, show=1):
         if self.cb_atm != []:
             # delete old checkboxes, label
             for i in self.cb_atm: i.destroy()
@@ -385,19 +403,22 @@ class GUI_viper():
             self.cbv_atm.clear()
             self.l_molec.destroy()
 
-        if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'McDonald'):
-            self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules (TLS, CES, OES, KECK, McDonald):')
-            self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
-        elif str(self.combo_inst.get()) in ('CRIRES', 'cplCRIRES'):
-            self.l_molec = ttk.Label(self.lfr_tell, text='Near Infrared molecules (CRIRES+):')
-            self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
+        if show:
+            if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'UVES', 'McDonald'):
+                self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
+                self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
+            elif str(self.combo_inst.get()) in ('CRIRES', 'cplCRIRES'):
+                self.l_molec = ttk.Label(self.lfr_tell, text='Near Infrared molecules:')
+                self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
 
-        for m, mol in enumerate(self.molec):
-            self.cbv_atm.append(IntVar())
-            c = ttk.Checkbutton(self.lfr_tell, text="   "+mol, variable=self.cbv_atm[m])
-            c.grid(row=4, column=m, sticky="nw", padx=(xy0,x1), pady=y1)
-            self.cb_atm.append(c)
-            self.cbv_atm[m].set(1)
+            for m, mol in enumerate(self.molec):
+                yi, xi =  divmod(m, 3)
+                self.cbv_atm.append(IntVar())
+                c = ttk.Checkbutton(self.lfr_tell, text=" "+mol, variable=self.cbv_atm[m])
+                c.grid(row=4+yi, column=xi, sticky="news", padx=(20,0), pady=(y1,0))
+                self.cb_atm.append(c)
+                self.cbv_atm[m].set(1)
+
 
     def Label_list(self, frame, lab_list):
         for l, labt in enumerate (lab_list):
@@ -434,7 +455,6 @@ class GUI_viper():
         str_arg += " -deg_wave " + self.e_deg_wave.get() 
         str_arg += " -deg_bkg " + self.e_deg_bkg.get()
         str_arg += " -rv_guess " + self.e_vg.get()
-        str_arg += " -tsig " + self.e_tsig.get() 
         str_arg += " -demo " + str(int(demo))
 
         if self.e_targ.get(): str_arg += " -targ " + str(self.e_targ.get())
@@ -443,7 +463,6 @@ class GUI_viper():
         if self.cb_wgt.get(): str_arg += " -wgt "
         if self.e_overs.get(): str_arg += " -oversampling " + str(self.e_overs.get())
         if self.cb_createtpl.get(): str_arg += " -createtpl "
-        if self.cb_tellshift.get(): str_arg += " -tellshift "
         if self.cb_lookpar.get(): str_arg += " -lookpar " + self.e_lookpar.get()
         if self.cb_lookguess.get(): str_arg += " -lookguess "
         if self.cb_lookres.get(): str_arg += " -lookres "
@@ -462,6 +481,10 @@ class GUI_viper():
 
         if self.combo_tell.get():
             str_arg += " -telluric " + str(self.combo_tell.get())
+        if str(self.combo_tell.get()) in ('add', 'add2', 'sig'):
+            str_arg += " -tsig " + self.e_tsig.get() 
+        if str(self.combo_tell.get()) in ('add', 'add2'):
+            if self.cb_tellshift.get(): str_arg += " -tellshift "
             str_arg += " -molec "
             for m, atm in enumerate(self.cbv_atm):        
                 if atm.get():
@@ -512,4 +535,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
