@@ -373,9 +373,9 @@ class GUI_viper():
             self.Telluric()
 
     def Update_ctpl(self):
-        if hasattr(self, 'l_kapctpl'): self.l_looktpl.destroy()
-        if hasattr(self, 'e_kapctpl'): self.l_looktpl.destroy()
-        if hasattr(self, 'l_lookctpl'): self.l_looktpl.destroy()
+        if hasattr(self, 'l_kapctpl'): self.l_kapctpl.destroy()
+        if hasattr(self, 'e_kapctpl'): self.e_kapctpl.destroy()
+        if hasattr(self, 'l_lookctpl'): self.l_lookctpl.destroy()
 
         if self.cb_createtpl.get():
             self.l_kapctpl = ttk.Label(self.lfr_ctpl,text='kapsig_ctpl:')
