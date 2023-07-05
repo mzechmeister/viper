@@ -164,7 +164,7 @@ if __name__ == "__main__":
     argopt('-fts', help='Filename of FTS Cell.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, bg: biGaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks.', default=1, type=int)
-    argopt('-createtpl', help='Removal of telluric features and combination of tpl files.', action='store_true')
+    argopt('-createtpl', help='Removal of telluric features (or cell lines) and combination of several observations.', action='store_true')
     argopt('-deg_bkg', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-deg_norm', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-deg_norm_rat', nargs='?', help='Rational polynomial degree of denominator for flux normalisation.', type=int)
@@ -176,11 +176,13 @@ if __name__ == "__main__":
     argopt('-ipB', nargs='*', help='Factor of IP width varation.', type=float, default=[])
     argopt('-iset', help='Pixel range.', default=iset, type=arg2slice)
     argopt('-kapsig', nargs='*', help='Kappa sigma values for the clipping stages. Zero does not clip.', default=[0], type=float)
+    argopt('-kapsig_ctpl', help='Kappa sigma values for the clipping of outliers in template creation.', default=0.6, type=float)
     argopt('-look', nargs='?', help='See final fit of chunk with pause.', default=[], const=':100', type=arg2range)
     argopt('-lookfast', nargs='?', help='See final fit of chunk without pause.', default=[], const=':100', type=arg2range)
     argopt('-lookguess', nargs='?', help='Show initial model.', default=[], const=':100', type=arg2range)
     argopt('-lookpar', nargs='?', help='See parameter of chunk.', default=[], const=':100', type=arg2range)
     argopt('-lookres', nargs='?', help='Analyse the residuals.', default=[], const=':100', type=arg2range)
+    argopt('-lookctpl', nargs='?', help='Show created template.', default=[], const=':100', type=arg2range)
     #argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-molec', nargs='*', help='Molecular specifies; all: Automatic selection of all present molecules.', default=['all'], type=str)
     argopt('-nexcl', nargs='*', help='Ignore spectra with string pattern.', default=[], type=str)
@@ -604,7 +606,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
         # remove regions with strong telluric lines
         spec_cor[spec_model<0.2] = np.nan
-        spec_cor[spec_cor<3*err_cor] = np.nan
+        #spec_cor[spec_cor<3*err_cor] = np.nan
+        spec_cor[spec_cor<0.01] = np.nan
 
         wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
         spec_cor = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), spec_cor/np.nanmedian(spec_cor))
@@ -910,19 +913,20 @@ if createtpl:
             weight_t[nn][valid==0] = np.nan
             weight_t[nn][weight_t[nn]==0] = np.nan
 
-      #  spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
-       # for nn in range(0, len(spec_t)):
-        #    weight_t[nn][np.abs(spec_t[nn]-spec_mean)>0.1] = np.nan
+        if kapsig_ctpl:
+            spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
+            for nn in range(0, len(spec_t)):
+                weight_t[nn][np.abs(spec_t[nn]-spec_mean)>kapsig_ctpl] = np.nan
 
         spec_tpl_new[order] = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
         err_tpl_new[order] = np.nanstd(spec_t, axis=0)
 
-        if (order in lookfast) or (order in look):
+        if (order in lookfast) or (order in look) or (order in lookctpl):
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
                 gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
-      #  if order in look:
+        if (order in look) or (order in lookctpl):
             pause()
 
     Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
