@@ -23,7 +23,7 @@ bg_color = '#e6e1e1'    # bg color small frames
 bg_button = "#fdfdfd"   # bg buttons
 
 win_width = 1060     # width of GUI window	
-win_high = 820      # height of GUI window	
+win_high = 800      # height of GUI window	
 xy0 = 20
 y1 = 3
 x1 = 10
@@ -46,6 +46,7 @@ class GUI_viper():
 
         self.cb_atm = []       # Checkboxes telluric molecules 
         self.cbv_atm = []      # Variables telluric molecules
+        self.cb_lookctpl = IntVar()
 
         self.master = master
 
@@ -156,16 +157,16 @@ class GUI_viper():
         lfr_model.grid(row=1, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 
         lfr_tpl = LabelFrame(fr2, text="Template", bg=bg_frame, bd=2)
-        lfr_tpl.grid(row=2, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
+        lfr_tpl.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 
         lfr_stat = LabelFrame(fr2, text="Fit Parameters", bg=bg_frame, bd=2)
-        lfr_stat.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
+        lfr_stat.grid(row=2, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
 
         self.lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)
         self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5, columnspan=1)
 
-    #    self.lfr_tpl = LabelFrame(fr2, text="Create Template", bg=bg_frame, bd=2)
-     #   self.lfr_tpl.grid(row=3, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=1)
+        self.lfr_ctpl = LabelFrame(fr2, text="Create Template", bg=bg_frame, bd=2)
+        self.lfr_ctpl.grid(row=3, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=1)
 
         lfr_out = LabelFrame(fr2, text="Output", bg=bg_frame, bd=2)
         lfr_out.grid(row=4, column=0, sticky="news", padx=(10,10), pady=y1, ipady=5, columnspan=2)
@@ -255,8 +256,8 @@ class GUI_viper():
         l_wei.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
         Help_Box(widget = l_wei, text = text_from_file("'-wgt'"))
 
-        l_create = ttk.Checkbutton(lfr_tpl, text="     create tpl", variable=self.cb_createtpl)
-        l_create.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+        l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
+        l_create.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
         Help_Box(widget = l_create, text = text_from_file("'-createtpl'"))
 
         l_dat = ttk.Checkbutton(lfr_out, text="  .dat", variable=self.cb_format[0])
@@ -371,8 +372,26 @@ class GUI_viper():
         if str(self.combo_tell.get()) in ('add', 'add2'):
             self.Telluric()
 
-    def Update_tell(self):
+    def Update_ctpl(self):
+        if hasattr(self, 'l_kapctpl'): self.l_looktpl.destroy()
+        if hasattr(self, 'e_kapctpl'): self.l_looktpl.destroy()
+        if hasattr(self, 'l_lookctpl'): self.l_looktpl.destroy()
 
+        if self.cb_createtpl.get():
+            self.l_kapctpl = ttk.Label(self.lfr_ctpl,text='kapsig_ctpl:')
+            self.l_kapctpl.grid(row=2, column=0, sticky="nw", padx=(xy0,0), pady=y1)
+            Help_Box(widget = self.l_kapctpl, text = text_from_file("'-kapsig_ctpl'"))
+
+            self.e_kapctpl = Entry(self.lfr_ctpl, width=9)
+            self.e_kapctpl.insert(0, '0.6')
+            self.e_kapctpl.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=y1)#, columnspan=2)
+
+            self.l_lookctpl = ttk.Checkbutton(self.lfr_ctpl, text="     lookctpl", variable=self.cb_lookctpl)
+            self.l_lookctpl.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1)#, columnspan=2)
+            Help_Box(widget = self.l_lookctpl, text = text_from_file("'-lookctpl'"))
+            self.cb_lookctpl.set(1)
+
+    def Update_tell(self):
         if hasattr(self, 'l_tsig'): self.l_tsig.destroy()
         if hasattr(self, 'e_tsig'): self.e_tsig.destroy()
         if hasattr(self, 'l_tshift'): self.l_tshift.destroy()
@@ -462,7 +481,6 @@ class GUI_viper():
         if self.e_kapsig.get(): str_arg += " -kapsig " + str(self.e_kapsig.get()) 
         if self.cb_wgt.get(): str_arg += " -wgt "
         if self.e_overs.get(): str_arg += " -oversampling " + str(self.e_overs.get())
-        if self.cb_createtpl.get(): str_arg += " -createtpl "
         if self.cb_lookpar.get(): str_arg += " -lookpar " + self.e_lookpar.get()
         if self.cb_lookguess.get(): str_arg += " -lookguess "
         if self.cb_lookres.get(): str_arg += " -lookres "
@@ -489,6 +507,11 @@ class GUI_viper():
             for m, atm in enumerate(self.cbv_atm):        
                 if atm.get():
                     str_arg += str(self.molec[m])+" "
+
+        if self.cb_createtpl.get(): 
+             str_arg += " -createtpl "
+             if self.cb_lookctpl.get(): str_arg += " -lookctpl "
+             str_arg += " -kapsig_ctpl " + str(self.e_kapctpl.get()) 
 
         oformat = np.array([f.get() for f in self.cb_format])
         str_arg += " -output_format " + " ".join((np.array(["dat", "fits", "cpl"])[oformat==1]))
