@@ -39,6 +39,9 @@ class convert_data():
         hdu0 = fits.PrimaryHDU()
         
         # create rvo table
+        if self.data_rvo.size == 1:
+            self.data_rvo = np.array([self.data_rvo])
+                    
         table = []   
         for h, col in enumerate(self.header_rvo):
             if col == 'filename':
@@ -72,7 +75,10 @@ class convert_data():
         from cpl.core import PropertyList, Property
 
         hdr = cpl.core.PropertyList()
-        tbl = cpl.core.Table(len(self.data_rvo))
+        tbl = cpl.core.Table(self.data_rvo.size)
+
+        if self.data_rvo.size == 1:
+            self.data_rvo = np.array([self.data_rvo])
         
         hdr.append(Property('TYPE', 'rvo', 'RV data'))
         hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
@@ -89,7 +95,7 @@ class convert_data():
  
         # save par data       
         hdr = cpl.core.PropertyList()
-        tbl = cpl.core.Table(len(self.data_par))
+        tbl = cpl.core.Table(self.data_par.size)
         
         hdr.append(Property('TYPE', 'par', 'parameter data'))
         hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
