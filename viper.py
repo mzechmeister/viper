@@ -941,8 +941,8 @@ print("processing time total:       ", Tfmt(T))
 print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
-vpr.VPR(tag)   # to print info statistic
-if not createtpl and (look in orders or lookfast in orders):
-    vpr.plot_RV(tag+'.rvo.dat')
-if look in orders:
-    pause(tag, 'done.')
+if not createtpl:
+    vpr.VPR(tag)   # to print info statistic
+    if len(lookfast) or len(look):
+        vpr.plot_RV(tag+'.rvo.dat')
+print(tag, 'done.')
