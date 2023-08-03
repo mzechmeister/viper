@@ -855,7 +855,8 @@ for n, obsname in enumerate(obsnames):
             print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
             # just for compability, remove Params(ipB=[]) later !!
             if 'ipB' in params: params.pop('ipB')
-            if not deg_bkg: params.pop('bkg', None)
+            if not deg_bkg: params.pop('bkg', None)                       
+            params.rv.value *= 1000.   # convert to m/s -> same unit in .par.dat and .rvo.dat           
 
             if headrow:
                 headrow = False
