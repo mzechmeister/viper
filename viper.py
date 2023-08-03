@@ -890,6 +890,8 @@ if createtpl:
     for order in orders:
         gplot.reset()
         gplot.key("title 'order: %s' noenhance" % (order))
+        gplot.xlabel('"Vacuum wavelength [Å]"')
+        gplot.ylabel('"flux"')
         wave_t = np.array(list(spec_all[order,0].values()))     # wavelength
         spec_t = np.array(list(spec_all[order,1].values()))     # data
         weight_t = np.array(list(spec_all[order,2].values()))   # weighting
