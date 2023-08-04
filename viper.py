@@ -856,7 +856,8 @@ for n, obsname in enumerate(obsnames):
             # just for compability, remove Params(ipB=[]) later !!
             if 'ipB' in params: params.pop('ipB')
             if not deg_bkg: params.pop('bkg', None)                       
-            params.rv.value *= 1000.   # convert to m/s -> same unit in .par.dat and .rvo.dat           
+            params.rv.value *= 1000.   # convert to m/s -> same unit in .par.dat and .rvo.dat     
+            params.rv.unc *= 1000.
 
             if headrow:
                 headrow = False
