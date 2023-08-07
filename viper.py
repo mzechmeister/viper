@@ -842,33 +842,33 @@ for n, obsname in enumerate(obsnames):
     print(f"{n+1:3d}/{N}", filename)
     for i_o, o in enumerate(orders):
         for ch in np.arange(chunks):
-            gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
-            gplot.RV2title('')
-            rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd, berv, params, e_params, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
-#        try:
-#            rv[i_o], e_rv[i_o], bjd, berv, p, e_params  = fit_chunk(o, obsname=obsname)
-#        except Exception as e:
-#            if repr(e) == 'BdbQuit()':
-#               exit()
-#            print("Order failed due to:", repr(e))
+            try:
+                gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
+                gplot.RV2title('')
+                rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd, berv, params, e_params, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
 
-            print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
-            # just for compability, remove Params(ipB=[]) later !!
-            if 'ipB' in params: params.pop('ipB')
-            if not deg_bkg: params.pop('bkg', None)                       
-            params.rv.value *= 1000.   # convert to m/s -> same unit in .par.dat and .rvo.dat     
-            params.rv.unc *= 1000.
+                print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
+                # just for compability, remove Params(ipB=[]) later !!
+                if 'ipB' in params: params.pop('ipB')
+                if not deg_bkg: params.pop('bkg', None)                       
+                params.rv.value *= 1000.   # convert to m/s -> same unit in .par.dat and .rvo.dat     
+                params.rv.unc *= 1000.
 
-            if headrow:
-                headrow = False
-                colnames = ["".join(map(str,x)) for x in params.flat().keys()]
-                print('BJD n order chunk', *map("{0} e_{0}".format, colnames), 'prms', file=parunit)
+                if headrow:
+                    headrow = False
+                    colnames = ["".join(map(str,x)) for x in params.flat().keys()]
+                    print('BJD n order chunk', *map("{0} e_{0}".format, colnames), 'prms', file=parunit)
 
-            flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
-            print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
-            # store residuals
-            os.system('mkdir -p res; touch res.dat')
-            os.system('mv res.dat res/%03d_%03d.dat' % (n, o))
+                flat_params = [f"{d.value} {d.unc}" for d in params.flat().values()]
+                print(bjd, n+1, o, ch, *flat_params, prms, file=parunit)
+                # store residuals
+                os.system('mkdir -p res; touch res.dat')
+                os.system('mv res.dat res/%03d_%03d.dat' % (n, o))
+
+            except Exception as e:
+                if repr(e) == 'BdbQuit()':
+                   exit()
+                print("Order failed due to:", repr(e))
 
     oo = np.isfinite(e_rv)
     if oo.sum() == 1:
