@@ -689,24 +689,24 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         gplot2(pixel_ok, spec_obs_ok, S_mod(pixel_ok, *params), 2*S_mod(pixel_ok, *params)-S_mod(pixel_ok-1, *params)-S_mod(pixel_ok+1, *params), 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
         pause(f'lookres {o}')
 
-    sa = tplname is not None
-    sb = sa + deg_norm+1
-    ss = sb + deg_wave+1
-    # error estimation
-    # uncertainty in continuum
-    xl = np.log(np.poly1d(par.wave[::-1])(pixel-xcen))
-    Cg = np.poly1d(parguess.norm[::-1])(pixel-xcen)      # continuum guess
-    Cp = np.poly1d(par.norm[::-1])(pixel-xcen)    # best continuum
-    X = np.vander(xl, deg_norm+1)[:,::-1].T
-    e_Cp = np.einsum('ji,jk,ki->i', X, e_params[sa:sb,sa:sb], X)**0.5
-    # uncertainty in wavelength solution
-    X = np.vander(xl, deg_wave+1)[:,::-1].T
-    lam_g = np.poly1d(parguess.wave[::-1])(pixel-xcen)
-    lam = np.poly1d(par.wave[::-1])(pixel-xcen)
-    e_lam = np.einsum('ji,jk,ki->i', X, e_params[sb:ss,sb:ss], X)**0.5
-    e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
+    if order in lookpar:   
+        sa = tplname is not None
+        sb = sa + deg_norm+1
+        ss = sb + deg_wave+1
+        # error estimation
+        # uncertainty in continuum
+        xl = np.log(np.poly1d(par.wave[::-1])(pixel-xcen))
+        Cg = np.poly1d(parguess.norm[::-1])(pixel-xcen)      # continuum guess
+        Cp = np.poly1d(par.norm[::-1])(pixel-xcen)    # best continuum 
+        X = np.vander(xl, deg_norm+1)[:,::-1].T
+        e_Cp = np.einsum('ji,jk,ki->i', X, e_params[sa:sb,sa:sb], X)**0.5
+        # uncertainty in wavelength solution
+        X = np.vander(xl, deg_wave+1)[:,::-1].T
+        lam_g = np.poly1d(parguess.wave[::-1])(pixel-xcen)
+        lam = np.poly1d(par.wave[::-1])(pixel-xcen)
+        e_lam = np.einsum('ji,jk,ki->i', X, e_params[sb:ss,sb:ss], X)**0.5
+        e_wavesol = np.sum((e_lam/lam*3e8)**-2)**-0.5
 
-    if order in lookpar:
         # compare the wavelength solutions
         #show_model(i, np.poly1d(b[::-1])(i), np.poly1d(par_wave_guess[::-1])(i), res=True)
         gplot.reset()
