@@ -948,5 +948,6 @@ print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 if not createtpl:
     vpr.VPR(tag)   # to print info statistic
     if len(lookfast) or len(look):
+        gplot.reset()
         vpr.plot_RV(tag+'.rvo.dat')
 print(tag, 'done.')
