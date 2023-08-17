@@ -63,6 +63,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
         Y = np.mean(yi, **kwargs)
         e_Y = np.std(yi, **kwargs) / (yi.size//Y.size-1)**0.5
     else:
+        e_yi[np.isnan(e_yi)] = np.inf
         Y, e_Y = wsem(yi, e=e_yi, **kwargs)
     return Y, e_Y
 
