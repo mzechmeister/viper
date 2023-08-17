@@ -598,7 +598,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # modeled telluric spectrum
         spec_model = np.nan * np.empty_like(pixel)
         spec_model[iset] = S_mod(pixel[iset], **par)
-        spec_model /= np.nanmean(spec_model[iset])
+        spec_model /= np.nanmedian(spec_model[iset])
 
         # telluric corrected spectrum
         spec_cor = spec_obs / spec_model
@@ -928,7 +928,7 @@ if createtpl:
         if (order in lookfast) or (order in look) or (order in lookctpl):
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
-                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmean(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
+                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         if (order in look) or (order in lookctpl):
             pause()
