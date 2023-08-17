@@ -311,9 +311,6 @@ class RV_plot(ttk.Frame):
         set_oset1 = np.array([o.get() for o in self.cbv_oset1])
         set_oset2 = np.array([o.get() for o in self.cbv_oset2])
 
-        if '-save' in str(args):    
-            args = ' -save ' + self.e_out.get()
-
         str_arg = self.e_rvo1.get() + ' -avg ' + self.combo_avg.get()
 
         if self.cb_cen.get(): str_arg += " -cen "
@@ -332,6 +329,10 @@ class RV_plot(ttk.Frame):
                 str_arg += " -cmposet " 
                 for o in self.o_rvo2[set_oset2==1]: str_arg += str(o) + ","
 
+        if '-save' in str(args):    
+            str_arg += ' -save ' + self.e_out.get()
+            args= '-plot rv'
+        
         if args:
             self.plt_opt = args
             str_arg += " " + args
