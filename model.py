@@ -246,6 +246,7 @@ class model:
             args += (",", x, col2, x2, "us lam?3:1:2 w l lc 1 t 'res (%.3g \~ %.3g%%)', 0 lc 3 t ''" % (rms, prms))
 
         if res or rel_fac or dx:
+            gplot.yrange("[:%g]" % (1.4*np.nanmax(ymod)))
             gplot(*args)
         return prms
 
