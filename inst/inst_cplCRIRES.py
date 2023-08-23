@@ -39,11 +39,16 @@ def Spectrum(filename='', order=None, targ=None):
     ra = hdr["RA"].value
     de = hdr["DEC"].value
 
+    ndit = hdr["ESO DET NDIT"].value
+    nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames 
+
     setting = hdr["ESO INS WLEN ID"].value
 
     hdr = PropertyList.load(filename, 1)
     exptime = hdr["EXPTIME"].value
     naxis = hdr["NAXIS2"].value
+
+    exptime = (exptime*nods*ndit)/2.
 
     targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
