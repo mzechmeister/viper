@@ -38,8 +38,12 @@ def Spectrum(filename='', order=None, targ=None):
     ra = hdr.get('RA', np.nan)
     de = hdr.get('DEC', np.nan)
 
+    ndit = hdr.get('ESO DET NDIT',1)
+    nods = hdr.get('ESO PRO DATANCOM',1)   # Number of combined frames 
+	
     hdr = hdu[1].header
     exptime = hdr.get('EXPTIME', 0)
+    exptime = (exptime*nods*ndit)/2.
 
     targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
