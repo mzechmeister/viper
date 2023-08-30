@@ -44,24 +44,30 @@ class convert_data():
                     
         table = []   
         for h, col in enumerate(self.header_rvo):
+            unitpar = ''
             if col == 'filename':
                 c = fits.Column(name=str(col), array=self.data_rvo[col], format='50A')
-            else:    
-                c = fits.Column(name=str(col), array=self.data_rvo[col], format='F')
+            else:
+                if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                    unitpar = 'm/s'
+                c = fits.Column(name=str(col), array=self.data_rvo[col], unit=unitpar, format='F')
             table.append(c)
         hdr = fits.Header()
         hdr.set('TYPE', 'rvo', 'RV data')
-        hdr.set('UNIT', 'm/s', 'Unit of RV data')
         table_rvo = fits.BinTableHDU.from_columns(table)
         
         # create par table
         table = []   
         for h, col in enumerate(self.header_par):
-            c = fits.Column(name=str(col), array=self.data_par[col], format='F')
+            unitpar = '' 
+            if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                unitpar = 'm/s'
+            elif 'wave' in str(col):
+                unitpar = 'A/px^'+str(str(col)[-1])
+            c = fits.Column(name=str(col), array=self.data_par[col], unit=unitpar, format='F')
             table.append(c)
         hdr = fits.Header()
         hdr.set('TYPE', 'par', 'parameter data')
-        hdr.set('UNIT', 'm/s', 'Unit of  RV data')
         table_par = fits.BinTableHDU.from_columns(table)
 
         # combine and write to file
@@ -81,7 +87,6 @@ class convert_data():
             self.data_rvo = np.array([self.data_rvo])
         
         hdr.append(Property('TYPE', 'rvo', 'RV data'))
-        hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
 
         # save rvo data
         for h, col in enumerate(self.header_rvo):
@@ -89,6 +94,8 @@ class convert_data():
                tbl.new_column(str(col), cpl.core.Type.STRING)
            else:     
                tbl.new_column(str(col), cpl.core.Type.DOUBLE)
+               if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                   tbl.set_column_unit(str(col), 'm/s')
            tbl[str(col)] = self.data_rvo[col]
 
         Table.save(tbl, None, hdr, self.filename+'_rvo_par.fits', cpl.core.io.CREATE)
@@ -98,11 +105,15 @@ class convert_data():
         tbl = cpl.core.Table(self.data_par.size)
         
         hdr.append(Property('TYPE', 'par', 'parameter data'))
-        hdr.append(Property('UNIT', 'm/s', 'Unit of RV data'))
 
         for h, col in enumerate(self.header_par):
            tbl.new_column(str(col), cpl.core.Type.DOUBLE)
            tbl[str(col)] = self.data_par[col]
+
+           if 'rv' in str(col).casefold() and str(col) != 'BERV':
+               tbl.set_column_unit(str(col), 'm/s')
+           elif 'wave' in str(col):
+               tbl.set_column_unit(str(col), 'A/px^'+str(str(col)[-1]))
 
         Table.save(tbl, None, hdr, self.filename+'_rvo_par.fits', cpl.core.io.EXTEND) 
 
