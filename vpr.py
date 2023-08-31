@@ -105,6 +105,10 @@ class VPR():
                 names=True).view(np.recarray)    
             mat = np.genfromtxt(file, skip_header=1)  
 
+            if np.size(self.Afull) == 1:
+                mat = np.array([mat])
+                self.Afull = (np.array([self.Afull])).view(np.recarray) 
+
         if sort:
             self.Afull.sort(order=sort)
         colnames = self.Afull.dtype.names
