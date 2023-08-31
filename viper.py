@@ -212,7 +212,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if telluric == 'mask':
         flag_obs[mskatm(wave_obs) > 0.1] |= flag.atm
-        flag_obs[np.isnan(spec_obs)] |= flag.nan
+    flag_obs[np.isnan(spec_obs)] |= flag.nan
 
     # select common wavelength range
     lmin = max(wave_obs[iset][0], wave_tpl[order][0], wave_cell[0])
