@@ -68,10 +68,6 @@ def Tpl(tplname, order=None, targ=None):
     if tplname.endswith('_tpl.model'):
         # echelle template
         pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-    elif tplname.endswith('.model'):
-        # echelle template
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     elif tplname.endswith('_s1d_A.fits') or  tplname.endswith('.tpl.s1d.fits'):
         hdu = fits.open(tplname)[0]
         spec = hdu.data
@@ -84,6 +80,10 @@ def Tpl(tplname, order=None, targ=None):
     elif tplname.endswith('PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'):
         from . import phoenix
         wave, spec = phoenix.read(tplname)
+    elif tplname.endswith('.model') or tplname.endswith('.fits'):
+        # echelle template
+        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
+        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
     else:
         # long 1d template
         hdu = fits.open(tplname)
