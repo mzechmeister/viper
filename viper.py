@@ -630,7 +630,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # estimate velocity precision limit from stellar information content
         # without iodine cell (smoothed to a constant)
         S_pure = model(S_star, lnwave_j, spec_cell_j*0+np.nanmean(spec_cell_j), specs_molec, IP, **modset)
-        dS = S_pure(pixel+0.1, *params) - S_pure(pixel, *params)   # flux gradient from finite difference
+        dS = S_pure(pixel+0.1, **par) - S_pure(pixel, **par)   # flux gradient from finite difference
         du = 1000 * c * np.diff(wave_obs)*0.1 / wave_obs[:-1]   # [m/s] velocity differential from initial solution
         # assuming spectrum given in photon counts (until viper propagates flux uncertainties)
         varS = abs(spec_obs) + 5**2   # (5 = readout noise)
@@ -646,7 +646,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # gplot(spec_tpl[order], ',', tpl_smooth)
         S_smooth = lambda x: np.interp(x, np.log(wave_tpl[order][wz//2:-wz//2])-berv/c, tpl_smooth)
         iod_pure = model(S_smooth, lnwave_j, spec_cell_j, specs_molec, IP, **modset)
-        dS = iod_pure(pixel+0.1, *params) - iod_pure(pixel, *params)   # flux gradient from finite difference
+        dS = iod_pure(pixel+0.1, **par) - iod_pure(pixel, **par)   # flux gradient from finite difference
         ev_iod = np.sum(((dS[:-1]/du)**2 / varS[:-1])[i_ok])**-0.5
         print(f'Iodine RV precision limit: {ev_iod} m/s')
 
@@ -655,8 +655,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         ev_total = np.sqrt(ev_star**2 + ev_iod**2)
         print(f'Total RV precision limit: {ev_total} m/s')
         if 1:
-            gplot2(pixel, spec_obs, flag_obs, f' us 1:2:($3>0?9:1) lc var ps 0.5 t "data ({ev_total:.2f} m/s)",', pixel, iod_pure(pixel, *params)+np.nanmean(spec_obs)/2, flag_obs, f' us 1:2:($3>0?9:2) w l lc var t "offset + IP x iod ({ev_iod:.2f} m/s)",', pixel, S_pure(pixel, *params), flag_obs, f' us 1:2:($3>0?9:3) w l lc var t "IP x star ({ev_star:.2f} m/s)"')
-            #pause()
+            gplot2(pixel, spec_obs, flag_obs, f' us 1:2:($3>0?9:1) lc var ps 0.5 t "data ({ev_total:.2f} m/s)",', pixel, iod_pure(pixel, **par)+np.nanmean(spec_obs)/2, flag_obs, f' us 1:2:($3>0?9:2) w l lc var t "offset + IP x iod ({ev_iod:.2f} m/s)",', pixel, S_pure(pixel, **par), flag_obs, f' us 1:2:($3>0?9:3) w l lc var t "IP x star ({ev_star:.2f} m/s)"')
+            pause()
 
     # overplot FTS iodine spectrum
     #gplot+(np.exp(lnwave_j), spec_cell_j/spec_cell_j.max()*spec_obs_ok.max(), 'w l lc 9')
@@ -685,8 +685,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         gplot2.xlabel('lab_ddS')
         gplot2.ylabel('"residuals S_i - S(i)"')
         gplot2.cblabel('"pixel x_i"')
-        #gplot(pixel_ok, spec_obs_ok, S_mod(pixel_ok, *params), 2*spec_obs_ok-f[pixel_ok-1]-f[pixel_ok+1], 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
-        gplot2(pixel_ok, spec_obs_ok, S_mod(pixel_ok, *params), 2*S_mod(pixel_ok, *params)-S_mod(pixel_ok-1, *params)-S_mod(pixel_ok+1, *params), 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
+        #gplot(pixel_ok, spec_obs_ok, S_mod(pixel_ok, **par), 2*spec_obs_ok-f[pixel_ok-1]-f[pixel_ok+1], 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
+        gplot2(pixel_ok, spec_obs_ok, S_mod(pixel_ok, **par), 2*S_mod(pixel_ok, **par)-S_mod(pixel_ok-1, **par)-S_mod(pixel_ok+1, **par), 'us 3+j:($2-$3):1 w p pt 7 palette t ""')
         pause(f'lookres {o}')
 
     if order in lookpar:   
