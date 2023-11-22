@@ -4,11 +4,13 @@
 # GUI to start viper.py, showing most important options
 
 import os
+import sys
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
 import numpy as np
 import importlib
+import configparser
 from tkinter.scrolledtext import ScrolledText
 from hbox import Help_Box
 from model import IPs
@@ -42,19 +44,22 @@ class GUI_viper():
     """
     Build up Frames and functions
     """
-    def __init__(self, master):
+    def __init__(self, master, configs):
 
         self.cb_atm = []       # Checkboxes telluric molecules 
         self.cbv_atm = []      # Variables telluric molecules
         self.cb_lookctpl = IntVar()
 
         self.master = master
+        self.configs = configs
 
         self.fr_input()
         self.fr_para()
         self.fr_plot()
 
-        self.Update_inst()	
+        self.Update_inst()
+        self.Update_tell()
+        self.Update_ctpl()	
 
         lrun = ttk.Label(master, text='Current command:', background=bg_color)
         lrun.grid(row=2, column = 1, sticky="nw", padx=0, pady=(10,10), columnspan=6)
@@ -109,6 +114,7 @@ class GUI_viper():
         self.e_flag.grid(row=4, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
         self.e_targ = Entry(fr1, width = 200)
+        self.e_targ.insert(0, self.configs.get('targ',''))
         self.e_targ.grid(row=5, column=4, sticky="nw", padx=x1, pady=y1)
 
         # Checkboxes
@@ -118,14 +124,14 @@ class GUI_viper():
         l_cell = ttk.Checkbutton(fr1, text="   Cell file:", variable=self.cb_cell)
         l_cell.grid(row=3, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_cell, text = text_from_file("'-fts'") + " If checkbox is unset, no use of cell FTS for the modelling.")
-        self.cb_cell.set(1) 
+        self.cb_cell.set(not self.configs.get('nocell', 0)) 
 
         l_flag = ttk.Checkbutton(fr1, text="   flag file:", variable=self.cb_flagfile)
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
         self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES', 'McDonald'], width=15)
-        self.combo_inst.set('TLS')
+        self.combo_inst.set(self.configs.get('inst','TLS'))
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
         self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
 
@@ -153,13 +159,13 @@ class GUI_viper():
         lfr_data = LabelFrame(fr2, text="Data", bg=bg_frame, bd=2)
         lfr_data.grid(row=1, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
 
-        lfr_model = LabelFrame(fr2, text="Model", bg=bg_frame, bd=2)
+        lfr_model = LabelFrame(fr2, text="Model Setup", bg=bg_frame, bd=2)
         lfr_model.grid(row=1, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 
         lfr_tpl = LabelFrame(fr2, text="Template", bg=bg_frame, bd=2)
         lfr_tpl.grid(row=2, column=1, sticky="news", padx=(10,10), pady=y1, ipady=5)
 
-        lfr_stat = LabelFrame(fr2, text="Fit Parameters", bg=bg_frame, bd=2)
+        lfr_stat = LabelFrame(fr2, text="Fit Settings", bg=bg_frame, bd=2)
         lfr_stat.grid(row=2, column=0, sticky="news", padx=(10,0), pady=y1, ipady=5)
 
         self.lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)
@@ -200,50 +206,50 @@ class GUI_viper():
         self.e_nset.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_oset = Entry(lfr_data)
-        self.e_oset.insert(0, '20')
+        self.e_oset.insert(0, self.configs.get('oset','20'))
         self.e_oset.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_ch = Entry(lfr_data)
-        self.e_ch.insert(0, '1')
+        self.e_ch.insert(0, self.configs.get('chunks','1'))
         self.e_ch.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_vcut = Entry(lfr_data)
-        self.e_vcut.insert(0, '100')
+        self.e_vcut.insert(0, self.configs.get('vcut','100'))
         self.e_vcut.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_iset = Entry(lfr_data)
         self.e_iset.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0)) 
 
         self.e_iphs = Entry(lfr_model)
-        self.e_iphs.insert(0, '50')
+        self.e_iphs.insert(0, self.configs.get('iphs','50'))
         self.e_iphs.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_deg_norm = Entry(lfr_model)
-        self.e_deg_norm.insert(0, '3')
+        self.e_deg_norm.insert(0, self.configs.get('deg_norm','3'))
         self.e_deg_norm.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_deg_wave = Entry(lfr_model)
-        self.e_deg_wave.insert(0, '3')
+        self.e_deg_wave.insert(0, self.configs.get('deg_wave','3'))
         self.e_deg_wave.grid(row=3, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_deg_bkg = Entry(lfr_model)
-        self.e_deg_bkg.insert(0, '1')
+        self.e_deg_bkg.insert(0, self.configs.get('deg_bkg','1'))
         self.e_deg_bkg.grid(row=4, column=1, sticky="nw", padx=(x1,xy0), pady=(y1,0))
 
         self.e_vg = Entry(lfr_tpl)
-        self.e_vg.insert(0, '1')
+        self.e_vg.insert(0, self.configs.get('rv_guess','1'))
         self.e_vg.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=(0,0))
 
         self.e_overs = Entry(lfr_tpl)
-        self.e_overs.insert(0, '1')
+        self.e_overs.insert(0, self.configs.get('oversampling','1'))
         self.e_overs.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=0)
 
         self.e_kapsig = Entry(lfr_stat)
-        self.e_kapsig.insert(0, '4.5')
+        self.e_kapsig.insert(0, self.configs.get('kapsig','4.5'))
         self.e_kapsig.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
         self.e_tag = Entry(lfr_out)
-        self.e_tag.insert(0, 'tmp')
+        self.e_tag.insert(0, self.configs.get('tag','tmp'))
         self.e_tag.grid(row=0, column=1, sticky="news", padx=(xy0,10), pady=y1, columnspan=3)
 
         # Checkboxes:
@@ -254,9 +260,11 @@ class GUI_viper():
 
         l_wei = ttk.Checkbutton(lfr_stat, text="     weighted error", variable=self.cb_wgt)
         l_wei.grid(row=1, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
+        self.cb_wgt.set(self.configs.get('wgt', 0))
         Help_Box(widget = l_wei, text = text_from_file("'-wgt'"))
 
         l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
+        self.cb_createtpl.set(self.configs.get('createtpl', 0))
         l_create.grid(row=0, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=2)
         Help_Box(widget = l_create, text = text_from_file("'-createtpl'"))
 
@@ -271,11 +279,11 @@ class GUI_viper():
         l_cpl.grid(row=1, column=3, sticky="nw", padx=5, pady=y1)
 
         self.combo_ip = ttk.Combobox(lfr_model, values=[*IPs])	# IPs from model.py
-        self.combo_ip.set('g')
+        self.combo_ip.set(self.configs.get('ip','g'))
         self.combo_ip.grid(row=0, column=1, sticky="nw", padx=(x1,xy0), pady=y1)
 
         self.combo_tell = ttk.Combobox(self.lfr_tell, values=['', 'add', 'add2', 'mask', 'sig'], width=14)
-        self.combo_tell.set('mask')
+        self.combo_tell.set(self.configs.get('telluric','mask'))
         self.combo_tell.grid(row=0, column=1, sticky="nw", padx=(x1), pady=y1, columnspan=2)
         self.combo_tell.bind('<<ComboboxSelected>>', lambda event: self.Update_tell())
 
@@ -383,7 +391,7 @@ class GUI_viper():
             Help_Box(widget = self.l_kapctpl, text = text_from_file("'-kapsig_ctpl'"))
 
             self.e_kapctpl = Entry(self.lfr_ctpl, width=9)
-            self.e_kapctpl.insert(0, '0.6')
+            self.e_kapctpl.insert(0, self.configs.get('kapsig_cptl','0.6'))
             self.e_kapctpl.grid(row=2, column=1, sticky="nw", padx=(x1,xy0), pady=y1)#, columnspan=2)
 
             self.l_lookctpl = ttk.Checkbutton(self.lfr_ctpl, text="     lookctpl", variable=self.cb_lookctpl)
@@ -402,11 +410,12 @@ class GUI_viper():
             Help_Box(widget = self.l_tsig, text = text_from_file("'-tsig'"))
 
             self.e_tsig = Entry(self.lfr_tell, width=8)
-            self.e_tsig.insert(0, '1')
+            self.e_tsig.insert(0, self.configs.get('tsig','1'))
             self.e_tsig.grid(row=1, column=1, sticky="nw", padx=(x1,xy0), pady=y1, columnspan=2)
 
         if str(self.combo_tell.get()) in ('add', 'add2'):
             self.l_tshift = ttk.Checkbutton(self.lfr_tell, text="     tell shift", variable=self.cb_tellshift)
+            self.cb_tellshift.set(self.configs.get('tellshift', 0))
             self.l_tshift.grid(row=2, column=0, sticky="nw", padx=(xy0,x1), pady=y1, columnspan=3)
             Help_Box(widget = self.l_tshift, text = text_from_file("'-tellshift'"))
 
@@ -552,7 +561,25 @@ def main():
     s.configure('TFrame', background=bg_frame)
     s.configure('TLabel', background=bg_frame)
 
-    GUI_viper(win)
+    configs = {}    
+    # Using config.ini file for reading in parameter values
+    if len(sys.argv) == 3 and sys.argv[1].endswith('.ini'):
+            
+        config_file = sys.argv[1] #'config_file_viper.ini'
+        config_sect = sys.argv[2] #'CRIRES'
+
+        config = configparser.ConfigParser()
+        
+        config.read(viperdir+config_file)
+        if str(config_sect) not in config.sections():
+            print('Section not found in parser file. Using default values')
+            config_sect = 'DEFAULT'
+            
+        configs = dict(config[str(config_sect)])  
+        configs.update({k: eval(v) for k, v in configs.items()})        
+   # print(configs)
+
+    GUI_viper(win, configs)
     
     win.mainloop()
 
