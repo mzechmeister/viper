@@ -23,6 +23,7 @@ import importlib
 import os
 import time
 from collections import defaultdict
+import configparser
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -157,6 +158,9 @@ if __name__ == "__main__":
     oset = getattr(Inst, 'oset')
 
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse. ArgumentDefaultsHelpFormatter)
+    # store parameters from console line
+    ns, parser_input = parser.parse_known_args()
+    
     argopt = parser.add_argument   # function short cut
     argopt('obspath', help='Filename of observation.', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tplname', help='Filename of template.', nargs='?', type=str)
@@ -164,6 +168,8 @@ if __name__ == "__main__":
     argopt('-fts', help='Filename of FTS Cell.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, bg: biGaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks.', default=1, type=int)
+    argopt('-config_file', help='Config file with input values.', default='config_file_viper.ini', type=str)
+    argopt('-config_sect', help='Section in config file.', default=preargs.inst, type=str)
     argopt('-createtpl', help='Removal of telluric features (or cell lines) and combination of several observations.', action='store_true')
     argopt('-deg_bkg', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-deg_norm', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
@@ -204,6 +210,24 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     globals().update(vars(args))
+    
+    if config_file != 'off': 
+        # Using config.ini file for reading in parameter values
+
+        config = configparser.ConfigParser()
+        print(config_file)
+        config.read(viperdir+config_file)
+        if str(config_sect) not in config.sections():
+            print('Section not found in parser file. Using default values')
+            config_sect = 'DEFAULT'
+            
+        configs = dict(config[str(config_sect)])  
+
+        args = vars(args)
+        # do not overwrite parameters from console line
+        args.update({k: eval(v) for k, v in configs.items() if '-'+str(k) not in parser_input})
+       
+        globals().update(args)
 
 
 def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
