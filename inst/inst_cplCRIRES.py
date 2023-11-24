@@ -30,9 +30,6 @@ oset = '1:19'
 
 ip_guess = {'s': 1.5}
 
-atmall = {'H2O': 'lib/CRIRES/atmos/stdAtmos_crires_H2O.fits', 'CH4': 'lib/CRIRES/atmos/stdAtmos_crires_CH4.fits', 'N2O': 'lib/CRIRES/atmos/stdAtmos_crires_N2O.fits', 'CO2': 'lib/CRIRES/atmos/stdAtmos_crires_CO2.fits', 'CO': 'lib/CRIRES/atmos/stdAtmos_crires_CO.fits'}
-
-
 def Spectrum(filename='', order=None, targ=None):
     hdr = PropertyList.load(filename, 0)
     dateobs = hdr["DATE-OBS"].value

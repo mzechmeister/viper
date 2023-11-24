@@ -20,8 +20,6 @@ iset = '500:2000'
 
 ip_guess = {'s': 300_000/87_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
-atmall = {'H2O': 'lib/atmos/H2O.fits', 'O2': 'lib/atmos/O2.fits'}
-
 def Spectrum(filename, order=None, targ=None):
     if order is not None:
          filename = filename.replace('_flux.fits.gz', '')[:-2]+"%02i_flux.fits.gz" % order

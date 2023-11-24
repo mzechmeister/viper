@@ -16,8 +16,6 @@ oset = '0:1'
 
 ip_guess = {'s': 300_000/200_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
-atmall = {'H2O': 'lib/atmos/H2O.fits', 'O2': 'lib/atmos/O2.fits'}
-
 def Spectrum(filename, order=None, targ=None, chksize=4000):
     with open(filename) as myfile:
         hdr = [next(myfile) for x in range(21)]
