@@ -298,9 +298,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # select present molecules for telluric forward modeling
         specs_molec = np.zeros((0, len(lnwave_j)))
         for mol in range(len(molec)):
-            s_mol = slice(*np.searchsorted(wave_atm_all[mol], [lmin, lmax]))
+            s_mol = slice(*np.searchsorted(wave_atm_all, [lmin, lmax]))
             # bring it to same log(wavelength) scale as cell
-            spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
+            spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[s_mol]), specs_molec_all[mol][s_mol])
             specs_molec = np.r_[specs_molec, [spec_mol]]
             # chose just present molecules in wavelength range
             if np.nanstd(spec_mol) > 0.0001:
@@ -796,22 +796,23 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 #### Telluric model ####
 if 'add' in telluric:
     # read in telluric spectra for wavelength range of the instrument
-    # wave_atm_all, specs_molec_all, molec = Tell(molec)
 
-    if molec[0] == 'all':
-        molec = list(Inst.atmall.keys())
+    inst_wave = wave_cell[-1]
+    if inst_wave < 9000: band = 'vis'
+    elif inst_wave < 20000: band = 'H'
+    else: band = 'K'
+    
+    hdu = fits.open(viperdir+'/lib/atmos/stdAtmos_'+band+'.fits')
+    cols = hdu[1].columns.names
+    data = hdu[1].data
 
-    wave_atm_all, specs_molec_all = {}, {}
+    if molec[0] == 'all': molec = cols
+        
+    wave_atm_all = data['lambda'] * (1 + (-0.249/3e5))
+    specs_molec_all = {}    
     for i_mol, mol in enumerate(molec):
-        hdu = fits.open(viperdir+Inst.atmall[mol], ignore_blank=True)
-        atm_model = hdu[1].data
-        f_atm = atm_model.field(1).astype(np.float64)
-        w_atm = atm_model.field(0).astype(np.float64)
-        # add wavelength shift
-        # synthetic telluric spectra (molecfit) are laboratory wavelengths
-        # shift was determined empirical from several observations
-        w_atm *= (1 + (-0.249/3e5))
-        wave_atm_all[i_mol], specs_molec_all[i_mol] = w_atm, f_atm
+        if (mol != 'lambda') and (mol in cols): 
+            specs_molec_all[i_mol] = data[mol]
 
 
 # collect all spectra for createtpl function
