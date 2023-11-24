@@ -565,19 +565,18 @@ def main():
     # Using config.ini file for reading in parameter values
     if len(sys.argv) == 3 and sys.argv[1].endswith('.ini'):
             
-        config_file = sys.argv[1] #'config_file_viper.ini'
+        config_file = sys.argv[1] #'config_viper.ini'
         config_sect = sys.argv[2] #'CRIRES'
 
         config = configparser.ConfigParser()
-        
-        config.read(viperdir+config_file)
+        config.read(config_file)
         if str(config_sect) not in config.sections():
             print('Section not found in parser file. Using default values')
             config_sect = 'DEFAULT'
             
         configs = dict(config[str(config_sect)])  
-        configs.update({k: eval(v) for k, v in configs.items()})        
-   # print(configs)
+        if 'kapsig' in configs.keys():
+            configs['kapsig'] = [float(i) for i in (configs['kapsig']).split(' ')]      
 
     GUI_viper(win, configs)
     
