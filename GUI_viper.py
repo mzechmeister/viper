@@ -375,7 +375,7 @@ class GUI_viper():
         self.e_iset.insert(0, getattr(Inst, 'iset', ':'))
 
         # molecule selection for tellurics
-        self.molec = list(Inst.atmall.keys())
+        #self.molec = list(Inst.atmall.keys())
 
         if str(self.combo_tell.get()) in ('add', 'add2'):
             self.Telluric()
@@ -435,9 +435,11 @@ class GUI_viper():
             if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'UVES', 'McDonald'):
                 self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
+                self.molec = ['H2O', 'O2']
             elif str(self.combo_inst.get()) in ('CRIRES', 'cplCRIRES'):
                 self.l_molec = ttk.Label(self.lfr_tell, text='Near Infrared molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0,0), pady=y1, columnspan=6)
+                self.molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO']
 
             for m, mol in enumerate(self.molec):
                 yi, xi =  divmod(m, 3)
