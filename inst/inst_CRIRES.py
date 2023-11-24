@@ -109,7 +109,11 @@ def Spectrum(filename='', order=None, targ=None):
         spec /= blaze
 
     else:
-        wave = (hdu[detector].data.field(3*order_drs+2))*10
+        if pycpl:
+            wave = np.array([tbl["0"+str(order_drs)+"_01_WL", i] for i in range(naxis)])
+            wave *= 10
+        else:
+            wave = (hdu[detector].data.field(3*order_drs+2))*10
 
     flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
