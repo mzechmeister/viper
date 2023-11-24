@@ -147,8 +147,9 @@ if __name__ == "__main__":
     preparser = argparse.ArgumentParser(add_help=False)
     preparser.add_argument('args', nargs='*')
     preparser.add_argument('-inst', help='Instrument.', default='TLS', choices=insts)
+    preparser.add_argument('-config_file', help='Config file and optional section  [None DEFAULT].', nargs='*', type=str)
     preargs = preparser.parse_known_args()[0]
-
+    
     Inst = importlib.import_module('inst.inst_'+preargs.inst)
     FTS = Inst.FTS
     Tpl = Inst.Tpl
@@ -157,10 +158,23 @@ if __name__ == "__main__":
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
 
+    # read in default values from config_viper.ini
+    configs_inst, configs_user = {}, {}
+    config_def = configparser.ConfigParser()
+    config_def.read(viperdir+'config_viper.ini')	# default file
+    configs_def = dict(config_def['DEFAULT'])		# default values
+    if preargs.inst in config_def.sections():
+        configs_inst = dict(config_def[preargs.inst])	# instrument values
+
+    if preargs.config_file:
+         # Uread in values from user #.ini
+        if len(preargs.config_file) == 2:             
+            config = configparser.ConfigParser()
+            config.read(preargs.config_file[0])
+            if str(preargs.config_file[1]) in config.sections():
+                configs_user = dict(config[preargs.config_file[1]])
+
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse. ArgumentDefaultsHelpFormatter)
-    # store parameters from console line
-    ns, parser_input = parser.parse_known_args()
-    
     argopt = parser.add_argument   # function short cut
     argopt('obspath', help='Filename of observation.', default='data/TLS/betgem/BETA_GEM.fits', type=str)
     argopt('tplname', help='Filename of template.', nargs='?', type=str)
@@ -168,9 +182,8 @@ if __name__ == "__main__":
     argopt('-fts', help='Filename of FTS Cell.', default=viperdir + FTS.__defaults__[0], dest='ftsname', type=str)
     argopt('-ip', help='IP model (g: Gaussian, ag: asymmetric (skewed) Gaussian, sg: super Gaussian, bg: biGaussian, mg: multiple Gaussians, mcg: multiple central Gaussians, bnd: bandmatrix).', default='g', choices=[*IPs], type=str)
     argopt('-chunks', nargs='?', help='Divide one order into a number of chunks.', default=1, type=int)
-    argopt('-config_file', help='Config file with input values.', default='config_file_viper.ini', type=str)
-    argopt('-config_sect', help='Section in config file.', default=preargs.inst, type=str)
-    argopt('-createtpl', help='Removal of telluric features (or cell lines) and combination of several observations.', action='store_true')
+    argopt('-config_file', nargs='*', help='Config file and optional section  [None DEFAULT].', type=str)
+    argopt('-createtpl', nargs='?', help='Removal of telluric features (or cell lines) and combination of several observations.', default=False, const=True, type=int)
     argopt('-deg_bkg', nargs='?', help='Number of additional parameters.', default=0, const=1, type=int)
     argopt('-deg_norm', nargs='?', help='Polynomial degree for flux normalisation.', default=3, type=int)
     argopt('-deg_norm_rat', nargs='?', help='Rational polynomial degree of denominator for flux normalisation.', type=int)
@@ -201,33 +214,21 @@ if __name__ == "__main__":
     argopt('-stepRV', help='Step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess).', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename.', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
-    argopt('-tellshift', help='Variable telluric wavelength shift (one value for all selected molecules).', action='store_true')
+    argopt('-tellshift', nargs='?', help='Variable telluric wavelength shift (one value for all selected molecules).', default=False, const=True, type=int)
     argopt('-telluric', help='Treating tellurics (mask: mask tellurics; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
-    argopt('-wgt', help='Weighted least square fit (employ data error).', action='store_true')
+    argopt('-wgt', nargs='?', help='Weighted least square fit (employ data error).', default=False, const=True, type=int)
     argopt('-?', '-h', '-help', '--help',  help='Show this help message and exit.', action='help')
 
+    parser.set_defaults(**configs_def)
+    parser.set_defaults(**configs_inst)
+    parser.set_defaults(**configs_user)
+   
+    parser.set_defaults(kapsig = [float(i) for i in (argopt('--kapsig').default.split(' '))])
+    
     args = parser.parse_args()
     globals().update(vars(args))
-    
-    if config_file != 'off': 
-        # Using config.ini file for reading in parameter values
-
-        config = configparser.ConfigParser()
-        print(config_file)
-        config.read(viperdir+config_file)
-        if str(config_sect) not in config.sections():
-            print('Section not found in parser file. Using default values')
-            config_sect = 'DEFAULT'
-            
-        configs = dict(config[str(config_sect)])  
-
-        args = vars(args)
-        # do not overwrite parameters from console line
-        args.update({k: eval(v) for k, v in configs.items() if '-'+str(k) not in parser_input})
-       
-        globals().update(args)
 
 
 def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
@@ -578,7 +579,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
         # p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs, a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
         par_rv = rvs
-
+    
     show = (order in look) or (order in lookfast)
 
     if 1:
