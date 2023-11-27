@@ -160,19 +160,21 @@ if __name__ == "__main__":
 
     # read in default values from config_viper.ini
     configs_inst, configs_user = {}, {}
-    config_def = configparser.ConfigParser()
-    config_def.read(viperdir+'config_viper.ini')	# default file
-    configs_def = dict(config_def['DEFAULT'])		# default values
-    if preargs.inst in config_def.sections():
-        configs_inst = dict(config_def[preargs.inst])	# instrument values
+    config_default = configparser.ConfigParser()
+    config_default.read(viperdir+'config_viper.ini')	# default file
+    configs_def = dict(config_default['DEFAULT'])		# default values
+    if preargs.inst in config_default.sections():
+        configs_inst = dict(config_default[preargs.inst])	# instrument values
 
     if preargs.config_file:
-         # Uread in values from user #.ini
-        if len(preargs.config_file) == 2:             
-            config = configparser.ConfigParser()
+        # Read in values from user #.ini
+        if len(preargs.config_file) == 2:    
+            config = configparser.ConfigParser()         
             config.read(preargs.config_file[0])
-            if str(preargs.config_file[1]) in config.sections():
+            if preargs.config_file[1] in config.sections():
                 configs_user = dict(config[preargs.config_file[1]])
+            else:
+                print('WARNING: Declared section is not found in %s. Use DEFAULT values instead.' % preargs.config_file[0])
 
     parser = argparse.ArgumentParser(description='VIPER - velocity and IP Estimator', add_help=False, formatter_class=argparse. ArgumentDefaultsHelpFormatter)
     argopt = parser.add_argument   # function short cut
@@ -806,14 +808,17 @@ if 'add' in telluric:
     cols = hdu[1].columns.names
     data = hdu[1].data
 
-    if molec[0] == 'all': molec = cols
+    if molec[0] == 'all': molec = cols[1:]
         
+    # add wavelength shift
+    # synthetic telluric spectra (molecfit) are laboratory wavelengths
+    # shift was determined empirical from several observations    
     wave_atm_all = data['lambda'] * (1 + (-0.249/3e5))
-    specs_molec_all = {}    
+    
+    specs_molec_all = {}  
     for i_mol, mol in enumerate(molec):
         if (mol != 'lambda') and (mol in cols): 
             specs_molec_all[i_mol] = data[mol]
-
 
 # collect all spectra for createtpl function
 spec_all = defaultdict(dict)
