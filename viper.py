@@ -299,17 +299,18 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     if 'add' in telluric:
         # select present molecules for telluric forward modeling
         specs_molec = np.zeros((0, len(lnwave_j)))
-        for mol in range(len(molec)):
-            s_mol = slice(*np.searchsorted(wave_atm_all, [lmin, lmax]))
-            # bring it to same log(wavelength) scale as cell
-            spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[s_mol]), specs_molec_all[mol][s_mol])
-            specs_molec = np.r_[specs_molec, [spec_mol]]
-            # chose just present molecules in wavelength range
-            if np.nanstd(spec_mol) > 0.0001:
-                par_atm.append((1, np.inf))
-            else:
-                # fix parameter and set it to nan if molecule is not present in order
-                par_atm.append((np.nan, 0))	# fix parameter
+        for mol in specs_molec_all.keys():
+            s_mol = slice(*np.searchsorted(wave_atm_all[mol], [lmin, lmax]))
+            # bring it to same log(wavelength) scale as cell        
+            if specs_molec_all[mol][s_mol] != []:
+                spec_mol = np.interp(lnwave_j, np.log(wave_atm_all[mol][s_mol]), specs_molec_all[mol][s_mol])
+                specs_molec = np.r_[specs_molec, [spec_mol]]
+                # chose just present molecules in wavelength range
+                if np.nanstd(spec_mol) > 0.0001:
+                    par_atm.append((1, np.inf))
+                else:
+                   # fix parameter and set it to nan if molecule is not present in order
+                    par_atm.append((np.nan, 0))	# fix parameter
 
         if telluric == 'add2' and len(molec) > 1:
             # use combined coeff for all non-water tellurics instead of one for each molecule
@@ -812,26 +813,33 @@ mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T
 if 'add' in telluric:
     # read in telluric spectra for wavelength range of the instrument
 
-    inst_wave = wave_cell[-1]
-    if inst_wave < 9000: band = 'vis'
-    elif inst_wave < 20000: band = 'H'
-    else: band = 'K'
+    bands_all = ['vis', 'J', 'H', 'K']
+    wave_band = [0, 9000, 14000, 18500]
     
-    hdu = fits.open(viperdir+'/lib/atmos/stdAtmos_'+band+'.fits')
-    cols = hdu[1].columns.names
-    data = hdu[1].data
+    # select which bands are covered by the observation
+    w0 = wave_cell[0] - wave_band
+    w1 = wave_cell[-1]- wave_band
+    bands = bands_all[np.argmin(w0[w0 >= 0]): int(np.argmin(w1[w1 >= 0]) + 1)]
 
-    if molec[0] == 'all': molec = cols[1:]
-        
-    # add wavelength shift
-    # synthetic telluric spectra (molecfit) are laboratory wavelengths
-    # shift was determined empirical from several observations    
-    wave_atm_all = data['lambda'] * (1 + (-0.249/3e5))
+    specs_molec_all = defaultdict(list)
+    wave_atm_all = defaultdict(list)
+    molec_sel = molec
     
-    specs_molec_all = {}  
-    for i_mol, mol in enumerate(molec):
-        if (mol != 'lambda') and (mol in cols): 
-            specs_molec_all[i_mol] = data[mol]
+    for band in bands:
+
+        hdu = fits.open(viperdir+'/lib/atmos/stdAtmos_'+band+'.fits')
+        cols = hdu[1].columns.names
+        data = hdu[1].data
+
+        if molec_sel[0] == 'all': molec = cols[1:]
+        
+        # add wavelength shift
+        # synthetic telluric spectra (molecfit) are laboratory wavelengths
+        # shift was determined empirical from several observations                    
+        for i_mol, mol in enumerate(molec):
+            if (mol != 'lambda') and (mol in cols): 
+                specs_molec_all[mol].extend(data[mol])
+                wave_atm_all[mol].extend(data['lambda'] * (1 + (-0.249/3e5)))
 
 # collect all spectra for createtpl function
 spec_all = defaultdict(dict)
