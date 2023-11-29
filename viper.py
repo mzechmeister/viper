@@ -786,10 +786,23 @@ print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, colnums), 'filename', fil
 
 # using the supersampled log(wavelength) space with knot index j
 
-wave_cell, spec_cell, lnwave_j_full, spec_cell_j_full = FTS(ftsname)
+if ftsname != 'None':
+    wave_cell, spec_cell, lnwave_j_full, spec_cell_j_full = FTS(ftsname)
+else:
+    # create fake cell spectrum 
+    pixel, wave0, spec0, err0, flag0, bjd, berv = Spectrum(obsnames[0], order=orders[0])
+    pixel, wave1, spec1, err1, flag1, bjd, berv = Spectrum(obsnames[0], order=orders[-1])
+    # estimate wavelength range from observation
+    lmin = np.min([wave0[0], wave0[-1], wave1[0], wave1[-1]])
+    lmax = np.max([wave0[0], wave0[-1], wave1[0], wave1[-1]])
+    wave_cell = np.linspace(lmin, lmax, len(pixel)*len(orders)*100)
+    spec_cell = wave_cell*0 + 1
+    u = np.log(wave_cell)
+    lnwave_j_full = np.arange(u[0], u[-1], 100/3e8)
+    spec_cell_j_full = lnwave_j_full*0 + 1 
 
 if nocell:
-    # may find a better solution here
+    # option nocell will be removed in near future
     spec_cell = spec_cell*0 + 1
     spec_cell_j_full = spec_cell_j_full*0 + 1
 
