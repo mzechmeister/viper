@@ -130,7 +130,7 @@ class GUI_viper():
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
-        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES', 'McDonald'], width=15)
+        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES', 'McDonald', 'GAINO'], width=15)
         self.combo_inst.set(self.configs.get('inst','TLS'))
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
         self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
