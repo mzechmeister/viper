@@ -23,6 +23,7 @@
 
 import os
 import sys
+import glob
 from tkinter import *
 from tkinter.filedialog import askopenfilename
 from tkinter import ttk
@@ -148,7 +149,8 @@ class GUI_viper():
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
         Help_Box(widget = l_flag, text = text_from_file("'-flagfile'"))
 
-        self.combo_inst = ttk.Combobox(fr1, values=['TLS', 'CRIRES','cplCRIRES', 'CES', 'KECK', 'UVES', 'OES', 'McDonald', 'GAINO'], width=15)
+        insts = sorted([os.path.basename(i)[5:-3] for i in glob.glob(viperdir+'inst/inst_*.py')])
+        self.combo_inst = ttk.Combobox(fr1, values=insts, width=15)
         self.combo_inst.set(self.configs.get('inst','TLS'))
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
         self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
