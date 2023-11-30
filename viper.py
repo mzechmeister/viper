@@ -48,7 +48,7 @@ c = 299792.458   # [km/s] speed of light
 
 targ = None
 modset = {}   # model setting parameters
-insts = ['TLS', 'CES', 'KECK', 'UVES', 'OES', 'CRIRES', 'McDonald', 'GIANO']
+insts = [os.path.basename(i)[5:-3] for i in glob.glob(viperdir+'inst/inst_*.py')]
 
 class nameddict(dict):
    """
