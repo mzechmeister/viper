@@ -940,8 +940,8 @@ if createtpl:
     wave_tpl_new = {}
     spec_tpl_new = {}
     err_tpl_new = {}
-    
-    for order in orders:
+    orders_ok = sorted(set([kk[0] for kk in spec_all.keys()]))
+    for order in orders_ok:
         gplot.reset()
         gplot.key("title 'order: %s' noenhance" % (order))
         gplot.xlabel('"Vacuum wavelength [Å]"')
