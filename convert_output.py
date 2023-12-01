@@ -32,7 +32,7 @@ class convert_data():
     Use CPL for writing to full fill ESO standards. 
     """
     
-    def __init__(self, filename, dat=1, fits=0, cpl=0, final=0):
+    def __init__(self, filename, args, dat=1, fits=0, cpl=0, final=0):
         
         self.filename = filename     
         if fits or cpl:
@@ -43,6 +43,12 @@ class convert_data():
             self.data_par = np.genfromtxt(filename+'.par.dat', dtype=None, names=True,
                 deletechars='', encoding=None).view(np.recarray)
             self.header_par = self.data_par.dtype.names
+            
+        self.args = vars(args)
+        self.args.pop('config_file', None)
+        self.args.pop('ftsname', None)
+        self.args = {key: self.args[key] for key in self.args if 'look' not in key}           
+        if self.args['tplname']: self.args['tplname'] = self.args['tplname'].split('/')[-1] 
         
         if fits:
             self.write_fits()
@@ -57,6 +63,12 @@ class convert_data():
     def write_fits(self):
         # convert data to fits files using astropy       
         hdu0 = fits.PrimaryHDU()
+        hdr = fits.Header()
+        hdr.set('REC ID', 'viper RV estimation', 'Pipeline recipe')
+        for i, (k, v) in enumerate(self.args.items()):
+            hdr.set('REC PARAM'+str(i)+' NAME', k)
+            hdr.set('REC PARAM'+str(i)+' VALUE', str(v))
+        hdu0 = fits.PrimaryHDU(header=hdr)
         
         # create rvo table
         if self.data_rvo.size == 1:
@@ -99,6 +111,12 @@ class convert_data():
         import cpl
         from cpl.core import Table
         from cpl.core import PropertyList, Property
+        
+        hdr0 = cpl.core.PropertyList()
+        hdr0.append(Property('REC ID', 'viper RV estimation', 'Pipeline recipe'))
+        for i, (k, v) in enumerate(self.args.items()):
+            hdr0.append(Property('REC PARAM'+str(i)+' NAME', k))
+            hdr0.append(Property('REC PARAM'+str(i)+' VALUE', str(v)))
 
         hdr = cpl.core.PropertyList()
         tbl = cpl.core.Table(self.data_rvo.size)
@@ -118,7 +136,7 @@ class convert_data():
                    tbl.set_column_unit(str(col), 'm/s')
            tbl[str(col)] = self.data_rvo[col]
 
-        Table.save(tbl, None, hdr, self.filename+'_rvo_par.fits', cpl.core.io.CREATE)
+        Table.save(tbl, hdr0, hdr, self.filename+'_rvo_par.fits', cpl.core.io.CREATE)
  
         # save par data       
         hdr = cpl.core.PropertyList()
