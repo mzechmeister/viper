@@ -996,7 +996,7 @@ if createtpl:
 
 rvounit.close()
 parunit.close()
-convert_output.convert_data(tag, dat ='dat' in oformat, fits ='fits' in oformat, cpl='cpl' in oformat)
+convert_output.convert_data(tag, args, dat ='dat' in oformat, fits ='fits' in oformat, cpl='cpl' in oformat)
 
 T = time.time() - T
 Tfmt = lambda t: time.strftime("%Hh%Mm%Ss", time.gmtime(t))
