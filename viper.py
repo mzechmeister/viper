@@ -265,13 +265,13 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         flag_obs[iend:] |= flag.chunk
 
     if flagfile:
-        # using flag file for noisy regions
-        try:
-            flagf = np.genfromtxt(flagfile, dtype=None, names=True).view(np.recarray)
-            flag_obs[:flagf.ok_s[np.argwhere(flagf.order==order).item()]] |= 64
-            flag_obs[flagf.ok_e[np.argwhere(flagf.order==order).item()]:] |= 64
-        except:
-            print('selected flagfile or order in flag file are not available')
+        # clip selected pixel ranges in order          
+        for msk_i in msk_o[msk_o.order==order]:
+            flag_obs[int(msk_i.start):int(msk_i.end)] |= flag.clip        
+        # clip selected wavelength regions
+        if len(msk_l):   
+            msk_wave = lambda x: np.interp(x, msk_w, msk_f)
+            flag_obs[msk_wave(wave_obs) > 0.1] |= flag.clip
 
     if 1:
         # preclip upper outlier (cosmics)
@@ -807,7 +807,23 @@ if nocell:
     spec_cell = spec_cell*0 + 1
     spec_cell_j_full = spec_cell_j_full*0 + 1
 
+# mask wavelengths with strong tellurics
 mskatm = lambda x: np.interp(x, *np.genfromtxt(viperdir+'lib/mask_vis1.0.dat').T)
+
+if flagfile:
+    # user created file for removal of selected regions
+    msk = np.genfromtxt(flagfile, names=True, invalid_raise=False, missing_values = {'order':"-"}, filling_values={'order':np.nan}, delimiter=' ').view(np.recarray)
+    
+    msk_o = msk[np.isfinite(msk.order)]		# selected pixel in order
+    msk_l = msk[np.isnan(msk.order)]		# selected wavelength/lambda ranges
+
+    if len(msk_l):
+        msk_w = np.asarray(np.concatenate([msk_l.start, msk_l.end, msk_l.start-0.05, msk_l.end+0.05]))
+        msk_f = np.asarray(np.concatenate([np.ones(2*len(msk_l.start)), np.zeros(2*len(msk_l.start))]))
+    
+        ind = np.argsort(msk_w)
+        msk_w, msk_f = msk_w[ind], msk_f[ind]
+        
 
 #### Telluric model ####
 if 'add' in telluric:
