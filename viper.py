@@ -31,16 +31,16 @@ from scipy.interpolate import CubicSpline
 from astropy.io import fits
 import astropy.units as u
 
-from gplot import *
+from utils.gplot import *
 gplot.colors('classic')
 gplot2 = Gplot()
-from param import Params
-from pause import pause
+from utils.param import Params
+from utils.pause import pause
 
 from model import model, model_bnd, IPs, show_model, pade
-from targ import Targ
+from utils.targ import Targ
 import vpr
-import convert_output
+import utils.convert_output as convert_output
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
