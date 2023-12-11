@@ -22,7 +22,7 @@ from scipy.optimize import curve_fit
 from scipy.special import erf
 from astropy.modeling.models import Voigt1D
 
-from gplot import *
+from utils.gplot import *
 
 c = 3e5   # [km/s] speed of light
 
