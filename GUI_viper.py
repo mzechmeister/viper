@@ -31,7 +31,7 @@ import numpy as np
 import importlib
 import configparser
 from tkinter.scrolledtext import ScrolledText
-from hbox import Help_Box
+from utils.hbox import Help_Box
 from model import IPs
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep

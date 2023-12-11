@@ -25,7 +25,7 @@ from tkinter import *
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
-from hbox import Help_Box
+from utils.hbox import Help_Box
 
 import numpy as np
 import re
