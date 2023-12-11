@@ -245,8 +245,8 @@ class model:
         gplot.ylabel('"flux"')
         # toggle between pixel and wavelength with shortcut "$"
         gplot.bind('"$" "lam=!lam; set xlabel lam?\\"Vacuum wavelength [Å]\\":\\"Pixel x\\"; replot"')
-        args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "S_i",',
-          '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "S(i)"')
+        args = (x, y, ymod, x2, 'us lam?4:1:2:3 w lp pt 7 ps 0.5 t "obs",',
+          '"" us lam?4:1:3 w p pt 6 ps 0.5 lc 3 t "model"')
         prms = np.nan   # percentage prms
         if dx:
             xx = np.arange(x.min(), x.max(), dx)
