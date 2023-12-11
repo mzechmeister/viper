@@ -24,10 +24,10 @@ import os
 import numpy as np
 from astropy.io import fits
 
-from wstat import wsem
+from utils.wstat import wsem
 
-from pause import pause
-from gplot import gplot
+from utils.pause import pause
+from utils.gplot import gplot
 
 gplot.bar(0.5)
 
