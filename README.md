@@ -6,6 +6,11 @@
 git clone https://github.com/mzechmeister/viper.git
 ```
 
+Download demo data:
+```
+git clone https://github.com/mzechmeister/viper_demo_data.git
+```
+
 Create shortcuts:
 ```bash
 ln -s $PWD/viper/viper.py ~/bin/viper
