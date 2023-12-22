@@ -1,3 +1,5 @@
+# Licensed under a GPLv3 style license - see LICENSE
+
 import numpy as np
 
 def airtovac(wave_air):

@@ -1,3 +1,5 @@
+# Licensed under a GPLv3 style license - see LICENSE
+
 """readmultispec.py
 
 Read IRAF (echelle) spectrum in multispec format from a FITS file.
