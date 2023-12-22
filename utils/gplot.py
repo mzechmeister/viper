@@ -1,3 +1,5 @@
+# Licensed under a GPLv3 style license - see LICENSE
+# from https://github.com/mzechmeister/python
 # A python-gnuplot interface
 
 from __future__ import print_function

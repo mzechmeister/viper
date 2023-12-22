@@ -1,3 +1,6 @@
+# Licensed under a GPLv3 style license - see LICENSE
+# from https://github.com/mzechmeister/python
+
 from __future__ import print_function
 import sys
 
