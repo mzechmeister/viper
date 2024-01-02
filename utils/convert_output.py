@@ -9,7 +9,7 @@ from astropy.io import fits
 from astropy.table import Table
 
 
-class convert_data():
+class convert_data:
     """
     Converte #.rvo.dat and #.par.dat file to fits file.
     Combine both data files to one fits file- HDU[1] contains rvo data, HDU[2] par data.
@@ -32,7 +32,8 @@ class convert_data():
         self.args.pop('config_file', None)
         self.args.pop('ftsname', None)
         self.args = {key: self.args[key] for key in self.args if 'look' not in key}           
-        if self.args['tplname']: self.args['tplname'] = self.args['tplname'].split('/')[-1] 
+        if self.args['tplname']: 
+            self.args['tplname'] = self.args['tplname'].split('/')[-1] 
         
         if fits:
             self.write_fits()
@@ -57,6 +58,8 @@ class convert_data():
         # create rvo table
         if self.data_rvo.size == 1:
             self.data_rvo = np.array([self.data_rvo])
+        if self.data_par.size == 1:
+            self.data_par = np.array([self.data_par])
                     
         table = []   
         for h, col in enumerate(self.header_rvo):
@@ -82,6 +85,7 @@ class convert_data():
                 unitpar = 'A/px^'+str(str(col)[-1])
             c = fits.Column(name=str(col), array=self.data_par[col], unit=unitpar, format='F')
             table.append(c)
+
         hdr = fits.Header()
         hdr.set('TYPE', 'par', 'parameter data')
         table_par = fits.BinTableHDU.from_columns(table)
@@ -107,18 +111,20 @@ class convert_data():
 
         if self.data_rvo.size == 1:
             self.data_rvo = np.array([self.data_rvo])
+        if self.data_par.size == 1:
+            self.data_par = np.array([self.data_par])
         
         hdr.append(Property('TYPE', 'rvo', 'RV data'))
 
         # save rvo data
         for h, col in enumerate(self.header_rvo):
-           if str(col) == 'filename':
-               tbl.new_column(str(col), cpl.core.Type.STRING)
-           else:     
-               tbl.new_column(str(col), cpl.core.Type.DOUBLE)
-               if 'rv' in str(col).casefold() and str(col) != 'BERV':
-                   tbl.set_column_unit(str(col), 'm/s')
-           tbl[str(col)] = self.data_rvo[col]
+            if str(col) == 'filename':
+                tbl.new_column(str(col), cpl.core.Type.STRING)
+            else:     
+                tbl.new_column(str(col), cpl.core.Type.DOUBLE)
+                if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                    tbl.set_column_unit(str(col), 'm/s')
+            tbl[str(col)] = self.data_rvo[col]
 
         Table.save(tbl, hdr0, hdr, self.filename+'_rvo_par.fits', cpl.core.io.CREATE)
  
@@ -129,13 +135,13 @@ class convert_data():
         hdr.append(Property('TYPE', 'par', 'parameter data'))
 
         for h, col in enumerate(self.header_par):
-           tbl.new_column(str(col), cpl.core.Type.DOUBLE)
-           tbl[str(col)] = self.data_par[col]
+            tbl.new_column(str(col), cpl.core.Type.DOUBLE)
+            tbl[str(col)] = self.data_par[col]
 
-           if 'rv' in str(col).casefold() and str(col) != 'BERV':
-               tbl.set_column_unit(str(col), 'm/s')
-           elif 'wave' in str(col):
-               tbl.set_column_unit(str(col), 'A/px^'+str(str(col)[-1]))
+            if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                tbl.set_column_unit(str(col), 'm/s')
+            elif 'wave' in str(col):
+                tbl.set_column_unit(str(col), 'A/px^'+str(str(col)[-1]))
 
         Table.save(tbl, None, hdr, self.filename+'_rvo_par.fits', cpl.core.io.EXTEND) 
 
