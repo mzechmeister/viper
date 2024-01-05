@@ -158,8 +158,12 @@ if __name__ == "__main__" or __name__ == "viper.viper":
         configs_inst = dict(config_default[preargs.inst])	# instrument values
 
     if preargs.config_file:
-        # Read in values from user #.ini
-        if len(preargs.config_file) == 2:    
+        if len(preargs.config_file) == 1 and not preargs.config_file[0].endswith('.ini'): 
+            # use selected section from default .ini file
+            if preargs.config_file[0] in config_default.sections():
+                configs_user = dict(config_default[preargs.config_file[0]])
+        elif len(preargs.config_file) == 2:    
+            # Read in values from user #.ini   
             config = configparser.ConfigParser()         
             config.read(preargs.config_file[0])
             if preargs.config_file[1] in config.sections():
