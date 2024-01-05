@@ -2,6 +2,9 @@
 
 # viper - Velocity and IP EstimatoR
 
+For further information, manual, support visit https://mzechmeister.github.io/viper_RV_pipeline .
+
+Download viper:
 ```
 git clone https://github.com/mzechmeister/viper.git
 ```
@@ -11,17 +14,14 @@ Download demo data:
 git clone https://github.com/mzechmeister/viper_demo_data.git
 ```
 
-Create shortcuts:
+Installation (run from viper directory):
 ```bash
-ln -s $PWD/viper/viper.py ~/bin/viper
-ln -s $PWD/viper/vpr.py ~/bin/vpr
-ln -s $PWD/viper/GUI_viper.py ~/bin/viper_gui
-ln -s $PWD/viper/GUI_vpr.py ~/bin/vpr_gui
+pip install -e .
 ```
 
 To run:
 ```
-viper "data/TLS/hd189733/*" data/TLS/Deconv/HARPS*fits -oset 19:21 -nset :4
+viper "data/TLS/HD189733/*" data/TLS/HD189733_tpl/HARPS*fits -oset 19:21 -nset :4
 ```
 This runs from order 19 (inclusive) to 21 (exclusive) for the first 4 observational files.
 
