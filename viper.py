@@ -24,10 +24,14 @@ gplot2 = Gplot()
 from utils.param import Params
 from utils.pause import pause
 
-from model import model, model_bnd, IPs, show_model, pade
+from utils.model import model, model_bnd, IPs, show_model, pade
 from utils.targ import Targ
-import vpr
 import utils.convert_output as convert_output
+try:
+    import viper.vpr as vpr
+except: 
+    import vpr
+
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -125,8 +129,8 @@ def SSRstat(vgrid, SSR, dk=1, plot='maybe', N=None):
         pause(v)
     return v, e_v, a
 
-
-if __name__ == "__main__":
+    
+if __name__ == "__main__" or __name__ == "viper.viper":
     # Print defaults, but do not wrap lines
     argparse.ArgumentDefaultsHelpFormatter._split_lines = lambda self, text, width: text.splitlines()
 
@@ -1024,3 +1028,6 @@ if not createtpl:
         gplot.reset()
         vpr.plot_RV(tag+'.rvo.dat')
 print(tag, 'done.')
+
+def run():
+    pass
