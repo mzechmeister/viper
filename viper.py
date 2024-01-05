@@ -1026,11 +1026,16 @@ print("processing time total:       ", Tfmt(T))
 print("processing time per spectrum:", Tfmt(T/N))
 print("processing time per chunk:   ", Tfmt(T/N/orders.size))
 
+if 'cpl' in oformat or 'fits' in oformat:
+    tag += '_rvo_par.fits'
+else:
+    tag += '.rvo.dat'
+
 if not createtpl:
-    vpr.VPR(tag)   # to print info statistic
+    vpr = vpr.VPR(tag)   # to print info statistic
     if len(lookfast) or len(look):
         gplot.reset()
-        vpr.plot_RV(tag+'.rvo.dat')
+        vpr.plot_RV()
 print(tag, 'done.')
 
 def run():
