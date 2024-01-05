@@ -31,18 +31,17 @@ except:
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-path = sys.path[0] + '/lib/CRIRES/'
+path = 'lib/CRIRES/'
 
-location = crires = EarthLocation.from_geodetic(lat=-24.6268*u.deg,
-                                                lon=-70.4045*u.deg,
-                                                height=2648*u.m)
+location = crires = EarthLocation.from_geodetic(
+    lat=-24.6268 * u.deg, lon=-70.4045 * u.deg, height=2648 * u.m
+)
 
 oset = '1:19'
 
 ip_guess = {'s': 1.5}
 
 def Spectrum(filename='', order=None, targ=None):
-
     if pycpl:
         hdr = PropertyList.load(filename, 0)
 
@@ -59,7 +58,7 @@ def Spectrum(filename='', order=None, targ=None):
         naxis = hdr["NAXIS2"].value
 
         order_drs, detector = divmod(order-1, 3)
-        order_drs = 7 - order_drs		# order number (CRIRES+ definition)
+        order_drs = 7 - order_drs	# order number (CRIRES+ definition)
         detector += 1			# detector number (1,2,3)
 
         tbl = Table.load(filename, detector)
@@ -75,22 +74,22 @@ def Spectrum(filename='', order=None, targ=None):
         de = hdr.get('DEC', np.nan)
         setting = hdr['ESO INS WLEN ID']
 
-        ndit = hdr.get('ESO DET NDIT',1)
-        nods = hdr.get('ESO PRO DATANCOM',1)   # Number of combined frames 
+        ndit = hdr.get('ESO DET NDIT', 1)
+        nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
 
         hdr = hdu[1].header
         exptime = hdr.get('EXPTIME', 0)
 
         order_drs, detector = divmod(order-1, 3)
-        order_drs = 5 - order_drs		# order number (CRIRES+ definition)
+        order_drs = 5 - order_drs	# order number (CRIRES+ definition)
         detector += 1			# detector number (1,2,3)
 
-        err = hdu[detector].data.field(3*order_drs+1)
+        err = hdu[detector].data.field(3*order_drs + 1)
         spec = hdu[detector].data.field(3*order_drs)
 
     pixel = np.arange(spec.size)
 
-    exptime = (exptime*nods*ndit)/2.
+    exptime = (exptime*nods*ndit) / 2.0
 
     targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
@@ -114,7 +113,7 @@ def Spectrum(filename='', order=None, targ=None):
             wave = np.array([tbl["0"+str(order_drs)+"_01_WL", i] for i in range(naxis)])
             wave *= 10
         else:
-            wave = (hdu[detector].data.field(3*order_drs+2))*10
+            wave = (hdu[detector].data.field(3*order_drs+2)) * 10
 
     flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
@@ -300,7 +299,7 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
             # writing zeros for non processed orders
             data[str(cols.names[3*order_drs])] = np.ones(2048)
             data[str(cols.names[3*order_drs+1])] = np.nan * np.ones(2048)
-            data[str(cols.names[3*order_drs+2])] = (data.field(3*order_drs+2))*10	 # [Angstrom]
+            data[str(cols.names[3*order_drs+2])] = (data.field(3*order_drs+2)) * 10  # [Angstrom]
 
     hdu.writeto(file_out+'_tpl.fits', overwrite=True)
     hdu.close()
