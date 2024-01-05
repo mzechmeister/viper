@@ -16,8 +16,6 @@ from .airtovac import airtovac
 
 from .FTS_resample import resample, FTSfits
 
-import matplotlib.pyplot as plt
-
 try:
     # check if PyCPL is available
     import cpl
@@ -31,7 +29,7 @@ except:
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
-path = 'lib/CRIRES/'
+path = os.path.join(os.path.dirname(__file__), '..') + "/lib/CRIRES/"
 
 location = crires = EarthLocation.from_geodetic(
     lat=-24.6268 * u.deg, lon=-70.4045 * u.deg, height=2648 * u.m
