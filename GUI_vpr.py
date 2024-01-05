@@ -14,8 +14,12 @@ from utils.hbox import Help_Box
 import numpy as np
 import re
 import sys
-import vpr
-from vpr import VPR
+try:
+    import viper.vpr as vpr
+    from viper.vpr import VPR
+except:
+    import vpr
+    from vpr import VPR
 vpr.pause = print   # mainloop of the gui will pause
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep

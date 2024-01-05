@@ -15,7 +15,7 @@ import importlib
 import configparser
 from tkinter.scrolledtext import ScrolledText
 from utils.hbox import Help_Box
-from model import IPs
+from utils.model import IPs
 
 viperdir = os.path.dirname(os.path.realpath(__file__)) + os.sep
 
@@ -371,8 +371,8 @@ class GUI_viper:
     def Update_inst(self):
         Inst = importlib.import_module('inst.inst_' + self.combo_inst.get())
         FTS = Inst.FTS
-     #   default = viperdir + FTS.__defaults__[0]
-        default = FTS.__defaults__[0]
+        default = viperdir + FTS.__defaults__[0]
+     #   default = FTS.__defaults__[0]
         self.e_cell.delete(0, END)
         self.e_cell.insert(0, default)
 
