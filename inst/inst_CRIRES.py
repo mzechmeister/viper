@@ -284,7 +284,8 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
     hdr.set('ESO PRO DATANCOM', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
 
     # write the template data to the file            
-    for detector in (1, 2, 3):        
+    for detector in (1, 2, 3): 
+        data = hdu[detector].data       
         for odrs in range(2, 9, 1):    
             o = (7-odrs)*3 + detector
             if o in list(tpl_all.keys()):     
