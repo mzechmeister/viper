@@ -105,44 +105,34 @@ class convert_data:
         for i, (k, v) in enumerate(self.args.items()):
             hdr0.append(Property('REC PARAM'+str(i)+' NAME', k))
             hdr0.append(Property('REC PARAM'+str(i)+' VALUE', str(v)))
-
-        hdr = cpl.core.PropertyList()
-        tbl = cpl.core.Table(self.data_rvo.size)
-
+        
         if self.data_rvo.size == 1:
             self.data_rvo = np.array([self.data_rvo])
         if self.data_par.size == 1:
             self.data_par = np.array([self.data_par])
         
+        # save rvo data
+        hdr = cpl.core.PropertyList()
+        tbl = cpl.core.Table(self.data_rvo)
         hdr.append(Property('TYPE', 'rvo', 'RV data'))
 
-        # save rvo data
         for h, col in enumerate(self.header_rvo):
-            if str(col) == 'filename':
-                tbl.new_column(str(col), cpl.core.Type.STRING)
-            else:     
-                tbl.new_column(str(col), cpl.core.Type.DOUBLE)
-                if 'rv' in str(col).casefold() and str(col) != 'BERV':
-                    tbl.set_column_unit(str(col), 'm/s')
-            tbl[str(col)] = self.data_rvo[col]
+            if 'rv' in str(col).casefold() and str(col) != 'BERV':
+                tbl.set_column_unit(str(col), 'm/s')
 
         Table.save(tbl, hdr0, hdr, self.filename+'_rvo_par.fits', cpl.core.io.CREATE)
  
         # save par data       
         hdr = cpl.core.PropertyList()
-        tbl = cpl.core.Table(self.data_par.size)
-        
+        tbl = cpl.core.Table(self.data_par)
         hdr.append(Property('TYPE', 'par', 'parameter data'))
-
+        
         for h, col in enumerate(self.header_par):
-            tbl.new_column(str(col), cpl.core.Type.DOUBLE)
-            tbl[str(col)] = self.data_par[col]
-
             if 'rv' in str(col).casefold() and str(col) != 'BERV':
                 tbl.set_column_unit(str(col), 'm/s')
             elif 'wave' in str(col):
                 tbl.set_column_unit(str(col), 'A/px^'+str(str(col)[-1]))
-
+        
         Table.save(tbl, None, hdr, self.filename+'_rvo_par.fits', cpl.core.io.EXTEND) 
 
     def write_finalRV(self):
