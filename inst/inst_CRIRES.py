@@ -61,8 +61,8 @@ def Spectrum(filename='', order=None, targ=None):
         naxis = hdr["NAXIS2"].value
 
         tbl = Table.load(filename, detector)
-        spec = np.array([tbl["0"+str(order_drs)+"_01_SPEC", i] for i in range(naxis)])
-        err = np.array([tbl["0"+str(order_drs)+"_01_ERR", i] for i in range(naxis)])
+        spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
+        err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
 
     else:
         hdu = fits.open(filename, ignore_blank=True)
@@ -105,8 +105,7 @@ def Spectrum(filename='', order=None, targ=None):
 
     else:
         if pycpl:
-            wave = np.array([tbl["0"+str(order_drs)+"_01_WL", i] for i in range(naxis)])
-            wave *= 10
+            wave = np.array(tbl["0"+str(order_drs)+"_01_WL"]) *10
         else:
             wave = (hdu[detector].data["0"+str(order_drs)+"_01_WL"]) * 10
 
@@ -130,10 +129,9 @@ def Tpl(tplname, order=None, targ=None):
             naxis = hdr["NAXIS2"].value
 
             tbl = Table.load(tplname, detector)
-            spec = np.array([tbl["0"+str(order_drs)+"_01_SPEC", i] for i in range(naxis)])
-            err = np.array([tbl["0"+str(order_drs)+"_01_ERR", i] for i in range(naxis)])
-            wave = np.array([tbl["0"+str(order_drs)+"_01_WL", i] for i in range(naxis)])
-
+            spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
+            err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
+            wave = np.array(tbl["0"+str(order_drs)+"_01_WL"])
         else:
             hdu = fits.open(tplname, ignore_blank=True)
             hdr = hdu[0].header    
@@ -217,6 +215,7 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
             else:
                # writing ones for non processed orders
                 wave0 = np.array([tbl["0"+str(odrs)+"_01_WL", i] for i in range(2048)])
+                wave0 = wave0[:, 0]
                 tbl["0"+str(odrs)+"_01_WL"] = wave0 * 10
                 tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
                 tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
@@ -225,6 +224,7 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
             # writing ones for non processed orders
             # this order is not present in all CRIRES data
             wave0 = np.array([tbl["09_01_WL", i] for i in range(2048)])
+            wave0 = wave0[:, 0]
             tbl["09_01_WL"] = wave0 * 10
             tbl["09_01_SPEC"] = np.ones(2048)
             tbl["09_01_ERR"] = np.nan * np.ones(2048)
