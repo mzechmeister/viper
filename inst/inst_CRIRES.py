@@ -40,6 +40,11 @@ oset = '1:19'
 ip_guess = {'s': 1.5}
 
 def Spectrum(filename='', order=None, targ=None):
+
+    order_drs, detector = divmod(order-1, 3)
+    order_drs = 7 - order_drs	# order number (CRIRES+ definition)
+    detector += 1			# detector number (1,2,3)
+
     if pycpl:
         hdr = PropertyList.load(filename, 0)
 
@@ -54,10 +59,6 @@ def Spectrum(filename='', order=None, targ=None):
         hdr = PropertyList.load(filename, 1)
         exptime = hdr["EXPTIME"].value
         naxis = hdr["NAXIS2"].value
-
-        order_drs, detector = divmod(order-1, 3)
-        order_drs = 7 - order_drs	# order number (CRIRES+ definition)
-        detector += 1			# detector number (1,2,3)
 
         tbl = Table.load(filename, detector)
         spec = np.array([tbl["0"+str(order_drs)+"_01_SPEC", i] for i in range(naxis)])
@@ -78,12 +79,8 @@ def Spectrum(filename='', order=None, targ=None):
         hdr = hdu[1].header
         exptime = hdr.get('EXPTIME', 0)
 
-        order_drs, detector = divmod(order-1, 3)
-        order_drs = 5 - order_drs	# order number (CRIRES+ definition)
-        detector += 1			# detector number (1,2,3)
-
-        err = hdu[detector].data.field(3*order_drs + 1)
-        spec = hdu[detector].data.field(3*order_drs)
+        err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
+        spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
 
     pixel = np.arange(spec.size)
 
@@ -111,7 +108,7 @@ def Spectrum(filename='', order=None, targ=None):
             wave = np.array([tbl["0"+str(order_drs)+"_01_WL", i] for i in range(naxis)])
             wave *= 10
         else:
-            wave = (hdu[detector].data.field(3*order_drs+2)) * 10
+            wave = (hdu[detector].data["0"+str(order_drs)+"_01_WL"]) * 10
 
     flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
@@ -123,14 +120,14 @@ def Tpl(tplname, order=None, targ=None):
 
     if tplname.endswith('_tpl.fits'):
         # tpl created with viper
+        
+        order_drs, detector = divmod(order-1, 3)
+        order_drs = 7 - order_drs		# order number (CRIRES+ definition)
+        detector += 1			# detector number (1,2,3)
 
         if pycpl:
             hdr = PropertyList.load(tplname, 1)
             naxis = hdr["NAXIS2"].value
-
-            order_drs, detector = divmod(order-1, 3)
-            order_drs = 7 - order_drs		# order number (CRIRES+ definition)
-            detector += 1			# detector number (1,2,3)
 
             tbl = Table.load(tplname, detector)
             spec = np.array([tbl["0"+str(order_drs)+"_01_SPEC", i] for i in range(naxis)])
@@ -139,16 +136,12 @@ def Tpl(tplname, order=None, targ=None):
 
         else:
             hdu = fits.open(tplname, ignore_blank=True)
-            hdr = hdu[0].header
+            hdr = hdu[0].header    
 
-            order_drs, detector = divmod(order-1, 3)
-            order_drs = 5 - order_drs		# order number (CRIRES+ definition)
-            detector += 1			# detector number (1,2,3)
-
-            err = hdu[detector].data.field(3*order_drs+1)
-            spec = hdu[detector].data.field(3*order_drs)
+            err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
+            spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
+            wave = hdu[detector].data["0"+str(order_drs)+"_01_WL"]
             pixel = np.arange(spec.size)
-            wave = (hdu[detector].data.field(3*order_drs+2))
     else:
         pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
         wave *= 1 + (berv*u.km/u.s/c).to_value('')
@@ -223,9 +216,20 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
                 tbl["0"+str(odrs)+"_01_ERR"] = e_all[o]			# errors
             else:
                # writing ones for non processed orders
-               # tbl["0"+str(odrs)+"_01_WL"] = wtpl_all[o]
+                wave0 = np.array([tbl["0"+str(odrs)+"_01_WL", i] for i in range(2048)])
+                tbl["0"+str(odrs)+"_01_WL"] = wave0 * 10
                 tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
                 tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
+                
+        try:
+            # writing ones for non processed orders
+            # this order is not present in all CRIRES data
+            wave0 = np.array([tbl["09_01_WL", i] for i in range(2048)])
+            tbl["09_01_WL"] = wave0 * 10
+            tbl["09_01_SPEC"] = np.ones(2048)
+            tbl["09_01_ERR"] = np.nan * np.ones(2048)
+        except:
+            pass
 
         if detector == 1:
             Table.save(tbl, hdr, hdro, file_out+'_tpl.fits', cpl.core.io.CREATE)
@@ -279,25 +283,30 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
 
     hdr.set('ESO PRO DATANCOM', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
 
-    # write the template data to the file
-    for o in range(1, 19, 1):
-        # data spread over 3 detectors, each having 6 orders
-        order_drs, detector = divmod(o-1, 3)
-        order_drs = 5 - order_drs		# order number (CRIRES+ definition)
-        detector += 1			# detector number (1,2,3)
-
-        data = hdu[detector].data
-        cols = hdu[detector].columns
-
-        if o in list(tpl_all.keys()):
-            data[str(cols.names[3*order_drs])] = tpl_all[o]		# data
-            data[str(cols.names[3*order_drs+1])] = e_all[o]		# errors
-            data[str(cols.names[3*order_drs+2])] = wtpl_all[o]		# wavelength
-        else:
-            # writing zeros for non processed orders
-            data[str(cols.names[3*order_drs])] = np.ones(2048)
-            data[str(cols.names[3*order_drs+1])] = np.nan * np.ones(2048)
-            data[str(cols.names[3*order_drs+2])] = (data.field(3*order_drs+2)) * 10  # [Angstrom]
-
+    # write the template data to the file            
+    for detector in (1, 2, 3):        
+        for odrs in range(2, 9, 1):    
+            o = (7-odrs)*3 + detector
+            if o in list(tpl_all.keys()):     
+                data["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
+                data["0"+str(odrs)+"_01_SPEC"] = tpl_all[o]		# data
+                data["0"+str(odrs)+"_01_ERR"] = e_all[o]		# errors   
+            else:
+               # writing ones for non processed orders
+                wave0 = data["0"+str(odrs)+"_01_WL"] 
+                data["0"+str(odrs)+"_01_WL"] = wave0 * 10    # [Angstrom]
+                data["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
+                data["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
+                
+        try:
+            # writing ones for non processed orders
+            # this order is not present in all CRIRES data
+            wave0 = data["0"+str(odrs)+"_01_WL"]
+            data["09_01_WL"] = wave0 * 10    # [Angstrom]
+            data["09_01_SPEC"] = np.ones(2048)
+            data["09_01_ERR"] = np.nan * np.ones(2048)
+        except:
+            pass
+            
     hdu.writeto(file_out+'_tpl.fits', overwrite=True)
     hdu.close()
