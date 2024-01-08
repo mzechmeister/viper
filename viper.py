@@ -653,7 +653,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     if show:
         # overplot flagged and clipped data
-        gplot+(pixel[flag_obs != 0], wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc var t "flagged and clipped"')
+        gplot+(pixel[flag_obs != 0], wave_obs[flag_obs != 0], spec_obs[flag_obs != 0], 1*(flag_obs[flag_obs != 0] == flag.clip), 'us (lam?$2:$1):3:(int($4)?5:9) w p pt 6 ps 0.5 lc 9 t "flagged and clipped"')
 
     if infoprec:
         # estimate velocity precision limit from stellar information content
