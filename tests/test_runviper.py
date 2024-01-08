@@ -67,10 +67,10 @@ class test_viper(unittest.TestCase):
 
         # test reults; comparison to pre-generated RV results
         tbl = Table.load(directory+"test_compare/test_rvo_par.fits", 1)
-        bjd, RV, e_RV = tbl["BJD", 0], tbl["RV", 0], tbl["e_RV", 0]
+        bjd, RV, e_RV = tbl["BJD", 0][0], tbl["RV", 0][0], tbl["e_RV", 0][0]
 
         tbl = Table.load(directory+"tmp1_rvo_par.fits", 1)
-        bjd2, RV2, e_RV2 = tbl["BJD", 0], tbl["RV", 0], tbl["e_RV", 0]
+        bjd2, RV2, e_RV2 = tbl["BJD", 0][0], tbl["RV", 0][0], tbl["e_RV", 0][0]
 
         assert np.isclose(bjd, bjd2, rtol=1e-5, atol=0)
         assert np.isclose(RV, RV2, rtol=1e-1, atol=0)
