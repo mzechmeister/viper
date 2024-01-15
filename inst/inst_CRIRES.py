@@ -206,7 +206,7 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
 
         tbl = Table.load(file_in, detector)
 
-        for odrs in range(2, 9, 1):    
+        for odrs in range(2, 8, 1):    
             o = (7-odrs)*3 + detector
             if o in list(tpl_all.keys()):
                 tbl["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
@@ -214,8 +214,7 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
                 tbl["0"+str(odrs)+"_01_ERR"] = e_all[o]			# errors
             else:
                # writing ones for non processed orders
-                wave0 = np.array([tbl["0"+str(odrs)+"_01_WL", i] for i in range(2048)])
-                wave0 = wave0[:, 0]
+                wave0 = np.array(tbl["0"+str(odrs)+"_01_WL"])
                 tbl["0"+str(odrs)+"_01_WL"] = wave0 * 10
                 tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
                 tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
@@ -223,8 +222,7 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
         try:
             # writing ones for non processed orders
             # this order is not present in all CRIRES data
-            wave0 = np.array([tbl["09_01_WL", i] for i in range(2048)])
-            wave0 = wave0[:, 0]
+            wave0 = np.array(tbl["0"+str(odrs)+"_09_WL"])
             tbl["09_01_WL"] = wave0 * 10
             tbl["09_01_SPEC"] = np.ones(2048)
             tbl["09_01_ERR"] = np.nan * np.ones(2048)
