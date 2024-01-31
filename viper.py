@@ -306,6 +306,10 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
                 else:
                    # fix parameter and set it to nan if molecule is not present in order
                     par_atm.append((np.nan, 0))	# fix parameter
+            else:
+                # set default spectrum if molecule is not present in wavelength range
+                specs_molec = np.r_[specs_molec, [lnwave_j*0+1]]
+                par_atm.append((np.nan, 0))	# fix parameter 
 
         if telluric == 'add2' and len(molec) > 1:
             # use combined coeff for all non-water tellurics instead of one for each molecule
@@ -367,7 +371,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     par = Params()
 
     # a good guess for the stellar RV is needed
-    par.rv = rv_guess if (tplname or createtpl) else (0, 0)   # else: do not fit for RV
+  #  par.rv = rv_guess if (tplname or createtpl) else (0, 0)   # else: do not fit for RV
+    par.rv = rv_guess if tplname else (0, 0)   # else: do not fit for RV
 
     # guess for normalization
     norm_guess = np.nanmean(spec_obs_ok) / np.nanmean(S_star(np.log(wave_obs_ok))) / np.nanmean(spec_cell_j)
@@ -409,7 +414,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     # set weighting parameter for tellurics
     sig = 1 * err_obs if wgt else np.ones_like(spec_obs)
-    if telluric in ('sig', 'add'):
+    if telluric in ('sig', 'add', 'add2'):
         sig[mskatm(wave_obs) < 0.1] = tsig
 
     if demo & 8:
@@ -859,6 +864,8 @@ if 'add' in telluric:
             if (mol != 'lambda') and (mol in cols): 
                 specs_molec_all[mol].extend(data[mol])
                 wave_atm_all[mol].extend(data['lambda'] * (1 + (-0.249/3e5)))
+                
+        molec = np.array(list(specs_molec_all.keys()))
 
 # collect all spectra for createtpl function
 spec_all = defaultdict(dict)
