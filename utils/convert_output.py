@@ -33,7 +33,9 @@ class convert_data:
         self.args.pop('ftsname', None)
         self.args = {key: self.args[key] for key in self.args if 'look' not in key}           
         if self.args['tplname']: 
-            self.args['tplname'] = self.args['tplname'].split('/')[-1] 
+            self.args['tplname'] = self.args['tplname'].split('/')[-1]
+        if self.args['obspath']: 
+            self.args['obspath'] = self.args['obspath'].split('/')[-1] 
         
         if fits:
             self.write_fits()
@@ -49,10 +51,10 @@ class convert_data:
         # convert data to fits files using astropy       
         hdu0 = fits.PrimaryHDU()
         hdr = fits.Header()
-        hdr.set('REC ID', 'viper RV estimation', 'Pipeline recipe')
+        hdr.set('HIERARCH REC ID', 'viper RV estimation', 'Pipeline recipe')
         for i, (k, v) in enumerate(self.args.items()):
-            hdr.set('REC PARAM'+str(i)+' NAME', k)
-            hdr.set('REC PARAM'+str(i)+' VALUE', str(v))
+            hdr.set('HIERARCH REC PARAM'+str(i)+' NAME', k)
+            hdr.set('HIERARCH REC PARAM'+str(i)+' VALUE', str(v))
         hdu0 = fits.PrimaryHDU(header=hdr)
         
         # create rvo table
@@ -72,7 +74,7 @@ class convert_data:
                 c = fits.Column(name=str(col), array=self.data_rvo[col], unit=unitpar, format='F')
             table.append(c)
         hdr = fits.Header()
-        hdr.set('TYPE', 'rvo', 'RV data')
+        hdr.set('HIERARCH TYPE', 'rvo', 'RV data')
         table_rvo = fits.BinTableHDU.from_columns(table)
         
         # create par table
@@ -87,7 +89,7 @@ class convert_data:
             table.append(c)
 
         hdr = fits.Header()
-        hdr.set('TYPE', 'par', 'parameter data')
+        hdr.set('HIERARCH TYPE', 'par', 'parameter data')
         table_par = fits.BinTableHDU.from_columns(table)
 
         # combine and write to file
@@ -101,10 +103,10 @@ class convert_data:
         from cpl.core import PropertyList, Property
         
         hdr0 = cpl.core.PropertyList()
-        hdr0.append(Property('REC ID', 'viper RV estimation', 'Pipeline recipe'))
+        hdr0.append(Property('HIERARCH REC ID', 'viper RV estimation', 'Pipeline recipe'))
         for i, (k, v) in enumerate(self.args.items()):
-            hdr0.append(Property('REC PARAM'+str(i)+' NAME', k))
-            hdr0.append(Property('REC PARAM'+str(i)+' VALUE', str(v)))
+            hdr0.append(Property('HIERARCH REC PARAM'+str(i)+' NAME', k))
+            hdr0.append(Property('HIERARCH REC PARAM'+str(i)+' VALUE', str(v)))
         
         if self.data_rvo.size == 1:
             self.data_rvo = np.array([self.data_rvo])
@@ -114,7 +116,7 @@ class convert_data:
         # save rvo data
         hdr = cpl.core.PropertyList()
         tbl = cpl.core.Table(self.data_rvo)
-        hdr.append(Property('TYPE', 'rvo', 'RV data'))
+        hdr.append(Property('HIERARCH TYPE', 'rvo', 'RV data'))
 
         for h, col in enumerate(self.header_rvo):
             if 'rv' in str(col).casefold() and str(col) != 'BERV':
@@ -125,7 +127,7 @@ class convert_data:
         # save par data       
         hdr = cpl.core.PropertyList()
         tbl = cpl.core.Table(self.data_par)
-        hdr.append(Property('TYPE', 'par', 'parameter data'))
+        hdr.append(Property('HIERARCH TYPE', 'par', 'parameter data'))
         
         for h, col in enumerate(self.header_par):
             if 'rv' in str(col).casefold() and str(col) != 'BERV':
