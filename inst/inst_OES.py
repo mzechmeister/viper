@@ -108,7 +108,7 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
     f = hdu.data
 
     # write the template data to the file
-    for order in range(1,49,1): 
+    for order in range(1, len(f), 1): 
         if order in tpl_all:
             f[order] = tpl_all[order]
         else:

@@ -188,13 +188,13 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
         PropertyList.del_regexp(hdr, "ESO PRO REC1 RAW*", False)
 
     # save raw file informations in FITS header    
-    hdr.append(Property('ESO PRO REC2 ID', 'viper_create_tpl', 'Pipeline recipe'))
+    hdr.append(Property('HIERARCH ESO PRO REC2 ID', 'viper_create_tpl', 'Pipeline recipe'))
 
     for i in range(0, len(list_files), 1):
         pathi, filei = os.path.split(list_files[len(list_files)-i-1])
-        hdr.append(Property('ESO PRO REC2 RAW'+str(len(list_files)-i)+' NAME', filei, 'File name'))
+        hdr.append(Property('HIERARCH ESO PRO REC2 RAW'+str(len(list_files)-i)+' NAME', filei, 'File name'))
 
-    hdr.append(Property('ESO PRO DATANCOM', len(list_files), 'Number of combined frames'))
+    hdr.append(Property('HIERARCH ESO PRO DATANCOM2', len(list_files), 'Number of combined frames'))
 
     for detector in (1, 2, 3):
         # data spread over 3 detectors, each having 6 orders
@@ -204,9 +204,11 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
         hdro["EXPTIME"].value = 0
         PropertyList.del_regexp(hdro, "ESO *", False)
 
-        tbl = Table.load(file_in, detector)
+        tbl = Table.load(file_in, detector)   
+        cols = tbl.column_names
 
-        for odrs in range(2, 8, 1):    
+        for cc in cols[::3]:
+            odrs = int(cc.split('_')[0])  
             o = (7-odrs)*3 + detector
             if o in list(tpl_all.keys()):
                 tbl["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
@@ -218,16 +220,6 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
                 tbl["0"+str(odrs)+"_01_WL"] = wave0 * 10
                 tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
                 tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
-                
-        try:
-            # writing ones for non processed orders
-            # this order is not present in all CRIRES data
-            wave0 = np.array(tbl["0"+str(odrs)+"_09_WL"])
-            tbl["09_01_WL"] = wave0 * 10
-            tbl["09_01_SPEC"] = np.ones(2048)
-            tbl["09_01_ERR"] = np.nan * np.ones(2048)
-        except:
-            pass
 
         if detector == 1:
             Table.save(tbl, hdr, hdro, file_out+'_tpl.fits', cpl.core.io.CREATE)
@@ -273,18 +265,21 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
     hdr['DATE'] = dt_string
 
     # save raw file informations in FITS header
-    hdr.set('ESO PRO REC2 ID', 'viper_create_tpl', 'Pipeline recipe', after='ESO PRO REC1 PIPE ID')
+    hdr.set('HIERARCH ESO PRO REC2 ID', 'viper_create_tpl', 'Pipeline recipe', after='ESO PRO REC1 PIPE ID')
 
     for i in range(0, len(list_files), 1):
         pathi, filei = os.path.split(list_files[len(list_files)-i-1])
-        hdr.set('ESO PRO REC2 RAW'+str(len(list_files)-i)+' NAME', filei, 'File name', after='ESO PRO REC2 ID')
+        hdr.set('HIERARCH ESO PRO REC2 RAW'+str(len(list_files)-i)+' NAME', filei, 'File name', after='ESO PRO REC2 ID')
 
-    hdr.set('ESO PRO DATANCOM', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
+    hdr.set('HIERARCH ESO PRO DATANCOM2', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
 
     # write the template data to the file            
     for detector in (1, 2, 3): 
-        data = hdu[detector].data       
-        for odrs in range(2, 9, 1):    
+        data = hdu[detector].data    
+        cols = hdu[detector].columns   
+
+        for cc in cols[::3]:
+            odrs = int(cc.name.split('_')[0])    
             o = (7-odrs)*3 + detector
             if o in list(tpl_all.keys()):     
                 data["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
@@ -296,16 +291,6 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
                 data["0"+str(odrs)+"_01_WL"] = wave0 * 10    # [Angstrom]
                 data["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
                 data["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
-                
-        try:
-            # writing ones for non processed orders
-            # this order is not present in all CRIRES data
-            wave0 = data["0"+str(odrs)+"_01_WL"]
-            data["09_01_WL"] = wave0 * 10    # [Angstrom]
-            data["09_01_SPEC"] = np.ones(2048)
-            data["09_01_ERR"] = np.nan * np.ones(2048)
-        except:
-            pass
             
     hdu.writeto(file_out+'_tpl.fits', overwrite=True)
     hdu.close()
