@@ -5,6 +5,7 @@ import numpy as np
 import sys
 from astropy.io import fits
 from astropy.time import Time
+import datetime
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
@@ -32,6 +33,14 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
     exptime = hdr.get('EXP_TIME', hdr.get('EXPOSURE'))   # 20211018_guenther_TCEcell_0063.fits EXPOSURE (no exptime)
     ra = hdr.get('RA', np.nan)                          # 20211018_guenther_TCEcell_0184.fits no RA
     de = hdr.get('DEC', np.nan)
+    
+    if len(dateobs) < 12:
+        # in old data, date and time of the observation are stored separately
+        try: 
+            tm = hdr.get('TM-START')
+            dateobs = str(dateobs) + 'T' + str(datetime.timedelta(seconds=tm))
+        except:
+            print('WARNING: Incorrect time information in FITS header. This will lead to a wrong barycentric correction.')
 
     # 2021 the ANCHOR CCD was installed at TLS, which writes the end-time of 
     # the observation instead of the start-time
@@ -42,6 +51,7 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
     targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
     if not targ: targ = targdrs
     midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
+    
     berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
@@ -107,7 +117,7 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
     f = hdu.data
 
     # write the template data to the file
-    for o in range(1, len(f), 1): 
+    for o in range(1,49,1): 
         if o in tpl_all:
             f[o] = tpl_all[o]
         else:
