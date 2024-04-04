@@ -114,10 +114,16 @@ def write_fits(wtpl_all, tpl_all, e_all, list_files, file_out):
 
     # copy header from first fits file 
     hdu = fits.open(file_in, ignore_blank=True)[0]
+    try:
+        # causing problems for some files because of wrong FITS format
+        del hdu.header['UT']	
+    except:
+        pass
+    
     f = hdu.data
 
     # write the template data to the file
-    for o in range(1,49,1): 
+    for o in range(1, len(f), 1): 
         if o in tpl_all:
             f[o] = tpl_all[o]
         else:
