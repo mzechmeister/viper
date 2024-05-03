@@ -5,7 +5,7 @@ import numpy as np
 
 from astropy.io import fits
 
-c = 3e8   # [m/s] speed of light
+c = 299792458   # [m/s] speed of light
 
 
 def FTSfits(ftsname):
