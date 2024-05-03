@@ -6,6 +6,7 @@
 
 import os
 from tkinter import *
+import tkinter as tk
 from tkinter.filedialog import askopenfilename, askdirectory
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
@@ -47,7 +48,7 @@ def CheckBoxes(frm, para, cbi, cbv, cols):
         for i in cbi: i.destroy()
         cbi.clear()
         cbv.clear()
-
+    
     for i, o in enumerate(para):
         cbv.append(IntVar())
         yi, xi = divmod(i, cols)
@@ -97,21 +98,48 @@ class CBFrame(Frame):
         self.master = master
         self.cbi = cbi
         lfrm = LabelFrame(master, text=fr_text, bg=bg_frame, bd=2)
+        
+        # create vertical scrollbar
+        vscrollbar = ttk.Scrollbar(lfrm, orient=VERTICAL)
+        vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
+        
+        # create a canvas for the scrollbar
+        self.canvas = tk.Canvas(lfrm, yscrollcommand=vscrollbar.set, bg=bg_frame, highlightthickness=0, height = 150)
+        self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
+        vscrollbar.config(command = self.canvas.yview)
+        self.canvas.yview_moveto(0)
+        
+        # Create a frame inside the canvas which will be scrolled with it.
+        self.scroll = ttk.Frame(self.canvas)
+        self.scroll.bind('<Configure>', self._configure_scroll)
+        self.canvas.bind('<Configure>', self._configure_canvas)
+        self.scroll_id = self.canvas.create_window(0, 0, window=self.scroll, anchor=NW)
 
-        bt_all = ttk.Button(lfrm, text='select all', style='small.TButton', command=lambda: set_oset(self.cbi, 1))
+        # Create Buttons to select all or none
+        bt_all = ttk.Button(self.scroll, text='select all', style='small.TButton', command=lambda: set_oset(self.cbi, 1))
         bt_all.grid(row=0, column=0, sticky="ne", padx=10, pady=(0, 5), columnspan=6)
-        bt_none = ttk.Button(lfrm, text='select none', style='small.TButton', command=lambda: set_oset(self.cbi, 0))
+        bt_none = ttk.Button(self.scroll, text='select none', style='small.TButton', command=lambda: set_oset(self.cbi, 0))
         bt_none.grid(row=0, column=0, sticky="ne", padx=100, pady=(0, 5), columnspan=6)
 
         self.lfrm = lfrm
-
-
+        
+    def _configure_scroll(self, event):
+        size = (self.scroll.winfo_reqwidth(), self.scroll.winfo_reqheight())
+        self.canvas.config(scrollregion=(0, 0, size[0], size[1]))
+        if self.scroll.winfo_reqwidth() != self.canvas.winfo_width():
+            self.canvas.config(width = self.scroll.winfo_reqwidth())
+         
+    def _configure_canvas(self, event):
+        if self.scroll.winfo_reqwidth() != self.canvas.winfo_width():
+            self.canvas.itemconfigure(self.scroll_id, width=self.canvas.winfo_width())
+        
+ 
 class RV_plot(ttk.Frame):
     """
     Frame for RV plotting options
     """
     def __init__(self, master, e_run):
-
+        
         self.filename1 = StringVar()
         self.filename2 = StringVar()
         self.cb_oset1, self.cb_oset2 = [], []		# oset checkboxes
@@ -129,11 +157,12 @@ class RV_plot(ttk.Frame):
         frm_rv1.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         frm_rv1.grid_columnconfigure(1, weight=1)
 
-        self.lfr_oset1 = CBFrame(self.frm_rv, 'oset rvo 1', self.cbv_oset1).lfrm
-        self.lfr_oset1.grid(row=2, column=0, sticky="news", padx=(10, 0), pady=5, ipady=5)
+        self.lfr_oset1 = CBFrame(self.frm_rv, 'oset rvo 1', self.cbv_oset1)
+        self.lfr_oset1.lfrm.pack(expand = True, fill = tk.BOTH)
+        self.lfr_oset1.lfrm.grid(row=2, column=0, sticky="news", padx=(10, 0), pady=5, ipady=5)
 
-        self.lfr_oset2 = CBFrame(self.frm_rv, 'oset rvo 2', self.cbv_oset2).lfrm
-        self.lfr_oset2.grid(row=2, column=1, sticky="news", padx=10, pady=5, ipady=5)
+        self.lfr_oset2 = CBFrame(self.frm_rv, 'oset rvo 2', self.cbv_oset2)
+        self.lfr_oset2.lfrm.grid(row=2, column=1, sticky="news", padx=10, pady=5, ipady=5)
 
         lfr_cen = LabelFrame(self.frm_rv, text="center RV values", bg=bg_frame, bd=2)
         lfr_cen.grid(row=3, column=0, sticky="news", padx=(10, 0), pady=5, ipady=5)
@@ -146,8 +175,8 @@ class RV_plot(ttk.Frame):
         lfr_other.grid_columnconfigure(1, weight=1)
 
         for cc in range(0, 5, 1):
-            self.lfr_oset1.grid_columnconfigure(cc, weight=1)
-            self.lfr_oset2.grid_columnconfigure(cc, weight=1)
+            self.lfr_oset1.lfrm.grid_columnconfigure(cc, weight=1)
+            self.lfr_oset2.lfrm.grid_columnconfigure(cc, weight=1)
 
         # Label
         l_rv1 = ttk.Label(frm_rv1, text='rvo file 1:', font=(font_type, font_size-1, 'bold'))
@@ -291,13 +320,13 @@ class RV_plot(ttk.Frame):
         if '1' in num:
             if self.e_rvo1.get():
                 self.o_rvo1 = self.get_orders(self.e_rvo1.get())
-                self.cb_oset1, self.cbv_oset1 = CheckBoxes(self.lfr_oset1, self.o_rvo1, self.cb_oset1, self.cbv_oset1, 6)
+                self.cb_oset1, self.cbv_oset1 = CheckBoxes(self.lfr_oset1.scroll, self.o_rvo1, self.cb_oset1, self.cbv_oset1, 5)
                 set_oset(self.cbv_oset1, 1)
                 for c in self.cbv_oset1: c.trace("w", self.update)
         if '2' in num:
             if self.e_rvo2.get():
                 self.o_rvo2 = self.get_orders(self.e_rvo2.get())
-                self.cb_oset2, self.cbv_oset2 = CheckBoxes(self.lfr_oset2, self.o_rvo2, self.cb_oset2, self.cbv_oset2, 6)
+                self.cb_oset2, self.cbv_oset2 = CheckBoxes(self.lfr_oset2.scroll, self.o_rvo2, self.cb_oset2, self.cbv_oset2, 5)
                 set_oset(self.cbv_oset2, 1)
                 for c in self.cbv_oset2: c.trace("w", self.update)
 
@@ -482,11 +511,11 @@ class Residuals(ttk.Frame):
         lres.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         lres.grid_columnconfigure(1, weight=1)
 
-        self.lreso = CBFrame(self.frm_res, 'oset', self.cbv_oset).lfrm
-        self.lreso.grid(row=7, column=1, sticky="news", padx=(5, 10), pady=5, ipady=5)
+        self.lreso = CBFrame(self.frm_res, 'oset', self.cbv_oset)
+        self.lreso.lfrm.grid(row=7, column=1, sticky="news", padx=(5, 10), pady=5, ipady=5)
 
-        self.lresn = CBFrame(self.frm_res, 'nset', self.cbv_nset).lfrm
-        self.lresn.grid(row=7, column=0, sticky="news", padx=(10, 5), pady=5, ipady=5)
+        self.lresn = CBFrame(self.frm_res, 'nset', self.cbv_nset)
+        self.lresn.lfrm.grid(row=7, column=0, sticky="news", padx=(10, 5), pady=5, ipady=5)
 
         # Labels
         l_info = ttk.Label(self.frm_res, text='For large number of nset, it is recommended to first chose one single order before using "select all" on nset.', foreground='red4')
@@ -538,8 +567,8 @@ class Residuals(ttk.Frame):
         self.num = np.unique(num)
         self.orders = np.unique(orders)
 
-        self.cb_nset, self.cbv_nset = CheckBoxes(self.lresn, self.num, self.cb_nset, self.cbv_nset, 5)
-        self.cb_oset, self.cbv_oset = CheckBoxes(self.lreso, self.orders, self.cb_oset, self.cbv_oset, 5)
+        self.cb_nset, self.cbv_nset = CheckBoxes(self.lresn.scroll, self.num, self.cb_nset, self.cbv_nset, 5)
+        self.cb_oset, self.cbv_oset = CheckBoxes(self.lreso.scroll, self.orders, self.cb_oset, self.cbv_oset, 5)
 
         set_oset(self.cbv_oset, 1)
         for c in self.cbv_oset: c.trace("w", lambda *args: self.show_plot())
