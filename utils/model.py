@@ -8,7 +8,7 @@ from astropy.modeling.models import Voigt1D
 
 from utils.gplot import *
 
-c = 3e5   # [km/s] speed of light
+c = 299792.458   # [km/s] speed of light
 
 # IP sampling in velocity space
 # index k for IP space
