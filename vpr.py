@@ -80,7 +80,15 @@ class VPR():
             self.tag = tag.replace('.rvo.dat', '')
             self.file = file = self.tag + '.rvo.dat'  
 
+        chunks_set = None
+        if oset is not None:
+            list_oset = oset.split(',')
+            self.list_oset = list_oset
+        
+            oset, chunks_set = [*np.array([[*map(int, oname.split('-'))] for oname in list_oset]).T, None][0:2]
+        
         self.oset = oset
+        self.chunks_set = chunks_set
         self.avgtyp = avg
         self.offset = offset
         print(self.tag)
@@ -118,13 +126,18 @@ class VPR():
         orders_all, chunks_all = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_all]).T, None][0:2]
         self.orders = orders_all
         self.chunks = chunks_all
+        
         if oset is not None:
             self.oset = olist = np.r_[oset]
-            ofilter = [int(o) in olist for o in orders_all]
+            
+            if self.chunks_set is not None:
+                ofilter = [str(o)[2:] in list_oset for o in self.onames]
+            else:
+                ofilter = [int(o) in olist for o in orders_all]
+
             self.onames = self.onames[ofilter]
             self.orders = self.orders[ofilter]
-            if self.chunks is not None:
-                self.chunks = self.chunks[ofilter]
+            
 
         # remove columns not in oset; keep BJD, etc. and other orders
         self.A = self.Afull[[col for col in colnames if col.endswith(tuple(self.onames)) or not col.startswith(('e_rv', 'rv'))]]
@@ -133,7 +146,7 @@ class VPR():
 
         self.rv = np.array(self.A[self.onames].tolist()).T
         self.e_rv = np.array(self.A["e_"+self.onames].tolist()).T
-
+        
         # recompute mean RV
         self.BJD = self.A.BJD
         self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
@@ -240,11 +253,13 @@ class VPR():
         Nch = 1
         gap = 0.4   # plot gaps between orders and chunks
         gapch = 0
+        
         if self.chunks is not None:
             Nch = self.chunks.max() + 1
             gapch = 0.2 / (Nch-1)
         chksz = (1 - gap - (Nch-1) *gapch) / Nch
-        xpos = self.orders - 0.5 + 0.5*gap + (0 if self.chunks is None else self.chunks * (chksz+gapch))
+        if self.chunks_set is None: self.chunks_set = self.chunks
+        xpos = self.orders - 0.5 + 0.5*gap + (0 if self.chunks is None else self.chunks_set * (chksz+gapch))
 
         gplot.put("replace(x, s1, s2) = (i=strstrt(x, s1), i ? x[1:i-1].s2.replace(x[i+1:], s1, s2) : x)")
         gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
@@ -255,8 +270,8 @@ class VPR():
             A.BJD, A.RV+self.offset, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
             'spectrum="", "" us 1:(RVn=$2):(spectrum=strcol(4), e_RVn=$3) every ::n-1::n-1 w e lc "red" pt 7 axis x2y1 t replace(spectrum, "_", "\\\\_")." RV_{".n."}=".sprintf("%.2f±%.2f m/s", RVn-400, e_RVn),',
-            xpos+chksz/2, A.stat_o, A.med_e_rvo, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
-            ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $1, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
+            xpos+chksz/2, A.stat_o, A.med_e_rvo, self.onames, 'us 1:3:2:4 w e lc "blue" pt 4 t "order stat",' +
+            ' "" us 1:3:(sprintf("o = %d\\noffset median: %.2f m/s\\nspread: %.2f m/s\\nmedian error: %.2f m/s", $6, $3, ($4-$2)/2, $5)) w labels hypertext rotate left point pt 0 lc 3 t "",' +
             '"" us 1:4:(sprintf("  %.2f",($4-$2)/2)) w labels rotate left tc "blue" t ""')
         print("Use '()[]^$' in gnuplot window to go through epochs n. Press Enter in terminal to quit.")
         pause('rv order dispersion\n')
@@ -316,6 +331,9 @@ def plot_res(folder, o=[1], n=[1], sep=1.):
     vpr -res -oset [20] -nset [`seq -s, 1 50`]
     vpr -res -oset [`seq -s, 19 29`] -nset [17]
     '''
+
+    o = arg2slice(o)
+
     gplot.var(No=len(o), o=1, obeg=1, oend=len(o))
     gplot.var(Nn=len(n), n=1, nbeg=1, nend=len(n))
     gplot.bind('''"("  'o=obeg=oend = o>1?o-1:1;   nbeg=1; nend=Nn; set key tit "(o=".A[o].")"; set y2label "spectrum number"; repl' ''')
@@ -347,12 +365,12 @@ def run(cmd=None):
     argopt('-cen', help='center RVs to zero median', action='store_true')
     argopt('-cmp', help='compare two time series (default: cmp=None or, if cmposet is passed, cmp=tag)', type=str)
     argopt('-cmpocen', help='center orders (subtract order offset) of comparison', action='store_true')
-    argopt('-cmposet', help='index for order subset of comparison', type=arg2slice)
+    argopt('-cmposet', help='index for order subset of comparison', type=str)
     argopt('-gp', help='gnuplot commands', default='', type=str)
     argopt('-nset', help='index for spectrum subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
     argopt('-ocen', help='center orders (subtract order offset)', action='store_true')
     argopt('-offset', help='RV plotting offset for rvo plot', default=400, type=float)
-    argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=arg2slice)
+    argopt('-oset', help='index for order subset (e.g. 1:10, ::5)', default=None, type=str)
     argopt('-parcolx', help='Column name for plot par x-axis', default='', type=str)
     argopt('-parcoly', help='Column name for plot par y-axis', default='', type=str)
     argopt('-plot', help='List of plot tasks', nargs='+', default=['rv', 'rvo'], dest='tasks', choices=['rv', 'rvo', 'nrvo', 'par'])
