@@ -764,9 +764,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
 
     return rvo, e_rvo, bjd.jd, berv, par, e_params, prms
 
-# clear up the residual directory
-if os.path.isdir(viperdir+'res') and os.listdir(viperdir+'res'):
-    os.system('rm -rf '+viperdir+'res/*.dat')
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
 obsnames = [x for x in obsnames if not any(pat in os.path.basename(x) for pat in nexcl)]
@@ -917,6 +914,10 @@ if telluric == 'add' and (wave_cell[-1] < wmax):
 T = time.time()
 headrow = True
 for n, obsname in enumerate(obsnames):
+    if n == 0:
+        # clear up the residual directory
+        if os.path.isdir(viperdir+'res') and os.listdir(viperdir+'res'):
+            os.system('rm -rf '+viperdir+'res/*.dat')
     filename = os.path.basename(obsname)
     print(f"{n+1:3d}/{N}", filename)
     for i_o, o in enumerate(orders):
