@@ -93,7 +93,7 @@ class CBFrame(Frame):
     """
     Generate LabelFrame, including 'select all' and 'select none' Buttons
     """
-    def __init__(self, master, fr_text, cbi):
+    def __init__(self, master, fr_text, cbi, high):
 
         self.master = master
         self.cbi = cbi
@@ -104,7 +104,7 @@ class CBFrame(Frame):
         vscrollbar.pack(fill=Y, side=RIGHT, expand=FALSE)
         
         # create a canvas for the scrollbar
-        self.canvas = tk.Canvas(lfrm, yscrollcommand=vscrollbar.set, bg=bg_frame, highlightthickness=0, height = 150)
+        self.canvas = tk.Canvas(lfrm, yscrollcommand=vscrollbar.set, bg=bg_frame, highlightthickness=0, height = high)
         self.canvas.pack(side=LEFT, fill=BOTH, expand=TRUE)
         vscrollbar.config(command = self.canvas.yview)
         self.canvas.yview_moveto(0)
@@ -157,11 +157,11 @@ class RV_plot(ttk.Frame):
         frm_rv1.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         frm_rv1.grid_columnconfigure(1, weight=1)
 
-        self.lfr_oset1 = CBFrame(self.frm_rv, 'oset rvo 1', self.cbv_oset1)
+        self.lfr_oset1 = CBFrame(self.frm_rv, 'oset rvo 1', self.cbv_oset1, 150)
         self.lfr_oset1.lfrm.pack(expand = True, fill = tk.BOTH)
         self.lfr_oset1.lfrm.grid(row=2, column=0, sticky="news", padx=(10, 0), pady=5, ipady=5)
 
-        self.lfr_oset2 = CBFrame(self.frm_rv, 'oset rvo 2', self.cbv_oset2)
+        self.lfr_oset2 = CBFrame(self.frm_rv, 'oset rvo 2', self.cbv_oset2,150)
         self.lfr_oset2.lfrm.grid(row=2, column=1, sticky="news", padx=10, pady=5, ipady=5)
 
         lfr_cen = LabelFrame(self.frm_rv, text="center RV values", bg=bg_frame, bd=2)
@@ -308,11 +308,27 @@ class RV_plot(ttk.Frame):
     def get_orders(self, file):
         # get all available orders from RV file
 
-        Afull = VPR(tag=file).Afull 
+        if file.endswith('.fits'):
+            hdu = fits.open(file, dtype=None)
+            Afull = hdu[1].data.view(np.recarray)    
+        else:
+            try:
+                Afull = np.genfromtxt(file, dtype=None, names=True,
+                deletechars='',   # to keep the dash for chunks
+                encoding=None).view(np.recarray)
+            except:
+                Afull = np.genfromtxt(file, dtype=None,
+                deletechars='',   # to keep the dash for chunks
+                names=True).view(np.recarray)    
+
+            if np.size(Afull) == 1:
+                Afull = (np.array([self.Afull])).view(np.recarray) 
+                
         colnames = Afull.dtype.names
 
-        onames_all = np.array([col for col in colnames if col.startswith('rv')], dtype='O')
-        orders_all, chunks_all = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_all]).T, None][0:2]
+        orders_all = np.array([col[2:] for col in colnames if col.startswith('rv')], dtype='O')
+     #   orders_all, chunks_all = [*np.array([[*map(int, oname[2:].split('-'))] for oname in onames_all]).T, None][0:2]
+
         return orders_all
 
     def refresh_oset(self, num):
@@ -351,10 +367,11 @@ class RV_plot(ttk.Frame):
         if self.cb_ocen.get(): str_arg += " -ocen "
         if self.e_sort.get(): str_arg += " -sort " + str(self.e_sort.get())
         if self.e_offset.get(): str_arg += " -offset " + str(self.e_offset.get())
-
+        
         if set_oset1.any():
             str_arg += " -oset " 
             for o in self.o_rvo1[set_oset1==1]: str_arg += str(o) + ","
+            str_arg = str_arg[:-1]
 
         if cmp:
             if self.e_rvo2.get(): str_arg += " -cmp " + self.e_rvo2.get()
@@ -362,6 +379,7 @@ class RV_plot(ttk.Frame):
             if set_oset2.any():
                 str_arg += " -cmposet " 
                 for o in self.o_rvo2[set_oset2==1]: str_arg += str(o) + ","
+                str_arg = str_arg[:-1]
 
         if '-save' in str(args):    
             str_arg += ' -save ' + self.e_out.get()
@@ -370,11 +388,12 @@ class RV_plot(ttk.Frame):
         if args:
             self.plt_opt = args
             str_arg += " " + args
- 
+       
         if self.cbv_oset1 != []:
             self.e_run.delete('0.0', END)
             self.e_run.insert(INSERT, "python3 vpr.py " + str_arg)
             vpr.run(str_arg.split())
+
 
 
 class Parameter(ttk.Frame):
@@ -511,10 +530,10 @@ class Residuals(ttk.Frame):
         lres.grid(row=1, column=0, sticky="news", padx=10, pady=5, ipady=5, columnspan=2)
         lres.grid_columnconfigure(1, weight=1)
 
-        self.lreso = CBFrame(self.frm_res, 'oset', self.cbv_oset)
+        self.lreso = CBFrame(self.frm_res, 'oset', self.cbv_oset,360)
         self.lreso.lfrm.grid(row=7, column=1, sticky="news", padx=(5, 10), pady=5, ipady=5)
 
-        self.lresn = CBFrame(self.frm_res, 'nset', self.cbv_nset)
+        self.lresn = CBFrame(self.frm_res, 'nset', self.cbv_nset,360)
         self.lresn.lfrm.grid(row=7, column=0, sticky="news", padx=(10, 5), pady=5, ipady=5)
 
         # Labels
