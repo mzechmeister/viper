@@ -61,9 +61,10 @@ def plot_cmp(vpr, vprcmp):
 def average(yi, e_yi=None, typ='wmean', **kwargs):
     # other futures types might be median, trimmed mean, maximum jitter likelihood mean
     if typ == 'mean':
-        Y = np.mean(yi, **kwargs)
-        e_Y = np.std(yi, **kwargs) / (yi.size//Y.size-1)**0.5
+        Y = np.nanmean(yi, **kwargs)
+        e_Y = np.nanstd(yi, **kwargs) / (yi.size//Y.size-1)**0.5
     else:
+        yi[np.isnan(yi)] = 0
         e_yi[np.isnan(e_yi)] = np.inf
         Y, e_Y = wsem(yi, e=e_yi, **kwargs)
     return Y, e_Y
@@ -218,8 +219,8 @@ class VPR():
 
     def info(self):
         print('Number of chunks:', self.orders.size)
-        self.rms = np.std(self.RV)
-        self.medunc = np.median(self.e_RV)
+        self.rms = np.nanstd(self.RV)
+        self.medunc = np.nanmedian(self.e_RV)
         print('rms(RV) [m/s]:     ', self.rms)
         print('median(e_RV) [m/s]:', self.medunc)
 
