@@ -231,7 +231,7 @@ if __name__ == "__main__" or __name__ == "viper.viper":
 def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     ####  observation  ####
     pixel, wave_obs, spec_obs, err_obs, flag_obs, bjd, berv = Spectrum(obsname, order=order, targ=targ)
-
+    
     if telluric == 'mask':
         flag_obs[mskatm(wave_obs) > 0.1] |= flag.atm
     flag_obs[np.isnan(spec_obs)] |= flag.nan
@@ -250,7 +250,8 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     lnwave_j = lnwave_j_full[sj]
     spec_cell_j = spec_cell_j_full[sj]
 
-    ibeg, iend = np.where(flag_obs&1==0)[0][[0, -1]]   # the first and last pixel that is not trimmed
+    ibeg, iend = np.where(flag_obs==0)[0][[0, -1]]   # the first and last pixel that is not trimmed
+    
     len_ch = int((iend-ibeg)/chunks)
     ibeg = ibeg + chunk*len_ch
     iend = ibeg + len_ch
