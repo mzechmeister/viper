@@ -199,6 +199,14 @@ class VPR():
         if parcolx:            
              gplot.xlabel("'%s'" % parcolx)
              gplot.var(colx = ['n', 'order', 'BJD'].index(parcolx))
+                       
+        xpos = par.order
+        if par.chunk.max() != 0:
+            gap = 0.4   # plot gaps between orders and chunks
+            Nch = par.chunk.max() + 1
+            gapch = 0.2 / (Nch-1)
+            chksz = (1 - gap - (Nch-1) *gapch) / Nch
+            xpos = par.order -0.5 + 0.5*gap + par.chunk * (chksz+gapch)
         
         gplot.put(f'colnames(x) = word("{" ".join(colnames)}", x); Ncol={len(colnames)}')
         gplot.bind('''"$" "i=(i+1)%3; set xlabel i==0 ? 'Number n' : i==1? 'Order o' : 'BJD'; repl"; i=colx''')
@@ -207,7 +215,7 @@ class VPR():
             gplot.ylabel("'%s'" % parcoly)
             gplot.var(coly = colnames.index(parcoly)+1)
          #   gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3) w e palett')
-            gplot(par.BJD, par.n, par.order, par[parcoly], par['e_'+ parcoly], 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:(sprintf("BJD: %%.6f\\nn: %%d\\norder: %%d", $1,$2,$3))  with labels hypertext point pt 0 t"", "" us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3)  w e palett t "%s"' % str(parcoly))
+            gplot(par.BJD, par.n, xpos, par[parcoly], par['e_'+ parcoly], par.order, par.chunk, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:(sprintf("BJD: %%.6f\\nn: %%d\\norder: %%d, chunk: %%d", $1,$2,$6,$7))  with labels hypertext point pt 0 t"", "" us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):4:4+1:(i==1?$2:$3)  w e palett t "%s"' % str(parcoly))
         else:
             gplot.bind('''"@" "k = (k+2)%Ncol; set ylabel colnames(k); repl"; k=5''' )
         #gplot(par.BJD, par.n, par.order, par.ip0, par.e_ip0, 'us (i==0? $2+$3/50 : i==1?  $3+$2/400 : $1-2450000):k:k+1:(i==1?$2:$3) w e palett')
