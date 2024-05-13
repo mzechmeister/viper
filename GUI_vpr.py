@@ -322,7 +322,7 @@ class RV_plot(ttk.Frame):
                 names=True).view(np.recarray)    
 
             if np.size(Afull) == 1:
-                Afull = (np.array([self.Afull])).view(np.recarray) 
+                Afull = (np.array([Afull])).view(np.recarray) 
                 
         colnames = Afull.dtype.names
 
