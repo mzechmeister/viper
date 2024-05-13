@@ -194,6 +194,8 @@ class VPR():
         gplot.mxtics().mytics()
         colnames = par.dtype.names[:-1]
         gplot.key("title '%s' noenhance" % (parfile))
+        
+        gplot.palette('defined ( 0 \"green\", 1 \"blue\", 2 \"red\", 3 \"orange\" )')
  
         gplot.var(colx = 0)
         if parcolx:            
