@@ -44,22 +44,25 @@ def Spectrum(filename='', order=None, targ=None):
     order_drs, detector = divmod(order-1, 3)
     order_drs = 7 - order_drs	# order number (CRIRES+ definition)
     detector += 1			# detector number (1,2,3)
+    
+    exptime = 0
 
     if pycpl:
-        hdr = PropertyList.load(filename, 0)
-
-        dateobs = hdr["DATE-OBS"].value
+        hdr = PropertyList.load(filename, 0)    
         ra = hdr["RA"].value
         de = hdr["DEC"].value
         setting = hdr["ESO INS WLEN ID"].value
         cal = PropertyList.load_regexp(filename, 0, "ESO PRO REC1 CAL", False)
-
-        ndit = hdr["ESO DET NDIT"].value
-        nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames 
-
-        hdr = PropertyList.load(filename, 1)
-        exptime = hdr["EXPTIME"].value
-        naxis = hdr["NAXIS2"].value
+    
+        try:
+            # midtime; for data reduced with new DRS pipeline version
+            dateobs = Time(hdr["ESO DRS TMID"].value, format='mjd').isot
+        except:
+            dateobs = hdr["DATE-OBS"].value
+            ndit = hdr["ESO DET NDIT"].value
+            nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames
+            exptime = hdr["ESO DET SEQ1 DIT"].value
+            exptime = (exptime*nods*ndit) / 2.0
 
         tbl = Table.load(filename, detector)
         spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
@@ -68,25 +71,24 @@ def Spectrum(filename='', order=None, targ=None):
     else:
         hdu = fits.open(filename, ignore_blank=True)
         hdr = hdu[0].header
-
-        dateobs = hdr['DATE-OBS']
         ra = hdr.get('RA', np.nan)
         de = hdr.get('DEC', np.nan)
         setting = hdr['ESO INS WLEN ID']
         cal = hdr['ESO PRO REC1 CAL* CATG']
-
-        ndit = hdr.get('ESO DET NDIT', 1)
-        nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
-
-        hdr = hdu[1].header
-        exptime = hdr.get('EXPTIME', 0)
+        
+        try:
+            dateobs = Time(hdr["ESO DRS TMID"], format='mjd').isot
+        except:
+            dateobs = hdr['DATE-OBS']
+            ndit = hdr.get('ESO DET NDIT', 1)
+            nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
+            exptime = hdr.get('ESO DET SEQ1 DIT', 0)
+            exptime = (exptime*nods*ndit) / 2.0
 
         err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
         spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
 
     pixel = np.arange(spec.size)
-
-    exptime = (exptime*nods*ndit) / 2.0
 
     targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     if not targ: targ = targdrs
@@ -132,8 +134,6 @@ def Tpl(tplname, order=None, targ=None):
 
         if pycpl:
             hdr = PropertyList.load(tplname, 1)
-            naxis = hdr["NAXIS2"].value
-
             tbl = Table.load(tplname, detector)
             spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
             err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
@@ -141,7 +141,6 @@ def Tpl(tplname, order=None, targ=None):
         else:
             hdu = fits.open(tplname, ignore_blank=True)
             hdr = hdu[0].header    
-
             err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
             spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
             wave = hdu[detector].data["0"+str(order_drs)+"_01_WL"]
