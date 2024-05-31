@@ -52,6 +52,7 @@ def Spectrum(filename='', order=None, targ=None):
         ra = hdr["RA"].value
         de = hdr["DEC"].value
         setting = hdr["ESO INS WLEN ID"].value
+        cal = PropertyList.load_regexp(filename, 0, "ESO PRO REC1 CAL", False)
 
         ndit = hdr["ESO DET NDIT"].value
         nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames 
@@ -72,6 +73,7 @@ def Spectrum(filename='', order=None, targ=None):
         ra = hdr.get('RA', np.nan)
         de = hdr.get('DEC', np.nan)
         setting = hdr['ESO INS WLEN ID']
+        cal = hdr['ESO PRO REC1 CAL* CATG']
 
         ndit = hdr.get('ESO DET NDIT', 1)
         nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
@@ -94,20 +96,24 @@ def Spectrum(filename='', order=None, targ=None):
     bjd = midtime.tdb
    
     if str(setting) in ('K2148', 'K2166', 'K2192'):
-	# using an own wavelength solution instead of the one created by DRS
+	    # using an own wavelength solution instead of the one created by DRS
         file_wls = np.genfromtxt(path+'wavesolution_own/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
         coeff_wls = [file_wls.b1[order-1], file_wls.b2[order-1], file_wls.b3[order-1]]
         wave = np.poly1d(coeff_wls[::-1])(pixel)
-
-        # using blaze function
-        blaze = np.load(path+str(setting)+'_blaze_own.npy')[order]
-        spec /= blaze
 
     else:
         if pycpl:
             wave = np.array(tbl["0"+str(order_drs)+"_01_WL"]) *10
         else:
             wave = (hdu[detector].data["0"+str(order_drs)+"_01_WL"]) * 10
+            
+    if 'CAL_FLAT_EXTRACT_1D' not in str(cal):
+        # check if data are already blaze corrected by DRS pipeline
+        # otherwise use own blaze correction generated from 1D FLAT spectra 
+        # not yet tested for all settings
+        hdu = fits.open(path+'blaze_own.fits', ignore_blank=True)       
+        blaze = hdu[setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]        
+        spec /= blaze
 
     flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
