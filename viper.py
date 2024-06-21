@@ -208,7 +208,6 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-output_format', nargs='*', help='Format of output files for rvo and par data (dat, fits, cpl).', default=['dat'], dest='oformat', type=str)
     argopt('-oversampling', help='Oversampling factor for the template data.', default=None, type=int)
     argopt('-rv_guess', help='RV guess.', default=1., type=float)   # slightly offsetted
-    argopt('-stepRV', help='Step through fixed RVs to find the minimum in the rms (a: (auto) picks the fixed RVs automatically to get close to the minimum; m: (manual) uses fixed range and steps around vguess).', choices=['a', 'm'], type=str)
     argopt('-tag', help='Output tag for filename.', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-tellshift', nargs='?', help='Variable telluric wavelength shift (one value for all selected molecules).', default=False, const=True, type=int)
@@ -517,78 +516,6 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         if order in look:
             pause()
         return par_rv*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
-
-    if stepRV in ['a', 'm']:
-        # calculating the best RV by going through different fixed RVs
-        # finding best value for minimum in rms
-        # still some improvement/testing
-        rv_range = 0.5
-        rms_start = [0, 0, 0]
-        rms_all = []
-        v_all = []
-        rounds = 0       # to make sure, it will not end in an endless loop
-
-        if stepRV == 'm':
-            # fix step size in given range
-            # otherwise search minimum
-            v_grid = np.arange(rv_guess-1, rv_guess+1, 0.1)
-            # v_grid = np.arange(-0.1, 0.3, 0.01)
-        elif stepRV == 'a':
-            v_grid = [rv_guess-rv_range, rv_guess, rv_guess+rv_range]
-
-        while rounds < 20:
-            for vv,vguess in enumerate(v_grid):
-                if vguess not in v_all:
-                    params, e_params = S_mod.fit(pixel_ok, spec_obs_ok, None, par_norm, par_wave_guess, par_ip, par_atm, parfix_rv = vguess, par_bkg=par_bkg, parfix_bkg=parfix_bkg, dx=0.1, sig=sig[i_ok])
-                    rms_start1 = np.nanstd(spec_obs_ok - S_mod(pixel_ok, *params))
-                    if stepRV == 'a':
-                        rms_start[vv] = rms_start1
-                    # print('p:', rms_start[vv], p)
-                    v_all.append(vguess)
-                    rms_all.append(rms_start1)
-                else:
-                    rms_start[vv] = rms_all[(np.argwhere(np.asarray(v_all)==vguess))[0][0]]
-
-            if (((3 <= np.argmin(rms_all) <= rounds-3) or (abs(v_grid[0]-v_grid[1]) < 0.03)) and (rounds >= 6)) or (stepRV == 'm'):
-                # fitting process is done
-                rounds = 20
-            else:
-                # find the position of the current minimum and search further in this direction
-                ind = np.argsort(rms_start)
-                if ind[0] == 0:
-                    v_grid = [v_grid[0]-rv_range, v_grid[0], v_grid[1]]
-                elif ind[0] == 1:
-                    v_grid = [v_grid[ind[0]], (v_grid[ind[1]]+v_grid[ind[0]])/2, v_grid[ind[1]]]
-                elif ind[0] == 2:
-                    v_grid = v_grid = [v_grid[1], v_grid[2], v_grid[2]+rv_range]
-
-                rounds += 1
-
-        ind = np.argsort(v_all)
-        v_all = np.asarray(v_all)[ind]
-        rms_all = np.asarray(rms_all)[ind]
-
-        # if best RV is too far away from start, just use values around minimum
-        # not needed for good frequency resolution of tpl
-        pmin = np.argmin(rms_all)
-        if abs(v_all[pmin]-rv_guess) > 1:
-            rms_all = rms_all[pmin-2:pmin+3]
-            v_all = v_all[pmin-2:pmin+3]
-
-        # polyfit through the rms values
-        v_gr = np.linspace(v_all[0], v_all[-1], 100)
-        pol, resi, _, _, _ = np.polyfit(v_all, rms_all, 2, w=1./np.sqrt(rms_all), full=True)
-        sp = np.poly1d(pol)(v_gr)
-        rvs = v_gr[np.argmin(sp)]
-
-        gplot.RV2title(", v=%.2f ± %.2f m/s" % (rvs*1000, resi*1000))
-        gplot.xlabel('"RV [km/s]"')
-        gplot.ylabel('"rms"')
-        gplot(v_gr, sp, 'w l lc 9 t "polynomial fit",', v_all, rms_all, 'lc 3 ps 1 pt 2 t "curvefit"')
-        # pause()
-
-        # p, e_params = S_mod.fit(pixel_ok, spec_obs_ok, rvs, a, par_wave_guess, s, c=cc, c0=c0, dx=0.1)
-        par_rv = rvs
     
     show = (order in look) or (order in lookfast)
 
