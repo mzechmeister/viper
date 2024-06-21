@@ -653,9 +653,9 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         weight = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), weight)
 
         # save telluric corrected spectrum
-        spec_all[o, 0][n] = wave_model   # updated wavelength
-        spec_all[o, 1][n] = spec_cor     # telluric corrected spectrum
-        spec_all[o, 2][n] = weight       # weighting for combination of spectra
+        spec_all[order, 0][n] = wave_model   # updated wavelength
+        spec_all[order, 1][n] = spec_cor     # telluric corrected spectrum
+        spec_all[order, 2][n] = weight       # weighting for combination of spectra
 
     if show:
         # overplot flagged and clipped data
@@ -978,9 +978,9 @@ if createtpl:
         gplot.xlabel('"Vacuum wavelength [Å]"')
         gplot.ylabel('"flux"')
         gplot.yrange("[%g:%g]" % (-1, 1.6))
-        wave_t = np.array(list(spec_all[order,0].values()))     # wavelength
-        spec_t = np.array(list(spec_all[order,1].values()))     # data
-        weight_t = np.array(list(spec_all[order,2].values()))   # weighting
+        wave_t = np.array(list(spec_all[order, 0].values()))     # wavelength
+        spec_t = np.array(list(spec_all[order, 1].values()))     # data
+        weight_t = np.array(list(spec_all[order, 2].values()))   # weighting
         weight_t[np.isnan(spec_t)] = 0
         weight_t[spec_t<0] = 0
         # weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
