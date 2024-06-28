@@ -212,6 +212,7 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-tellshift', nargs='?', help='Variable telluric wavelength shift (one value for all selected molecules).', default=False, const=True, type=int)
     argopt('-telluric', help='Treating tellurics (mask: mask tellurics; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
+    argopt('-tpl_wave', help='Output wavelength of generated template (initial: take wavelengths from imput file; berv: apply barycentric correction to input wavelengths; tell: updated wavelength solution estimated via telluric lines).', default='initial', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
     argopt('-wgt', nargs='?', help='Weighted least square fit (error: employ data error; tell: upweight tellurics and downweight stellar lines)', default='', type=str)
@@ -579,13 +580,25 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         #spec_cor[spec_cor<3*err_cor] = np.nan
         spec_cor[spec_cor<0.01] = np.nan
 
-        wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
-        spec_cor = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), spec_cor/np.nanmedian(spec_cor))
+        # select wavelength solution for the created template
+        if tpl_wave in ('initial', 'berv'):
+            # use wavelength solution from input file
+            wave_model= wave_obs + 0
+        elif tpl_wave in ('tell'):
+            # use wavelength solution calculated via telluric lines 
+            wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
+        bervt = berv + 0
+        if tpl_wave in ('initial'): 
+            # apply no barycentric correction 
+            bervt = 0
+        
+        spec_cor = np.interp(wave_model, wave_model*(1+bervt/c)/(1+par.rv/c), spec_cor/np.nanmedian(spec_cor))
+        spec_cor /= np.nanmedian(spec_cor)
 
         # downweighting by telluric spectrum and errors
         weight = spec_model / (err_cor/np.nanmedian(spec_cor))**2
         # weight[spec_model<0.2] = 0.00001   # downweight deep telluric lines
-        weight = np.interp(wave_model, wave_model*(1+berv/c)/(1+par.rv/c), weight)
+        weight = np.interp(wave_model, wave_model*(1+bervt/c)/(1+par.rv/c), weight)
 
         # save telluric corrected spectrum
         spec_all[order, 0][n] = wave_model   # updated wavelength
