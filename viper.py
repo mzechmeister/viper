@@ -193,12 +193,12 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-iset', help='Pixel range.', default=iset, type=arg2slice)
     argopt('-kapsig', nargs='*', help='Kappa sigma values for the clipping stages. Zero does not clip.', default=[0], type=float)
     argopt('-kapsig_ctpl', help='Kappa sigma values for the clipping of outliers in template creation.', default=0.6, type=float)
-    argopt('-look', nargs='?', help='See final fit of chunk with pause.', default=[], const=':100', type=arg2range)
-    argopt('-lookfast', nargs='?', help='See final fit of chunk without pause.', default=[], const=':100', type=arg2range)
-    argopt('-lookguess', nargs='?', help='Show initial model.', default=[], const=':100', type=arg2range)
-    argopt('-lookpar', nargs='?', help='See parameter of chunk.', default=[], const=':100', type=arg2range)
-    argopt('-lookres', nargs='?', help='Analyse the residuals.', default=[], const=':100', type=arg2range)
-    argopt('-lookctpl', nargs='?', help='Show created template.', default=[], const=':100', type=arg2range)
+    argopt('-look', nargs='?', help='See final fit of chunk with pause.', default=[], const=':200', type=arg2range)
+    argopt('-lookfast', nargs='?', help='See final fit of chunk without pause.', default=[], const=':200', type=arg2range)
+    argopt('-lookguess', nargs='?', help='Show initial model.', default=[], const=':200', type=arg2range)
+    argopt('-lookpar', nargs='?', help='See parameter of chunk.', default=[], const=':200', type=arg2range)
+    argopt('-lookres', nargs='?', help='Analyse the residuals.', default=[], const=':200', type=arg2range)
+    argopt('-lookctpl', nargs='?', help='Show created template.', default=[], const=':200', type=arg2range)
     #argopt('-nexcl', help='Pattern ignore', default=[], type=arg2range)
     argopt('-molec', nargs='*', help='Molecular specifies; all: Automatic selection of all present molecules.', default=['all'], type=str)
     argopt('-nexcl', nargs='*', help='Ignore spectra with string pattern.', default=[], type=str)
@@ -738,10 +738,10 @@ if ftsname != 'None':
     wave_cell, spec_cell, lnwave_j_full, spec_cell_j_full = FTS(ftsname)
 else:
     # create fake cell spectrum 
-    wave_cell = np.linspace(obs_lmin, obs_lmax, len(pixel)*len(orders)*100)
+    wave_cell = np.linspace(obs_lmin, obs_lmax, len(pixel)*len(orders)*200)
     spec_cell = wave_cell*0 + 1
     u = np.log(wave_cell)
-    lnwave_j_full = np.arange(u[0], u[-1], 100/3e8)
+    lnwave_j_full = np.arange(u[0], u[-1], 200/3e8)
     spec_cell_j_full = lnwave_j_full*0 + 1 
 
 if nocell:
@@ -820,7 +820,7 @@ if tplname:
             wave_tpl[order], spec_tpl[order] = wave_tplo, spec_tplo
 else:
     # no template given; model pure iodine
-    wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*100, [np.ones(2)]*100
+    wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*200, [np.ones(2)]*200
 
 
 if createtpl:
@@ -841,11 +841,11 @@ if telluric == 'add' and (wave_cell[-1] < wmax):
     spec_cell = np.append(spec_cell, spec_cell_ext)
 
     lnwave_j = np.log(wave_cell)
-    lnwave_j_full = np.arange(lnwave_j[0], lnwave_j[-1], 100/3e8)
+    lnwave_j_full = np.arange(lnwave_j[0], lnwave_j[-1], 200/3e8)
     spec_cell_j_full = np.interp(lnwave_j_full, lnwave_j, spec_cell)
 
     if not tplname:
-        wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*100, [np.ones(2)]*100
+        wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*200, [np.ones(2)]*200
 
 T = time.time()
 headrow = True
