@@ -371,6 +371,7 @@ class GUI_viper:
          
         FTS = Inst.FTS
         default = viperdir + self.configs.get('fts', FTS.__defaults__[0])
+        if 'None' in str(default): default = 'None'
      #   default = FTS.__defaults__[0]
         self.e_cell.delete(0, END)
         self.e_cell.insert(0, default)
