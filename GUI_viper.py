@@ -198,7 +198,7 @@ class GUI_viper:
         self.Label_list(lfr_data, ['nset', 'oset', 'chunks', 'vcut', 'iset'])
         self.Label_list(lfr_model, ['ip', 'iphs', 'deg_norm', 'deg_wave', 'deg_bkg'])
         self.Label_list(lfr_tpl, ['rv_guess', 'oversampling'])
-        self.Label_list(lfr_stat, ['kapsig'])
+        self.Label_list(lfr_stat, ['kapsig', 'wgt'])
         self.Label_list(lfr_out, ['tag', 'output_format'])
 
         self.l_tell = ttk.Label(self.lfr_tell, text='telluric:')
@@ -258,15 +258,13 @@ class GUI_viper:
         self.e_tag.grid(row=0, column=1, sticky="news", padx=(xy0, 10), pady=y1, columnspan=3)
 
         # Checkboxes:
-        self.cb_wgt = IntVar()
         self.cb_createtpl = IntVar()
         self.cb_tellshift = IntVar()
         self.cb_format = [IntVar(), IntVar(), IntVar()]
-
-        l_wei = ttk.Checkbutton(lfr_stat, text="     weighted error", variable=self.cb_wgt)
-        l_wei.grid(row=1, column=0, sticky="nw", padx=(xy0, x1), pady=y1, columnspan=2)
-        self.cb_wgt.set(self.configs.get('wgt', 0))
-        Help_Box(widget=l_wei, text=text_from_file("'-wgt'"))
+        
+        self.combo_wgt = ttk.Combobox(lfr_stat, values=['', 'error', 'tell']) 
+        self.combo_wgt.set(self.configs.get('wgt', ''))
+        self.combo_wgt.grid(row=1, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
 
         l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
         self.cb_createtpl.set(self.configs.get('createtpl', 0))
@@ -438,7 +436,7 @@ class GUI_viper:
             self.l_molec.destroy()
 
         if show:
-            if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'UVES', 'McDonald'):
+            if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'UVES', 'McDonald', 'ESPRESSO'):
                 self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
                 self.molec = ['H2O', 'O2']
@@ -496,7 +494,7 @@ class GUI_viper:
         if self.e_targ.get(): str_arg += " -targ " + str(self.e_targ.get())
         if self.e_tag.get(): str_arg += " -tag " + str(self.e_tag.get())
         if self.e_kapsig.get(): str_arg += " -kapsig " + str(self.e_kapsig.get()) 
-        if self.cb_wgt.get(): str_arg += " -wgt "
+      #  if self.cb_wgt.get(): str_arg += " -wgt "
         if self.e_overs.get(): str_arg += " -oversampling " + str(self.e_overs.get())
         if self.cb_lookpar.get(): str_arg += " -lookpar " + self.e_lookpar.get()
         if self.cb_lookguess.get(): str_arg += " -lookguess "
@@ -514,6 +512,9 @@ class GUI_viper:
         else:
             str_arg += " -nocell " 
 
+   
+        if self.combo_wgt.get():
+            str_arg += " -wgt " + str(self.combo_wgt.get())
         if self.combo_tell.get():
             str_arg += " -telluric " + str(self.combo_tell.get())
         if str(self.combo_tell.get()) in ('add', 'add2', 'sig'):
