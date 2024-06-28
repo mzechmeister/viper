@@ -214,13 +214,14 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-telluric', help='Treating tellurics (mask: mask tellurics; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
-    argopt('-wgt', nargs='?', help='Weighted least square fit (employ data error).', default=False, const=True, type=int)
+    argopt('-wgt', nargs='?', help='Weighted least square fit (error: employ data error; tell: upweight tellurics and downweight stellar lines)', default='', type=str)
     argopt('-?', '-h', '-help', '--help', help='Show this help message and exit.', action='help')
+
 
     parser.set_defaults(**configs_def)
     parser.set_defaults(**configs_inst)
     parser.set_defaults(**configs_user)
-   
+
     parser.set_defaults(kapsig = [float(i) for i in (argopt('--kapsig').default.split(' '))])
     
     args = parser.parse_args()
@@ -413,7 +414,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
     parguess.ip = par.ip
 
     # set weighting parameter for tellurics
-    sig = 1 * err_obs if wgt else np.ones_like(spec_obs)
+    sig = 1 * err_obs if (wgt in 'error') else np.ones_like(spec_obs)
     if telluric in ('sig', 'add', 'add2'):
         sig[mskatm(wave_obs) < 0.1] = tsig
 
@@ -547,10 +548,17 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             pixel_ok = pixel[i_ok]
             wave_obs_ok = wave_obs[i_ok]
             spec_obs_ok = spec_obs[i_ok]
+        
+        if wgt in 'tell':            
+           # modelled telluric spectrum
+           sig = smod**2/spec_obs
+           sig /= np.nanmedian(sig[i_ok])
+           sig[spec_obs/np.nanmedian(spec_obs[i_ok])<0.1] = 2
 
+        if (nr_k1 != nr_k2) or ('tell' in wgt):
             par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
             par = par5
-
+       
     if createtpl:
         if tplname:
             # model just the tellurics; exclude stellar lines
