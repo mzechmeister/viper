@@ -387,16 +387,26 @@ class GUI_viper:
     def Update_ctpl(self):
         if hasattr(self, 'l_kapctpl'): self.l_kapctpl.destroy()
         if hasattr(self, 'e_kapctpl'): self.e_kapctpl.destroy()
+        if hasattr(self, 'l_wavetpl'): self.l_wavetpl.destroy()
+        if hasattr(self, 'combo_wtpl'): self.combo_wtpl.destroy()
         if hasattr(self, 'l_lookctpl'): self.l_lookctpl.destroy()
 
         if self.cb_createtpl.get():
             self.l_kapctpl = ttk.Label(self.lfr_ctpl, text='kapsig_ctpl:')
-            self.l_kapctpl.grid(row=2, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
+            self.l_kapctpl.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
             Help_Box(widget=self.l_kapctpl, text=text_from_file("'-kapsig_ctpl'"))
 
             self.e_kapctpl = Entry(self.lfr_ctpl, width=9)
             self.e_kapctpl.insert(0, self.configs.get('kapsig_cptl', '0.6'))
-            self.e_kapctpl.grid(row=2, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
+            self.e_kapctpl.grid(row=3, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
+            
+            self.l_wavetpl = ttk.Label(self.lfr_ctpl, text='tpl_wave:')
+            self.l_wavetpl.grid(row=2, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
+            Help_Box(widget=self.l_wavetpl, text=text_from_file("'-tpl_wave'"))
+            
+            self.combo_wtpl = ttk.Combobox(self.lfr_ctpl, values=['initial', 'berv', 'tell'], width=8) 
+            self.combo_wtpl.set(self.configs.get('tpl_wave', 'initial'))
+            self.combo_wtpl.grid(row=2, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
 
             self.l_lookctpl = ttk.Checkbutton(self.lfr_ctpl, text="     lookctpl", variable=self.cb_lookctpl)
             self.l_lookctpl.grid(row=1, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
@@ -525,6 +535,8 @@ class GUI_viper:
             for m, atm in enumerate(self.cbv_atm):        
                 if atm.get():
                     str_arg += str(self.molec[m]) + " "
+        if self.combo_wtpl.get():
+            str_arg += " -tpl_wave " + str(self.combo_wtpl.get())
 
         if self.cb_createtpl.get(): 
             str_arg += " -createtpl "
