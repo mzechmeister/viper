@@ -5,6 +5,7 @@ import urllib
 import urllib.request as urllib2
 import os
 import sys
+import numpy as np
 
 from astropy.coordinates import SkyCoord, Distance
 import astropy.units as u
@@ -76,9 +77,13 @@ class Targ:
             self.query()
             self.tofile(csv)
          self.assignAttr(self.line)
+         
+      # to avoid errors for new astropy version 
+      self.ra = np.polyval(self.ra[::-1], 1/60)
+      self.de = np.polyval(self.de[::-1], 1/60)
 
       dist = Distance(parallax=self.plx*u.mas)
-      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
+      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.deg, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
 
       if self.pmra and self.plx:
          # astropy only handles " source at infinite distance
