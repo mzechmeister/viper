@@ -262,8 +262,8 @@ class GUI_viper:
         self.cb_tellshift = IntVar()
         self.cb_format = [IntVar(), IntVar(), IntVar()]
         
-        self.combo_wgt = ttk.Combobox(lfr_stat, values=['', 'error', 'tell']) 
-        self.combo_wgt.set(self.configs.get('wgt', ''))
+        self.combo_wgt = ttk.Combobox(lfr_stat, values=['None', 'error', 'tell']) 
+        self.combo_wgt.set(self.configs.get('wgt', 'None'))
         self.combo_wgt.grid(row=1, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
 
         l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
@@ -524,8 +524,8 @@ class GUI_viper:
             str_arg += " -nocell " 
 
    
-        if self.combo_wgt.get():
-            str_arg += " -wgt " + str(self.combo_wgt.get())
+        #if self.combo_wgt.get():
+        str_arg += " -wgt " + str(self.combo_wgt.get())
         if self.combo_tell.get():
             str_arg += " -telluric " + str(self.combo_tell.get())
         if str(self.combo_tell.get()) in ('add', 'add2', 'sig'):
@@ -536,12 +536,12 @@ class GUI_viper:
             for m, atm in enumerate(self.cbv_atm):        
                 if atm.get():
                     str_arg += str(self.molec[m]) + " "
-        if self.combo_wtpl.get():
-            str_arg += " -tpl_wave " + str(self.combo_wtpl.get())
-
+        
         if self.cb_createtpl.get(): 
             str_arg += " -createtpl "
             if self.cb_lookctpl.get(): str_arg += " -lookctpl "
+            if self.combo_wtpl.get():
+                str_arg += " -tpl_wave " + str(self.combo_wtpl.get())
             str_arg += " -kapsig_ctpl " + str(self.e_kapctpl.get()) 
 
         oformat = np.array([f.get() for f in self.cb_format])
