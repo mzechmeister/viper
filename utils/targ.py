@@ -83,7 +83,7 @@ class Targ:
       self.de = np.polyval(self.de[::-1], 1/60)
 
       dist = Distance(parallax=self.plx*u.mas)
-      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.deg, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
+      self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
 
       if self.pmra and self.plx:
          # astropy only handles " source at infinite distance
