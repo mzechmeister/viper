@@ -116,7 +116,7 @@ def IP_lor(vk, s=2.2):
     IP_k /= IP_k.sum()          # normalise IP
     return IP_k
 
-IPs = {'g': IP, 'sg': IP_sg, 'ag': IP_ag, 'agr': IP_agr, 'asg': IP_asg, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'lor': IP_lor, 'bnd': 'bnd'}
+IPs = {'g': IP, 'sg': IP_sg, 'sbg': IP_sbg, 'ag': IP_ag, 'agr': IP_agr, 'asg': IP_asg, 'bg': IP_bg, 'mg': IP_mg, 'mcg': IP_mcg, 'lor': IP_lor, 'bnd': 'bnd'}
 
 
 def poly(x, a):
