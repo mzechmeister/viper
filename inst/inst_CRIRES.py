@@ -52,17 +52,25 @@ def Spectrum(filename='', order=None, targ=None):
         ra = hdr["RA"].value
         de = hdr["DEC"].value
         setting = hdr["ESO INS WLEN ID"].value
+        nod_type = hdr["ESO PRO CATG"].value
         cal = PropertyList.load_regexp(filename, 0, "ESO PRO REC1 CAL", False)
-    
+        
         try:
             # midtime; for data reduced with new DRS pipeline version
+            # ensure input spectra is a combined spectrum (nodA+nodB)
+            # non-combined nodA and nodB spectra have the same time stamp
+            # bug in the current DRS pipeline versions
+            if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
             dateobs = Time(hdr["ESO DRS TMID"].value, format='mjd').isot
         except:
             dateobs = hdr["DATE-OBS"].value
             ndit = hdr["ESO DET NDIT"].value
             nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames
+            if str(nod_type) in ('OBS_NODDING_EXTRACTA', 'OBS_NODDING_EXTRACTB'):
+                # just half of the nods are combined
+                nods /= 2
             exptime = hdr["ESO DET SEQ1 DIT"].value
-            exptime = (exptime*nods*ndit) / 2.0
+            exptime = (exptime*nods*ndit) / 2.0           
 
         tbl = Table.load(filename, detector)
         spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
@@ -74,14 +82,19 @@ def Spectrum(filename='', order=None, targ=None):
         ra = hdr.get('RA', np.nan)
         de = hdr.get('DEC', np.nan)
         setting = hdr['ESO INS WLEN ID']
+        nod_type = hdr['ESO PRO CATG']
         cal = hdr['ESO PRO REC1 CAL* CATG']
         
         try:
+            if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
             dateobs = Time(hdr["ESO DRS TMID"], format='mjd').isot
-        except:
+        except:            
             dateobs = hdr['DATE-OBS']
             ndit = hdr.get('ESO DET NDIT', 1)
             nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
+            if str(nod_type) in ('OBS_NODDING_EXTRACTA', 'OBS_NODDING_EXTRACTB'):
+                # just half of the nods are combined
+                nods /= 2
             exptime = hdr.get('ESO DET SEQ1 DIT', 0)
             exptime = (exptime*nods*ndit) / 2.0
 
@@ -97,7 +110,10 @@ def Spectrum(filename='', order=None, targ=None):
     berv = berv.to(u.km/u.s).value
     bjd = midtime.tdb
    
-    if str(setting) in ('K2148', 'K2166', 'K2192'):
+    # currently running tests with wavesolution from DRS pipeline
+    # DRS is giving better results for some orders
+    # this may can be removed in the near future
+    if 0: #str(setting) in ('K2148', 'K2166', 'K2192'):
 	    # using an own wavelength solution instead of the one created by DRS
         file_wls = np.genfromtxt(path+'wavesolution_own/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
         coeff_wls = [file_wls.b1[order-1], file_wls.b2[order-1], file_wls.b3[order-1]]
