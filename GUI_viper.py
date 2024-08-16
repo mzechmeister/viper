@@ -451,10 +451,11 @@ class GUI_viper:
                 self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
                 self.molec = ['H2O', 'O2']
-            elif str(self.combo_inst.get()) in ('CRIRES', 'cplCRIRES'):
-                self.l_molec = ttk.Label(self.lfr_tell, text='Near Infrared molecules:')
+            else:
+                # for instruments in the near-infrared or unknown bands
+                self.l_molec = ttk.Label(self.lfr_tell, text='Available molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
-                self.molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO']
+                self.molec = ['H2O', 'CH4', 'N2O', 'CO2', 'CO', 'O2']
 
             for m, mol in enumerate(self.molec):
                 yi, xi = divmod(m, 3)
