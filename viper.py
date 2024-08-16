@@ -549,6 +549,26 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
             pixel_ok = pixel[i_ok]
             wave_obs_ok = wave_obs[i_ok]
             spec_obs_ok = spec_obs[i_ok]
+            
+        if wgt in 'tell':  
+            # up-weighting of telluric lines, down-weighting of stellar lines
+            # this weigthing option raises problems for orders with too weak lines  
+            # test if atmosphere is modelled correctly in the first round
+            # uncertanties are large or zero in case of problems, f.e. too weak lines
+            # tests are still on-going to find best parameters          
+            atm_ok = np.array([0 if (d.unc>20 or d.unc==0) else 1 for d in par.atm])
+            atm_ok[np.array(par.atm)<0.2] = 0
+
+            if np.sum(atm_ok) > 0:           
+                # modelled telluric spectrum
+                sig = smod**2/spec_obs
+                sig /= np.nanmedian(sig[i_ok])
+                # down-weigth saturated lines
+                sig[spec_obs/np.nanmedian(spec_obs[i_ok])<0.1] = 2
+
+        if (nr_k1 != nr_k2) or ('tell' in wgt):
+            par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
+            par = par5
         
         if wgt in 'tell':            
            # modelled telluric spectrum
