@@ -80,7 +80,7 @@ class Targ:
          
       # to avoid errors for new astropy version 
       self.ra = np.polyval(self.ra[::-1], 1/60)
-      self.de = np.polyval(self.de[::-1], np.sign(self.de[0])*1/60)
+      self.de = np.polyval(np.copysign(self.de[::-1], self.de[0]), 1/60)
 
       dist = Distance(parallax=self.plx*u.mas)
       self.sc = SkyCoord(ra=self.ra, dec=self.de, unit=(u.hourangle, u.deg), pm_ra_cosdec=self.pmra*u.mas/u.yr, pm_dec=self.pmde*u.mas/u.yr, distance=dist)
