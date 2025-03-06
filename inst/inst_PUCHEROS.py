@@ -3,12 +3,14 @@
 
 import numpy as np
 import sys
+import os
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
 
@@ -66,13 +68,8 @@ def Spectrum(filename='', order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('_s1d_A.fits'):
-        hdu = fits.open(tplname)[0]
-        spec= hdu.data
-        h = hdu.header
-        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
-        wave = airtovac(wave)
-    elif tplname.endswith('1d.fits'):
+
+    if tplname.endswith('1d.fits') and not tplname.endswith('_s1d.fits'):
         hdu = fits.open(tplname, ignore_blank=True)[0]
         hdr = hdu.header
         dateobs = hdr['DATE']
@@ -93,11 +90,8 @@ def Tpl(tplname, order=None, targ=None):
         wave = gg['wavelen']
         wave = airtovac(wave)
         wave *= 1 + (berv*u.km/u.s/c).to_value('')
-    elif tplname.endswith('_tpl.model'):
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
     else:
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')
+        wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ) 
 
     return wave, spec
 
