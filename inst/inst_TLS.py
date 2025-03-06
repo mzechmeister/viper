@@ -3,6 +3,7 @@
 
 import numpy as np
 import sys
+import os
 from astropy.io import fits
 from astropy.time import Time
 import datetime
@@ -10,6 +11,7 @@ from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
 
@@ -75,30 +77,8 @@ def Spectrum(filename='data/TLS/other/BETA_GEM.fits', order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('_tpl.model'):
-        # echelle template
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-    elif tplname.endswith('_s1d_A.fits') or  tplname.endswith('.tpl.s1d.fits'):
-        hdu = fits.open(tplname)[0]
-        spec = hdu.data
-        h = hdu.header
-        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
-        if tplname.endswith('_s1d_A.fits'):
-            wave = airtovac(wave)
-        else:
-            wave = np.exp(wave)
-    elif tplname.endswith('PHOENIX-ACES-AGSS-COND-2011-HiRes.fits'):
-        from . import phoenix
-        wave, spec = phoenix.read(tplname)
-    elif tplname.endswith('.model') or tplname.endswith('.fits'):
-        # echelle template
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
-    else:
-        # long 1d template
-        hdu = fits.open(tplname)
-        wave = hdu[1].data.field('Arg')
-        spec = hdu[1].data.field('Fun')
+    
+    wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ) 
 
     return wave, spec
 
