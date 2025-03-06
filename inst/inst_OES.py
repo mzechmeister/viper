@@ -3,12 +3,14 @@
 
 import numpy as np
 import sys
+import os
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
 
@@ -28,17 +30,27 @@ def Spectrum(filename='', order=None, targ=None):
 
     dateobs = hdr['DATE-OBS']+ 'T' + hdr['UT']
     exptime = hdr['EXPTIME']
+    
+    ra = hdr.get('RA', np.nan)                          
+    de = hdr.get('DEC', np.nan)
+    
+    offs = 0
+    if str(de)[0] == '-': offs = 1
+    ra = ra.split(':')
+    de = de[offs:].split(':')
+    ra = (float(ra[0]) + float(ra[1])/60 + float(ra[2])/3600) * 15
+    de = float(de[0]) + float(de[1])/60 + float(de[2])/3600
+    if offs: de *= -1
+
+
+    targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
+    if not targ: targ = targdrs
 
     midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
     bjd = midtime.tdb
 
-   # targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
-    if not targ: 
-        #targ = targdrs
-        berv = 0
-    else:
-        berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
-        berv = berv.to(u.km/u.s).value
+    berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
+    berv = berv.to(u.km/u.s).value
 
     spec = hdu.data
     spec /= np.nanmean(spec)
@@ -58,39 +70,9 @@ def Spectrum(filename='', order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('_s1d_A.fits'):
-        hdu = fits.open(tplname)[0]
-        spec= hdu.data
-        h = hdu.header
-        wave = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(spec.size) - h['CRPIX1'])
-        wave = airtovac(wave)
-    elif tplname.endswith('1d.fits'):
-        hdu = fits.open(tplname, ignore_blank=True)[0]
-        hdr = hdu.header
-        dateobs = hdr['DATE']
-        exptime = hdr['EXPTIME']
-        midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-        bjd = midtime.tdb
-
-        if not targ: 
-            #targ = targdrs
-            berv = 0
-        else:
-            berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
-            berv = berv.to(u.km/u.s).value
-
-        spec = hdu.data
-        spec /= np.nanmean(spec)
-        gg = readmultispec(tplname, reform=True, quiet=True)
-        wave = gg['wavelen']
-        wave = airtovac(wave)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')
-    elif tplname.endswith('_tpl.model'):
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-    else:
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')
-
+    
+    wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ)
+    
     return wave, spec
 
 
