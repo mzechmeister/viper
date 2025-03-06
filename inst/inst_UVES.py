@@ -2,12 +2,14 @@
 # Licensed under a GPLv3 style license - see LICENSE
 
 import numpy as np
+import os
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
 
@@ -81,17 +83,7 @@ def Spectrum(filename, order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('.model'):
-        # echelle template
-        x, w, f, e, b, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        w *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
-    elif tplname.endswith('_s1d_A.fits'):
-        hdu = fits.open(tplname)[0]
-        f = hdu.data
-        h = hdu.header
-        w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
-        w = airtovac(w)
-    elif tplname.endswith('_tpl.fits'):
+    if tplname.endswith('_tpl.fits'):
         hdu = fits.open(tplname)[1]
         #from pause import pause; pause()
         w = np.exp(hdu.data['lnwave'])
@@ -108,11 +100,7 @@ def Tpl(tplname, order=None, targ=None):
         fj = CubicSpline(np.log(w), f)(uj)
         w,f = np.exp(uj), fj
     else:
-        # long 1d template
-        hdu = fits.open(tplname)
-        w = hdu[1].data.field('Arg')
-        f = hdu[1].data.field('Fun')
-        w = airtovac(w)
+        wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ)
 
     return w, f
 
