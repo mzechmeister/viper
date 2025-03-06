@@ -3,12 +3,14 @@
 
 import numpy as np
 import sys
+import os
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
 
@@ -46,10 +48,8 @@ def Spectrum(filename='', order=None, targ=None):
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
-    if tplname.endswith('.model') or tplname.endswith('.fits'):
-        # echelle template
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')   # *model already barycentric corrected (?)
+    
+    wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ)
 
     return wave, spec
 
