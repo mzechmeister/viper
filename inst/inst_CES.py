@@ -3,11 +3,13 @@
 
 import numpy as np
 import sys
+import os
 from astropy.io import fits
 from astropy.time import Time
 from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 
+from .template import read_tpl
 from .airtovac import airtovac
 
 from .FTS_resample import resample, FTSfits
@@ -73,17 +75,8 @@ def Tpl(tplname, order=None, targ=None):
         # echelle template
         x, w, f, e, b, bjd, berv = Spectrum(tplname, targ=targ)
         w *= 1 + berv/3e5
-    elif tplname.endswith('_s1d_A.fits'):
-        hdu = fits.open(tplname)[0]
-        f = hdu.data
-        h = hdu.header
-        w = h['CRVAL1'] +  h['CDELT1'] * (1. + np.arange(f.size) - h['CRPIX1'])
-        w = airtovac(w)
     else:
-        # long 1d template
-        hdu = fits.open(tplname)
-        w = hdu[1].data.field('Arg')
-        f = hdu[1].data.field('Fun')
+        wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ)
 
     return w, f
 
