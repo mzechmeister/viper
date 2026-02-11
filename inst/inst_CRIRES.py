@@ -35,20 +35,19 @@ location = crires = EarthLocation.from_geodetic(
     lat=-24.6268 * u.deg, lon=-70.4045 * u.deg, height=2648 * u.m
 )
 
-oset = '1:19'
+oset = '1:28'  # covers up to 9 orders/det (Y/J band); K/H use fewer via -oset
 
 ip_guess = {'s': 1.5}
 
 def Spectrum(filename='', order=None, targ=None):
 
-    order_drs, detector = divmod(order-1, 3)
-    order_drs = 7 - order_drs	# order number (CRIRES+ definition)
+    order_idx, detector = divmod(order-1, 3)
     detector += 1			# detector number (1,2,3)
-    
+
     exptime = 0
 
     if pycpl:
-        hdr = PropertyList.load(filename, 0)    
+        hdr = PropertyList.load(filename, 0)
         ra = hdr["RA"].value
         de = hdr["DEC"].value
         setting = hdr["ESO INS WLEN ID"].value
@@ -70,9 +69,11 @@ def Spectrum(filename='', order=None, targ=None):
                 # just half of the nods are combined
                 nods /= 2
             exptime = hdr["ESO DET SEQ1 DIT"].value
-            exptime = (exptime*nods*ndit) / 2.0           
+            exptime = (exptime*nods*ndit) / 2.0
 
         tbl = Table.load(filename, detector)
+        n_orders = max(int(c.split('_')[0]) for c in tbl.column_names if c.endswith('_SPEC'))
+        order_drs = n_orders - order_idx
         spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
         err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
 
@@ -88,16 +89,18 @@ def Spectrum(filename='', order=None, targ=None):
         try:
             if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
             dateobs = Time(hdr["ESO DRS TMID"], format='mjd').isot
-        except:            
+        except:
             dateobs = hdr['DATE-OBS']
             ndit = hdr.get('ESO DET NDIT', 1)
-            nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames 
+            nods = hdr.get('ESO PRO DATANCOM', 1)   # Number of combined frames
             if str(nod_type) in ('OBS_NODDING_EXTRACTA', 'OBS_NODDING_EXTRACTB'):
                 # just half of the nods are combined
                 nods /= 2
             exptime = hdr.get('ESO DET SEQ1 DIT', 0)
             exptime = (exptime*nods*ndit) / 2.0
 
+        n_orders = max(int(c) for c in [col.split('_')[0] for col in hdu[detector].columns.names if col.endswith('_SPEC')])
+        order_drs = n_orders - order_idx
         err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
         spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
 
@@ -127,11 +130,14 @@ def Spectrum(filename='', order=None, targ=None):
             
     if 'CAL_FLAT_EXTRACT_1D' not in str(cal):
         # check if data are already blaze corrected by DRS pipeline
-        # otherwise use own blaze correction generated from 1D FLAT spectra 
+        # otherwise use own blaze correction generated from 1D FLAT spectra
         # not yet tested for all settings
-        hdu = fits.open(path+'blaze_own.fits', ignore_blank=True)       
-        blaze = hdu[setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]        
-        spec /= blaze
+        try:
+            hdu_blaze = fits.open(path+'blaze_own.fits', ignore_blank=True)
+            blaze = hdu_blaze[setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]
+            spec /= blaze
+        except (KeyError, IndexError):
+            pass  # no blaze data for this setting/order
 
     flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
@@ -144,19 +150,22 @@ def Tpl(tplname, order=None, targ=None):
     if tplname.endswith('_tpl.fits'):
         # tpl created with viper
         
-        order_drs, detector = divmod(order-1, 3)
-        order_drs = 7 - order_drs		# order number (CRIRES+ definition)
+        order_idx, detector = divmod(order-1, 3)
         detector += 1			# detector number (1,2,3)
 
         if pycpl:
             hdr = PropertyList.load(tplname, 1)
             tbl = Table.load(tplname, detector)
+            n_orders = max(int(c.split('_')[0]) for c in tbl.column_names if c.endswith('_SPEC'))
+            order_drs = n_orders - order_idx
             spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
             err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
             wave = np.array(tbl["0"+str(order_drs)+"_01_WL"])
         else:
             hdu = fits.open(tplname, ignore_blank=True)
-            hdr = hdu[0].header    
+            hdr = hdu[0].header
+            n_orders = max(int(c) for c in [col.split('_')[0] for col in hdu[detector].columns.names if col.endswith('_SPEC')])
+            order_drs = n_orders - order_idx
             err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
             spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
             wave = hdu[detector].data["0"+str(order_drs)+"_01_WL"]
@@ -218,19 +227,20 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
     hdr.append(Property('HIERARCH ESO PRO DATANCOM2', len(list_files), 'Number of combined frames'))
 
     for detector in (1, 2, 3):
-        # data spread over 3 detectors, each having 6 orders
+        # data spread over 3 detectors
 
         # Update headers of the single detectors
         hdro = PropertyList.load(file_in, detector)
         hdro["EXPTIME"].value = 0
         PropertyList.del_regexp(hdro, "ESO *", False)
 
-        tbl = Table.load(file_in, detector)   
+        tbl = Table.load(file_in, detector)
         cols = tbl.column_names
+        n_orders = max(int(c.split('_')[0]) for c in cols if c.endswith('_SPEC'))
 
         for cc in cols[::3]:
-            odrs = int(cc.split('_')[0])  
-            o = (7-odrs)*3 + detector
+            odrs = int(cc.split('_')[0])
+            o = (n_orders-odrs)*3 + detector
             if o in list(tpl_all.keys()):
                 tbl["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
                 tbl["0"+str(odrs)+"_01_SPEC"] = tpl_all[o]		# data
@@ -238,9 +248,10 @@ def write_fits_cpl(wtpl_all, tpl_all, e_all, list_files, file_out):
             else:
                # writing ones for non processed orders
                 wave0 = np.array(tbl["0"+str(odrs)+"_01_WL"])
+                npix = len(wave0)
                 tbl["0"+str(odrs)+"_01_WL"] = wave0 * 10
-                tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
-                tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
+                tbl["0"+str(odrs)+"_01_SPEC"] = np.ones(npix)
+                tbl["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(npix)
 
         if detector == 1:
             Table.save(tbl, hdr, hdro, file_out+'_tpl.fits', cpl.core.io.CREATE)
@@ -295,23 +306,25 @@ def write_fits_nocpl(wtpl_all, tpl_all, e_all, list_files, file_out):
     hdr.set('HIERARCH ESO PRO DATANCOM2', len(list_files), 'Number of combined frames', after='ESO PRO REC2 RAW'+str(len(list_files))+' NAME')
 
     # write the template data to the file            
-    for detector in (1, 2, 3): 
-        data = hdu[detector].data    
-        cols = hdu[detector].columns   
+    for detector in (1, 2, 3):
+        data = hdu[detector].data
+        cols = hdu[detector].columns
+        n_orders = max(int(c.name.split('_')[0]) for c in cols if c.name.endswith('_SPEC'))
 
         for cc in cols[::3]:
-            odrs = int(cc.name.split('_')[0])    
-            o = (7-odrs)*3 + detector
+            odrs = int(cc.name.split('_')[0])
+            o = (n_orders-odrs)*3 + detector
             if o in list(tpl_all.keys()):     
                 data["0"+str(odrs)+"_01_WL"] = wtpl_all[o]		# wavelength	
                 data["0"+str(odrs)+"_01_SPEC"] = tpl_all[o]		# data
                 data["0"+str(odrs)+"_01_ERR"] = e_all[o]		# errors   
             else:
                # writing ones for non processed orders
-                wave0 = data["0"+str(odrs)+"_01_WL"] 
+                wave0 = data["0"+str(odrs)+"_01_WL"]
+                npix = len(wave0)
                 data["0"+str(odrs)+"_01_WL"] = wave0 * 10    # [Angstrom]
-                data["0"+str(odrs)+"_01_SPEC"] = np.ones(2048)
-                data["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(2048)
+                data["0"+str(odrs)+"_01_SPEC"] = np.ones(npix)
+                data["0"+str(odrs)+"_01_ERR"] = np.nan * np.ones(npix)
             
     hdu.writeto(file_out+'_tpl.fits', overwrite=True)
     hdu.close()

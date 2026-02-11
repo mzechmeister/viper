@@ -19,6 +19,11 @@ Installation (run from viper directory):
 pip install -e .
 ```
 
+Or using [uv](https://docs.astral.sh/uv/):
+```bash
+uv pip install -e .
+```
+
 To run:
 ```
 viper "data/TLS/HD189733/*" data/TLS/HD189733_tpl/HARPS*fits -oset 19:21 -nset :4
