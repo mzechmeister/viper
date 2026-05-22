@@ -929,6 +929,7 @@ for n, obsname in enumerate(obsnames):
                 if repr(e) == 'BdbQuit()':
                     exit()
                 print("Order failed due to:", repr(e))
+                rv[i_o*chunks+ch], e_rv[i_o*chunks+ch] = np.nan, np.nan
 
     if not np.isnan(rv).all():
         oo = np.isfinite(e_rv)
