@@ -64,9 +64,11 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
         Y = np.nanmean(yi, **kwargs)
         e_Y = np.nanstd(yi, **kwargs) / (yi.size//Y.size-1)**0.5
     else:
+        y_isnan = np.isnan(yi)
         yi[np.isnan(yi)] = 0
         e_yi[np.isnan(e_yi)] = np.inf
         Y, e_Y = wsem(yi, e=e_yi, **kwargs)
+        yi[y_isnan] = np.nan
     return Y, e_Y
 
 class VPR():
@@ -166,7 +168,7 @@ class VPR():
         self.info()
 
         if ocen:
-            RVo = np.mean(self.rv-self.RV, axis=1)
+            RVo = np.nanmean(self.rv-self.RV, axis=1)
             print('Subtracting mean order offsets from all RVs.')
             # This should not change the RV mean values (if unweighted).
             # The idea is to reduce RV uncertainty overestimation coming from large order offsets.
@@ -175,8 +177,8 @@ class VPR():
             self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
             self.info()
 
-        self.stat_o = np.percentile(self.rv-self.RV, [17,50,83], axis=1)
-        self.med_e_rvo = np.median(self.e_rv, axis=1)
+        self.stat_o = np.nanpercentile(self.rv-self.RV, [17,50,83], axis=1)
+        self.med_e_rvo = np.nanmedian(self.e_rv, axis=1)
 
     def plot_par(self, parcolx = None, parcoly = None):
 
