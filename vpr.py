@@ -276,7 +276,7 @@ class VPR():
         gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
             f'us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
             f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "red" t "RV_{{".n.",o}} -- RV_{{".n."}}",',
-            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f ± %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f ± %.2f m/s", n,$1+1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
             f'"" us ($1+{chksz}*n/N):(column(1+n)-column(1+n+N)):'+'(sprintf("%.2f   ", column(1+n+N))) w labels noenh rotate right tc "red" t "",',  # red text
             A.BJD, A.RV+self.offset, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
