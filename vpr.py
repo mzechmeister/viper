@@ -64,7 +64,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
         Y = np.nanmean(yi, **kwargs)
         e_Y = np.nanstd(yi, **kwargs) / (yi.size//Y.size-1)**0.5
     else:
-        Y, e_Y = wsem(np.nan_to_num(yi, nan=0), e=np.nan_to_num(e_yi, nan=np.inf), **kwargs)
+        Y, e_Y = wsem(np.nan_to_num(yi, nan=0, posinf=np.inf, neginf=-np.inf), e=np.nan_to_num(e_yi, nan=np.inf, posinf=np.inf, neginf=-np.inf), **kwargs)
     return Y, e_Y
 
 class VPR():
