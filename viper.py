@@ -848,14 +848,17 @@ if tplname:
     print('reading stellar template')
     wave_tpl, spec_tpl = {}, {}
     for order in orders:
-        wave_tplo, spec_tplo = Tpl(tplname, order=order, targ=targ)
-        if oversampling:
-            us = np.linspace(np.log(wave_tplo[0]), np.log(wave_tplo[-1]), oversampling*wave_tplo.size)
-            spec_tplo = np.nan_to_num(spec_tplo)
-            fs = CubicSpline(np.log(wave_tplo), spec_tplo)(us)
-            wave_tpl[order], spec_tpl[order] = np.exp(us), fs
-        else:
-            wave_tpl[order], spec_tpl[order] = wave_tplo, spec_tplo
+        try:
+            wave_tplo, spec_tplo,  = Tpl(tplname, order=order, targ=targ)
+            if oversampling:
+                us = np.linspace(np.log(wave_tplo[0]), np.log(wave_tplo[-1]), oversampling*wave_tplo.size)
+                spec_tplo = np.nan_to_num(spec_tplo)
+                fs = CubicSpline(np.log(wave_tplo), spec_tplo)(us)
+                wave_tpl[order], spec_tpl[order] = np.exp(us), fs
+            else:
+                wave_tpl[order], spec_tpl[order] = wave_tplo, spec_tplo
+        except:
+            print(f'\x1b[0;31;40mError: Failed to read the template for order {order} \x1b[0m')
 else:
     # no template given; model pure iodine
     wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*200, [np.ones(2)]*200
@@ -924,6 +927,8 @@ for n, obsname in enumerate(obsnames):
                 if repr(e) == 'BdbQuit()':
                     exit()
                 print("Order failed due to:", repr(e))
+                rv[i_o*chunks+ch], e_rv[i_o*chunks+ch] = np.nan, np.nan
+
     if not np.isnan(rv).all():
         oo = np.isfinite(e_rv)
         if oo.sum() == 1:

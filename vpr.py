@@ -64,9 +64,7 @@ def average(yi, e_yi=None, typ='wmean', **kwargs):
         Y = np.nanmean(yi, **kwargs)
         e_Y = np.nanstd(yi, **kwargs) / (yi.size//Y.size-1)**0.5
     else:
-        yi[np.isnan(yi)] = 0
-        e_yi[np.isnan(e_yi)] = np.inf
-        Y, e_Y = wsem(yi, e=e_yi, **kwargs)
+        Y, e_Y = wsem(np.nan_to_num(yi, nan=0, posinf=np.inf, neginf=-np.inf), e=np.nan_to_num(e_yi, nan=np.inf, posinf=np.inf, neginf=-np.inf), **kwargs)
     return Y, e_Y
 
 class VPR():
@@ -166,7 +164,7 @@ class VPR():
         self.info()
 
         if ocen:
-            RVo = np.mean(self.rv-self.RV, axis=1)
+            RVo = np.nanmean(self.rv-self.RV, axis=1)
             print('Subtracting mean order offsets from all RVs.')
             # This should not change the RV mean values (if unweighted).
             # The idea is to reduce RV uncertainty overestimation coming from large order offsets.
@@ -175,8 +173,8 @@ class VPR():
             self.RV, self.e_RV = average(self.rv, self.e_rv, axis=0, typ=self.avgtyp)
             self.info()
 
-        self.stat_o = np.percentile(self.rv-self.RV, [17,50,83], axis=1)
-        self.med_e_rvo = np.median(self.e_rv, axis=1)
+        self.stat_o = np.nanpercentile(self.rv-self.RV, [17,50,83], axis=1)
+        self.med_e_rvo = np.nanmedian(self.e_rv, axis=1)
 
     def plot_par(self, parcolx = None, parcoly = None):
 
@@ -276,7 +274,7 @@ class VPR():
         gplot('for [n=1:N]', xpos, (A.rv-A.RV).T, self.e_rv.T,
             f'us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "light-grey" t "", ' +
             f'"" us ($1+{chksz}*n/N):(column(1+n)):(column(1+n+N)) w e pt 6 lc "red" t "RV_{{".n.",o}} -- RV_{{".n."}}",',
-            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f ± %.2f m/s", n,$1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
+            f'"" us ($1+{chksz}*n/N):(column(1+n)):'+'(sprintf("RV_{n=%d,o=%d} = %.2f ± %.2f m/s", n,$1+1, column(1+n), column(1+n+N))) w labels hypertext enh point pt 0 lc "red" t "",',
             f'"" us ($1+{chksz}*n/N):(column(1+n)-column(1+n+N)):'+'(sprintf("%.2f   ", column(1+n+N))) w labels noenh rotate right tc "red" t "",',  # red text
             A.BJD, A.RV+self.offset, A.e_RV, A.A.filename, ' us 1:2:(sprintf("%s\\nn: %d\\nBJD: %.6f\\nRV: %f ± %f",strcol(4),$0+1,$1,$2,$3)) w labels hypertext point pt 0 axis x2y1 t "",' +
             '"" us 1:2:3 w e lc "#77000000" pt 7 axis x2y1 t "RV_n",' +
