@@ -163,16 +163,16 @@ class model:
 
             # variable telluric wavelength shift; one shift for all molecules
             if len(coeff_atm) == len(self.fluxes_molec)+1:
-                flux_atm = np.interp(self.lnwave_j, self.lnwave_j-np.log(1+coeff_atm[-1]/c), flux_atm)
+                flux_atm = np.interp(self.lnwave_j-np.log(1+coeff_atm[-1]/c), self.lnwave_j, flux_atm)
 
             spec_gas *= flux_atm
 
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+        Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-np.log(1+rv/c)) * (spec_gas + coeff_bkg[0]), mode='valid')
 
         if len(coeff_ipB):
             coeff_ipB = [coeff_ipB[0]*coeff_ip[0], *coeff_ip[1:]]
-            Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+            Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-np.log(1+rv/c)) * (spec_gas + coeff_bkg[0]), mode='valid')
             Sj_A = Sj_eff
             g = self.lnwave_j_eff - self.lnwave_j_eff[0]
             g /= g[-1]
