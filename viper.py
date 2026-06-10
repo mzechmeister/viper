@@ -1013,12 +1013,12 @@ if createtpl:
         if (order in lookfast) or (order in look) or (order in lookctpl):
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
-                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))          
+                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames_t[n])[1]))          
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         if (order in look) or (order in lookctpl):
             pause()
 
-    Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
+    Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames_t, tag)
 
 rvounit.close()
 parunit.close()
