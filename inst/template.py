@@ -49,7 +49,7 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
             inst = importlib.import_module('inst.'+str(inst)[:-3])
                        
             pixel, wave, spec, err, flag_pixel, bjd, berv = inst.Spectrum(tplname, order=order, targ=targ)
-            if not tplname.endswith('_tpl.model') or not tplname.endswith('_tpl.fits'):
+            if not tplname.endswith('_tpl.model') and not tplname.endswith('_tpl.fits'):
                 # apply barycentric correction
                 wave *= 1 + (berv*u.km/u.s/c).to_value('')
             successful_read = 1
