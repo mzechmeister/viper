@@ -60,7 +60,7 @@ class GUI_viper:
         self.fr_para()
         self.fr_plot()
 
-        self.Update_inst()
+        self.Update_inst(get_inst=0)
         self.Update_tell()
         self.Update_ctpl()	
 
@@ -107,9 +107,10 @@ class GUI_viper:
         self.e_tpl = Entry(fr1, width=200)
         self.e_tpl.grid(row=2, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
         
-        if not self.configs:
-            self.e_dat.insert(0, 'data/TLS/hd189733/*')
-            self.e_tpl.insert(0, 'data/TLS/Deconv/HARPS*fits')
+        if 1:# not self.configs:
+            self.e_dat.insert(0, self.configs.get('obspath', 'data/TLS/hd189733/*'))
+            self.e_tpl.insert(0, self.configs.get('tplname', 'data/TLS/Deconv/HARPS*fits'))
+
 
         self.e_cell = Entry(fr1, width=200)
         self.e_cell.grid(row=3, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
@@ -139,7 +140,7 @@ class GUI_viper:
         self.combo_inst = ttk.Combobox(fr1, values=insts, width=15)
         self.combo_inst.set(self.configs.get('inst', 'TLS'))
         self.combo_inst.grid(row=5, column=1, sticky="nw", padx=x1, pady=y1)
-        self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst())
+        self.combo_inst.bind('<<ComboboxSelected>>', lambda event: self.Update_inst(get_inst=1))
 
         # Buttons
         b_dat = ttk.Button(fr1, text='Search data file', style='nbold.TButton', command=lambda: self.bt_file(self.e_dat))
@@ -155,6 +156,9 @@ class GUI_viper:
         b_flag.grid(row=4, column=7, sticky="nw", padx=xy0)
 
     def fr_para(self):
+    
+        Inst = importlib.import_module('inst.inst_' + self.combo_inst.get())
+    
         # Frame for parameter selection data reduction
         fr2 = Frame(self.master, bg=bg_frame, bd=2, relief='groove')
         fr2.grid(row=1, column=0, sticky="news", padx=(xy0, 6), pady=(0, 15), rowspan=4)
@@ -212,7 +216,7 @@ class GUI_viper:
         self.e_nset.grid(row=0, column=1, sticky="nw", padx=(x1, xy0), pady=(0, 0))
 
         self.e_oset = Entry(lfr_data)
-        self.e_oset.insert(0, self.configs.get('oset', '20'))
+        self.e_oset.insert(0, self.configs.get('oset', getattr(Inst, 'oset', '20')))
         self.e_oset.grid(row=1, column=1, sticky="nw", padx=(x1, xy0), pady=(y1, 0))
 
         self.e_ch = Entry(lfr_data)
@@ -224,6 +228,7 @@ class GUI_viper:
         self.e_vcut.grid(row=3, column=1, sticky="nw", padx=(x1, xy0), pady=(y1, 0))
 
         self.e_iset = Entry(lfr_data)
+        self.e_iset.insert(0, self.configs.get('iset', getattr(Inst, 'iset', ':')))
         self.e_iset.grid(row=4, column=1, sticky="nw", padx=(x1, xy0), pady=(y1, 0)) 
 
         self.e_iphs = Entry(lfr_model)
@@ -370,27 +375,32 @@ class GUI_viper:
         Help_Box(widget=l_look, text=text_from_file("'-look'"))
 
     def bt_file(self, e_file):
-        file = askopenfilename()
+     #   file = askopenfilename()
+        file = askopenfilename(initialdir=os.path.dirname(os.path.abspath(e_file.get())))
         if file:
             e_file.delete(0, END)
             e_file.insert(0, file)
             
-    # Define some parameters according to the chosen instrument (cell file, iset, oset, ...)
-    def Update_inst(self):
+    def Update_inst(self, get_inst=0):
+        # Define some parameters according to the chosen instrument 
+               
         Inst = importlib.import_module('inst.inst_' + self.combo_inst.get())
          
         FTS = Inst.FTS
-        default = viperdir + self.configs.get('fts', FTS.__defaults__[0])
+        default = self.configs.get('fts', viperdir + FTS.__defaults__[0])
         if 'None' in str(default): default = 'None'
      #   default = FTS.__defaults__[0]
         self.e_cell.delete(0, END)
         self.e_cell.insert(0, default)
 
-        self.e_iset.delete(0, END)
-        self.e_iset.insert(0, getattr(Inst, 'iset', ':'))
+        if get_inst:
+            # just use this when a new instrument is selected 
+            # not used when starting the GUI, as otherwise config value is overwritten
+            self.e_iset.delete(0, END)
+            self.e_iset.insert(0, getattr(Inst, 'iset', ':'))
 
-        self.e_oset.delete(0, END)
-        self.e_oset.insert(0, getattr(Inst, 'oset', ':'))
+            self.e_oset.delete(0, END)
+            self.e_oset.insert(0, getattr(Inst, 'oset', ':'))
 
         # molecule selection for tellurics
         #self.molec = list(Inst.atmall.keys())
