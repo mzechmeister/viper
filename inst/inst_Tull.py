@@ -20,7 +20,7 @@ from .FTS_resample import resample, FTSfits
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
 location = mcdonald = EarthLocation.from_geodetic(lat=30.671896*u.deg, lon=-104.022143*u.deg, height=2062.46*u.m)
-oset = '20:37'
+oset = '26:37'
 
 # convert FHWM resolution to sigma
 ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   
@@ -28,7 +28,14 @@ ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }
 def Spectrum(filename='', order=None, targ=None):
     hdu = fits.open(filename, ignore_blank=True)[0]
     hdr = hdu.header
-
+    
+    try:
+        # use barycorr from header if available
+        berv = hdr['BARYCORR'] / 1000         
+        # To do:  bjd = hdr['JDUTCMID'] ?
+    except:
+        berv = np.nan
+        
     try:
         dateobs = hdr['DATE-OBS']+ 'T' + hdr['MIDTIME']
         exptime = 0
@@ -41,9 +48,13 @@ def Spectrum(filename='', order=None, targ=None):
 
     targdrs = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg))
     if not targ: targ = targdrs
+   
     midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
-    berv = targ.radial_velocity_correction(obstime=midtime, location=mcdonald)
-    berv = berv.to(u.km/u.s).value
+  
+    if np.isnan(berv):
+        berv = targ.radial_velocity_correction(obstime=midtime, location=mcdonald)
+        berv = berv.to(u.km/u.s).value
+        
     bjd = midtime.tdb
 
     spec = hdu.data
