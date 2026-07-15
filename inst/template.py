@@ -17,6 +17,7 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
     hdu = fits.open(tplname, ignore_blank=True, output_verify='silentfix')
     hdr = hdu[0].header
     p3orig = hdr.get('P3ORIG', 'none')
+    instr = hdr.get('INSTRUME', 'none')
 
     if str(p3orig) == 'IDP':
         # direct read-in of spectra with ESO phase-3 format
@@ -27,6 +28,23 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
         spec = f[0][1]         
         wave = airtovac(wave)
         
+        successful_read = 1
+    
+    elif str(instr) == 'PEPSI':
+    
+        # for spectra downloaded from:
+        # https://pepsi.aip.de/?page_id=552
+    
+        f = hdu[1].data
+        wave = f.field(0)
+        spec = f.field(1)
+        
+        # RV of target; applied to the wavelengths 
+        #removed as otherwise offset is too large for viper
+        radvel = hdr.get('RADVEL', 'none')
+        wave = airtovac(wave)
+        wave *= (1+radvel/3e8)
+
         successful_read = 1
     
     elif tplname.endswith('_s1d_A.fits') or tplname.endswith('.tpl.s1d.fits'):
@@ -49,9 +67,20 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
             inst = importlib.import_module('inst.'+str(inst)[:-3])
                        
             pixel, wave, spec, err, flag_pixel, bjd, berv = inst.Spectrum(tplname, order=order, targ=targ)
-            if not tplname.endswith('_tpl.model') or not tplname.endswith('_tpl.fits'):
+            if not tplname.endswith('_tpl.model') and not tplname.endswith('_tpl.fits'):
                 # apply barycentric correction
                 wave *= 1 + (berv*u.km/u.s/c).to_value('')
+                
+                # for stellar template generated with SERVAL
+                tpl_serval = 'HIERARCH SERVAL COADD NUM' in hdr    
+                if tpl_serval:
+                    # already barycentric and vacuum corrected 
+                    # wavelengths stored log wavelengths
+                    wave = np.exp(wave)    
+                else:
+                    # apply barycentric correction
+                    wave *= 1 + (berv*u.km/u.s/c).to_value('')
+                
             successful_read = 1
         except:
             pass        
