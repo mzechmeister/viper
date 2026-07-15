@@ -272,6 +272,7 @@ class GUI_viper:
         self.e_tag.grid(row=0, column=1, sticky="news", padx=(xy0, 10), pady=0, columnspan=3)
 
         # Checkboxes:
+        self.cb_isconv = IntVar()
         self.cb_createtpl = IntVar()
         self.cb_tellshift = IntVar()
         self.cb_format = [IntVar(), IntVar(), IntVar()]
@@ -279,6 +280,11 @@ class GUI_viper:
         self.combo_wgt = ttk.Combobox(lfr_stat, values=['None', 'error', 'tell']) 
         self.combo_wgt.set(self.configs.get('wgt', 'None'))
         self.combo_wgt.grid(row=2, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
+        
+        l_isconv = ttk.Checkbutton(lfr_tpl, text="     tpl_is_conv", variable=self.cb_isconv)
+        self.cb_isconv.set(self.configs.get('tpl_is_conv', 0))
+        l_isconv.grid(row=2, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
+        Help_Box(widget=l_isconv, text=text_from_file("'-tpl_is_conv'"))
 
         l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
         self.cb_createtpl.set(self.configs.get('createtpl', 0))
@@ -539,6 +545,7 @@ class GUI_viper:
         if self.e_fix.get(): str_arg += " -fix " + str(self.e_fix.get()) 
       #  if self.cb_wgt.get(): str_arg += " -wgt "
         if self.e_overs.get(): str_arg += " -oversampling " + str(self.e_overs.get())
+        if self.cb_isconv.get(): str_arg += " -tpl_is_conv "
         if self.cb_lookpar.get(): str_arg += " -lookpar " + self.e_lookpar.get()
         if self.cb_lookguess.get(): str_arg += " -lookguess "
         if self.cb_lookres.get(): str_arg += " -lookres "
