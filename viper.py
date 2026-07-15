@@ -370,7 +370,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         # plot the IP
         gplot.xlabel('"[km/s]"')
         gplot.ylabel('"contribution"')
-        gplot(S_mod.vk, S_mod.IP(S_mod.vk), 't "IP model"')
+        gplot(S_mod.vk, S_mod.IP(S_mod.vk, *ip_guess), 't "IP model"')
         pause('demo 2: default IP')
 
     if demo & 4:
