@@ -131,13 +131,33 @@ def pade(x, a, b):
     y = poly(x, a) / (1+x*poly(x, b))
     return y
 
+def viper_convolution(S_star, func_IP, T_gas, IP_hs=50, tpl_is_conv=False):
+    '''
+    Convolution with the IP as described in Koehler et al. 2025 
+    In case of a convolved stellar template use approximation from Nagel et al. 2023
+    '''
+    
+    if tpl_is_conv:  
+        # for convolved and low-resolution templates
+        # take the stellar template out of the convolution
+    
+        Sj_eff = S_star[IP_hs:-IP_hs] * np.convolve(func_IP, T_gas, mode='valid')
+  
+    else: 
+        # for deconvolved or high-resolution templates
+        # stellar template inside the convolution
+        
+        Sj_eff = np.convolve(func_IP, S_star * T_gas, mode='valid')
+    
+    return Sj_eff
+    
 
 class model:
     '''
     The forward model.
 
     '''
-    def __init__(self, *args, func_norm=poly, IP_hs=50, xcen=0):
+    def __init__(self, *args, func_norm=poly, IP_hs=50, xcen=0, tpl_is_conv=False):
         # IP_hs: Half size of the IP (number of sampling knots).
         # xcen: Central pixel (to center polynomial for numeric reason).
 
@@ -146,6 +166,7 @@ class model:
         # convolving with IP will reduce the valid wavelength range
         self.dx = self.lnwave_j[1] - self.lnwave_j[0]   # step size of the uniform sampled grid
         self.IP_hs = IP_hs
+        self.tpl_is_conv = tpl_is_conv
         self.vk = np.arange(-IP_hs, IP_hs+1) * self.dx * c
         self.lnwave_j_eff = self.lnwave_j[IP_hs:-IP_hs]    # valid grid
         self.func_norm = func_norm
@@ -168,11 +189,14 @@ class model:
             spec_gas *= flux_atm
 
         # IP convolution
-        Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+     #   Sj_eff = np.convolve(self.IP(self.vk, *coeff_ip), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+        
+        Sj_eff = viper_convolution(S_star=self.S_star(self.lnwave_j-rv/c), func_IP=self.IP(self.vk, *coeff_ip), T_gas=(spec_gas + coeff_bkg[0]), IP_hs=self.IP_hs, tpl_is_conv=self.tpl_is_conv)
 
         if len(coeff_ipB):
             coeff_ipB = [coeff_ipB[0]*coeff_ip[0], *coeff_ip[1:]]
-            Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+         #   Sj_B = np.convolve(self.IP(self.vk, *coeff_ipB), self.S_star(self.lnwave_j-rv/c) * (spec_gas + coeff_bkg[0]), mode='valid')
+            Sj_B = viper_convolution(S_star=self.S_star(self.lnwave_j-rv/c), func_IP=self.IP(self.vk, *coeff_ipB), T_gas=(spec_gas + coeff_bkg[0]), IP_hs=self.IP_hs, tpl_is_conv=self.tpl_is_conv)
             Sj_A = Sj_eff
             g = self.lnwave_j_eff - self.lnwave_j_eff[0]
             g /= g[-1]
