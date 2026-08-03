@@ -1012,6 +1012,13 @@ rvounit.close()
 parunit.close()
 convert_output.convert_data(tag, args, dat='dat' in oformat, fits='fits' in oformat, cpl='cpl' in oformat)
 
+
+# If applicable, apply drift correction and re-write the corrected RVs into the rvo file (Currently only available for CARM_VIS and CARM_NIR)
+try:
+    Inst.driftcorr(tag, obsnames, orders, chunks, tellshift)
+except:
+    pass
+
 T = time.time() - T
 Tfmt = lambda t: time.strftime("%Hh%Mm%Ss", time.gmtime(t))
 print("processing time total:       ", Tfmt(T))
