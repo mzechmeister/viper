@@ -215,7 +215,7 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-telluric', help='Treating tellurics (mask: mask tellurics; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
     argopt('-tpl_is_conv', nargs='?', help='Template is taken out of the convolution. Maybe useful for convolved or low-resolution stellar templates.', default=False, const=True, type=int)
     argopt('-tpl_noRV', nargs='?', help='No stellar RV shift is applied to the telluric corrected spectrum. Just in combination with -createtpl.', default=False, const=True, type=int)
-    argopt('-tpl_wave', help='Output wavelength of generated template (initial: take wavelengths from imput file; berv: apply barycentric correction to input wavelengths; tell: updated wavelength solution estimated via telluric lines).', default='initial', type=str)
+    argopt('-tpl_wave', help='Output wavelength of generated template (initial: take wavelengths from imput file; berv: apply barycentric correction to input wavelengths; tell: updated wavelength solution estimated via telluric lines).', default='tell', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
     argopt('-wgt', nargs='?', help='Weighted least square fit (error: employ data error; tell: upweight tellurics and downweight stellar lines)', default='', type=str)
