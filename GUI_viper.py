@@ -116,7 +116,7 @@ class GUI_viper:
         self.e_cell.grid(row=3, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
         self.e_flag = Entry(fr1, width=200)
-        self.e_flag.insert(0, '')
+        self.e_flag.insert(0, self.configs.get('flagfile', ''))
         self.e_flag.grid(row=4, column=1, sticky="nw", padx=x1, pady=y1, columnspan=6)
 
         self.e_targ = Entry(fr1, width=200)
@@ -134,6 +134,7 @@ class GUI_viper:
 
         l_flag = ttk.Checkbutton(fr1, text="   flag file:", variable=self.cb_flagfile)
         l_flag.grid(row=4, column=0, sticky="nw", padx=x1, pady=y1)
+        self.cb_flagfile.set(bool(self.configs.get('flagfile', 0)))
         Help_Box(widget=l_flag, text=text_from_file("'-flagfile'"))
 
         insts = sorted([os.path.basename(i)[5:-3] for i in glob.glob(viperdir+'inst/inst_*.py')])
@@ -428,7 +429,7 @@ class GUI_viper:
             Help_Box(widget=self.l_kapctpl, text=text_from_file("'-kapsig_ctpl'"))
 
             self.e_kapctpl = Entry(self.lfr_ctpl, width=9)
-            self.e_kapctpl.insert(0, self.configs.get('kapsig_cptl', '0.6'))
+            self.e_kapctpl.insert(0, self.configs.get('kapsig_cptl', '0.2'))
             self.e_kapctpl.grid(row=3, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
             
             self.l_wavetpl = ttk.Label(self.lfr_ctpl, text='tpl_wave:')
@@ -436,13 +437,13 @@ class GUI_viper:
             Help_Box(widget=self.l_wavetpl, text=text_from_file("'-tpl_wave'"))
             
             self.combo_wtpl = ttk.Combobox(self.lfr_ctpl, values=['initial', 'berv', 'tell'], width=8) 
-            self.combo_wtpl.set(self.configs.get('tpl_wave', 'initial'))
+            self.combo_wtpl.set(self.configs.get('tpl_wave', 'tell'))
             self.combo_wtpl.grid(row=4, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
 
             self.l_lookctpl = ttk.Checkbutton(self.lfr_ctpl, text="     lookctpl", variable=self.cb_lookctpl)
             self.l_lookctpl.grid(row=1, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
             Help_Box(widget=self.l_lookctpl, text=text_from_file("'-lookctpl'"))
-            self.cb_lookctpl.set(1)
+            self.cb_lookctpl.set(self.configs.get('lookctpl', 1))
             
             self.l_noRV = ttk.Checkbutton(self.lfr_ctpl, text="     tpl_noRV", variable=self.cb_noRV)
             self.l_noRV.grid(row=2, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
