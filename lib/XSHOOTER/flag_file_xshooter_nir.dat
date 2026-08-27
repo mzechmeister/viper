@@ -1,0 +1,9 @@
+order start end
+# start and end values for masked regions
+# values in pixel if order is given
+# values in wavelength [A] if no order
+- 11100 11600
+- 13400 14700
+- 17900 19500
+- 19950 20200
+- 24300 24700
