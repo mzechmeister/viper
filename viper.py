@@ -633,6 +633,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         spec_all[order, 0][n] = wave_model   # updated wavelength
         spec_all[order, 1][n] = spec_cor     # telluric corrected spectrum
         spec_all[order, 2][n] = weight       # weighting for combination of spectra
+        spec_all[order, 3][n] = obsname      # name of the file that will be coadded
 
     if show:
         # overplot flagged and clipped data
@@ -959,9 +960,12 @@ if createtpl:
         gplot.xlabel('"Vacuum wavelength [Å]"')
         gplot.ylabel('"flux"')
         gplot.yrange("[%g:%g]" % (-1, 1.6))
+        
         wave_t = np.array(list(spec_all[order, 0].values()))     # wavelength
         spec_t = np.array(list(spec_all[order, 1].values()))     # data
         weight_t = np.array(list(spec_all[order, 2].values()))   # weighting
+        obsnames_t = np.array(list(spec_all[order, 3].values())) # file name
+        
         weight_t[np.isnan(spec_t)] = 0
         weight_t[spec_t<0] = 0
         # weight_t[spec_t>1.15] = np.nanmin(weight_t)/10.
@@ -972,19 +976,29 @@ if createtpl:
 
         if len(spec_t) > 1:
             # combine several observations to one tpl
+            failed = []    # observations that failed to be fitted -- will not be coadded
             for nn in range(1, len(spec_t)):
-                # flag outlier points and spectra
-                valid = np.isfinite(spec_t[nn])
-                spec_cubic = CubicSpline(wave_t[nn][valid], spec_t[nn][valid])(wave_t[0])
-                spec_cubic[valid==0] = np.nan
-                spec_t[nn] = spec_cubic
+                try:
+                    # flag outlier points and spectra
+                    valid = np.isfinite(spec_t[nn])
+                    spec_cubic = CubicSpline(wave_t[nn][valid], spec_t[nn][valid])(wave_t[0])
+                    spec_cubic[valid==0] = np.nan
+                    spec_t[nn] = spec_cubic
+    
+                    # weight_cubic = CubicSpline(wave_t[nn][valid], weight_t[nn][valid])(wave_t[0])
+                    # weight_t[nn][valid] = weight_cubic[valid]
+                    weight_t[nn] = np.interp(wave_t[0], wave_t[nn][valid], weight_t[nn][valid])
+                    weight_t[nn][valid==0] = np.nan
+                    weight_t[nn][weight_t[nn]==0] = np.nan
+                except ValueError:
+                    # do not coadd the observation
+                    failed.append(nn)
 
-                # weight_cubic = CubicSpline(wave_t[nn][valid], weight_t[nn][valid])(wave_t[0])
-                # weight_t[nn][valid] = weight_cubic[valid]
-                weight_t[nn] = np.interp(wave_t[0], wave_t[nn][valid], weight_t[nn][valid])
-                weight_t[nn][valid==0] = np.nan
-                weight_t[nn][weight_t[nn]==0] = np.nan
-
+            spec_t = np.delete(spec_t, failed, axis=0)
+            wave_t = np.delete(wave_t, failed, axis=0)
+            weight_t = np.delete(weight_t, failed, axis=0)
+            obsnames_t = np.delete(obsnames_t, failed, axis=0)
+            
             if kapsig_ctpl:
               #  spec_mean = np.nansum(spec_t*weight_t, axis=0) / np.nansum(weight_t, axis=0)
                 spec_mean = np.nanmedian(spec_t, axis=0)
@@ -1001,12 +1015,12 @@ if createtpl:
         if (order in lookfast) or (order in look) or (order in lookctpl):
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
-                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))          
+                gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames_t[n])[1]))          
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         if (order in look) or (order in lookctpl):
             pause()
 
-    Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
+    Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames_t, tag)
 
 rvounit.close()
 parunit.close()
