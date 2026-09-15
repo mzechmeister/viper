@@ -30,47 +30,50 @@ ip_guess = {'s' : c.to_value(u.km/u.s)/(94_600*2*np.sqrt(2*np.log(2)))}  # speed
 location = carmenes = EarthLocation.from_geodetic(lat=37.2236*u.deg, lon=-2.54625*u.deg, height=2168.*u.m)
 
 
+class observation:
 
-def Spectrum(filename='', order=None, targ=None):
+    def __init__(self, filename, targ, *args):
 
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)
+        self.hdr = hdr = hdu[0].header
     
-    dateobs = hdr.get('DATE-OBS')   # UTC datetime at observation start (ISOT format)
-    exptime_tmean = hdr.get('HIERARCH CARACAL TMEAN') * u.s  # Flux-weighted midpoint of exposure (more accurate than the exptime)
-    
-    # If target not specified while calling Spectrum() : Define target from data file header info
-    ra = hdr.get('RA', np.nan)     # RightAscension of target [degrees]
-    dec = hdr.get('DEC', np.nan)    # Declination of target [degrees]
-    dec = (dec+90) % 180 - 90   #Declination needs to be between -90 and 90 deg, but some SERVAL tpl headers give values way bigger than that so we fix it
-    targdrs = SkyCoord(ra=ra*u.deg, dec=dec*u.deg)
-    if not targ: targ = targdrs
-    
-    
-    # Apply barycentric RV correction halfway through exposure (offers the least error?)
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime_tmean
-    
-    berv = targ.radial_velocity_correction(obstime=midtime, location=carmenes)  #Barycentric Earth RV : This is the RV correction to apply
-    berv = berv.to_value(u.km/u.s)
-    bjd = midtime.tdb    # Convert midtime scale from utc to Barycentric Dynamical Time
-    
-    
-    # Read file data to obtain spec, wavelen, err
-    spec = hdu['SPEC'].data    # Flux for spectrum
-    wavelen = hdu['WAVE'].data    # Vacuum wavelength for each pixel [angstrom]
-    err_spec = hdu['SIG'].data    # Error estimate for flux
-    
-    
-    # If specific order is selected, only keep that order
-    if order is not None:
-        wavelen, spec, err_spec = wavelen[order], spec[order], err_spec[order]
-    
-    # Build pixel array and bad pixel map
-    pixel = np.arange(spec.size)    # As many pixels as there are values in spec (Including bad pixels)
-    flag_pixel = 1 * np.isnan(spec)  # Bad pixels (spec value undefined) have a value of 1
-    
-    return pixel, wavelen, spec, err_spec, flag_pixel, bjd, berv
+        dateobs = hdr.get('DATE-OBS')   # UTC datetime at observation start (ISOT format)
+        exptime_tmean = hdr.get('HIERARCH CARACAL TMEAN') * u.s  # Flux-weighted midpoint of exposure
 
+        # If target not specified while calling Spectrum() : Define target from data file header info
+        ra = hdr.get('RA', np.nan)     # RightAscension of target [degrees]
+        dec = hdr.get('DEC', np.nan)    # Declination of target [degrees]
+        dec = (dec+90) % 180 - 90   #Declination needs to be between -90 and 90 deg, but some SERVAL tpl headers give values way bigger than that so we fix it
+        targdrs = SkyCoord(ra=ra*u.deg, dec=dec*u.deg)
+        if not targ: targ = targdrs
+    
+        # Apply barycentric RV correction at exposure flux-weighted midpoint
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime_tmean
+        
+        bjd = midtime.tdb    # Convert midtime scale from utc to Barycentric Dynamical Time
+    
+        self.bjd, self.targ = bjd, targ
+    
+    
+         # Read file data to obtain spec, wavelen, err
+        spec = hdu['SPEC'].data    # Flux for spectrum
+        wavelen = hdu['WAVE'].data    # Vacuum wavelength for each pixel [angstrom]
+        err_spec = hdu['SIG'].data    # Error estimate for flux
+        
+        self.wave_all, self.spec_all, self.err_spec = wavelen, spec, err_spec
+    
+    def Spectrum(self, order):  
+    
+        # If specific order is selected, only keep that order
+        if order is not None:
+            wave, spec, err = self.wave_all[order], self.spec_all[order], self.err_spec[order]
+    
+        # Build pixel array and bad pixel map
+        pixel = np.arange(spec.size)    # As many pixels as there are values in spec (Including bad pixels)
+        flag_pixel = 1 * np.isnan(spec)  # Bad pixels (spec value undefined) have a value of 1
+    
+        return pixel, wave, spec, err, flag_pixel
 
 
 def Tpl(tplname, order=None, targ=None):

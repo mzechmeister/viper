@@ -31,38 +31,47 @@ oset = '40:170'
 
 ip_guess = {'s': 1.5}
 
-def Spectrum(filename='', order=None, targ=None):
+class observation:
 
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
-    ra = hdr.get('RA', np.nan)
-    de = hdr.get('DEC', np.nan)
+    def __init__(self, filename, targ, *args):
+
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)
+        self.hdr = hdr = hdu[0].header
+        ra = hdr.get('RA', np.nan)
+        de = hdr.get('DEC', np.nan)
         
-    dateobs = hdr['DATE-OBS']
-    berv = hdr['ESO QC BERV']
+        dateobs = hdr['DATE-OBS']
+        berv = hdr['ESO QC BERV']
+    
+        midtime = Time(dateobs, format='isot', scale='utc') 
+        bjd = midtime.tdb
+    
+        self.bjd, self.targ, self.berv = bjd, targ, berv
 
-    spec = hdu['SCIDATA'].data[order]
-    wave = hdu['WAVEDATA_VAC_BARY'].data[order]
-    err = hdu['ERRDATA'].data[order]
+        spec_all = hdu['SCIDATA'].data
+        wave_all = hdu['WAVEDATA_VAC_BARY'].data
+        err_all = hdu['ERRDATA'].data
         
-    # wavelengths are already berv corrected
-    # leads to problems in the telluric corrections for large berv
-    wave *= 1-berv/3e5
+        self.wave_all, self.spec_all, self.err_all = wave_all, spec_all, err_all    
+        
+    def Spectrum(self, order):
+    
+        # select the order from the entire data set
+        if order is not None:
+             wave, spec, err = self.wave_all[order], self.spec_all[order], self.err_all[order]
+        
+        # wavelengths are already berv corrected
+        # leads to problems in the telluric corrections for large berv
+        wave *= 1-berv/3e5
 
-    pixel = np.arange(spec.size)
+        pixel = np.arange(spec.size)
 
-  #  targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
-   # if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') 
- #   berv = targ.radial_velocity_correction(obstime=midtime, location=espresso)
-   # berv = 0#berv.to(u.km/u.s).value
-    bjd = midtime.tdb
+        flag_pixel = 1 * np.isnan(spec)		# bad pixel map
+        flag_pixel[spec==1] |= 1
+        flag_pixel[spec<=0] |= 1
 
-    flag_pixel = 1 * np.isnan(spec)		# bad pixel map
-    flag_pixel[spec==1] |= 1
-    flag_pixel[spec<=0] |= 1
-
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        return pixel, wave, spec, err, flag_pixel
 
 
 def Tpl(tplname, order=None, targ=None):

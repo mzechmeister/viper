@@ -24,27 +24,35 @@ oset = '32:82'
 # convert FHWM resolution to sigma
 ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   
 
-def Spectrum(filename='', order=None, targ=None):
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
+class observation:
 
-    dateobs = hdr.get('DATE-OBS', np.nan)
-    ra = hdr.get('RA', np.nan)                        
-    de = hdr.get('DEC', np.nan)
+    def __init__(self, filename, targ, *args):
+    
+        self.filename = filename
+        hdu = fits.open(filename, ignore_blank=True)
+        hdr = hdu[0].header
 
-    berv = hdr.get('TNG DRS BERV', 0)
-    bjd = Time(dateobs, format='isot', scale='utc')
+        dateobs = hdr.get('DATE-OBS', np.nan)
+        ra = hdr.get('RA', np.nan)                        
+        de = hdr.get('DEC', np.nan)
 
-    data = hdu[1].data
+        berv = hdr.get('TNG DRS BERV', 0)
+        bjd = Time(dateobs, format='isot', scale='utc')
+        
+        self.bjd, self.targ, self.berv = bjd, targ, berv
 
-    if order is not None:
-         wave, spec = data['WAVE'][order-32][::-1]*10, data['FLUX'][order-32][::-1]
+        self.data = hdu[1].data
 
-    pixel = np.arange(spec.size) 
-    err = np.zeros(spec.size)+0.1
-    flag_pixel = 1 * np.isnan(spec) # bad pixel map
+    def Spectrum(self, order):
 
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        if order is not None:
+             wave, spec = self.data['WAVE'][order-32][::-1]*10, self.data['FLUX'][order-32][::-1]
+
+        pixel = np.arange(spec.size) 
+        err = np.zeros(spec.size)+0.1
+        flag_pixel = 1 * np.isnan(spec) # bad pixel map
+
+        return pixel, wave, spec, err, flag_pixel
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
@@ -54,7 +62,7 @@ def Tpl(tplname, order=None, targ=None):
     return wave, spec
 
 
-def FTS(ftsname='', dv=100):
+def FTS(ftsname='None', dv=100):
 
     return resample(*FTSfits(ftsname), dv=dv)
 

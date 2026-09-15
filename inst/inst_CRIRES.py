@@ -11,21 +11,14 @@ from astropy.coordinates import SkyCoord, EarthLocation
 import astropy.units as u
 from astropy.constants import c
 
+from .template import read_tpl
 from .readmultispec import readmultispec
 from .airtovac import airtovac
+from .calc_drifts import barycorr
 
 from .FTS_resample import resample, FTSfits
 
-try:
-    # check if PyCPL is available
-    import cpl
-    from cpl.core import Table
-    from cpl.core import PropertyList, Property
-    pycpl = 1
-    print('Using PyCPL for data reading and writing.')
-except:
-    pycpl = 0
-    print('No PyCPL version has been found. Using astropy for data reading and writing.')
+pycpl = 0
 
 # see https://github.com/mzechmeister/serval/blob/master/src/inst_FIES.py
 
@@ -39,70 +32,21 @@ oset = '1:19'
 
 ip_guess = {'s': 1.5}
 
-def Spectrum(filename='', order=None, targ=None):
+class observation:
 
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
-    setting = hdr['ESO INS WLEN ID']
-    
-    if str(setting)[0] != 'K':
-        # max DRS order for ech detector    
-        det_ord_max = [int((hdu[det].columns.names[-1]).split('_')[0]) for det in (1, 2, 3)]
+    def __init__(self, filename, targ, *args):
+
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)
+        self.hdr = hdr = hdu[0].header
+        self.setting = setting = hdr['ESO INS WLEN ID']
         
-        ord_max = np.nanmax(det_ord_max)		# max drs order of all detectors
-        ind_det_max = det_ord_max.index(ord_max) + 1	# idex of max drs order
-    
-        order_idx, detector = divmod(order, 3)
-        detector = (detector + ind_det_max) % 3
-        if detector == 0: detector = 3
-
-        order_drs = det_ord_max[detector-1] - order_idx	# DRS order for viper order
-
-    else:
-        # for now we tread K band data separately
-        order_drs, detector = divmod(order-1, 3)
-        order_drs = 7 - order_drs	# order number (CRIRES+ definition)
-        detector += 1			# detector number (1,2,3)
-    
-    exptime = 0
-
-    if pycpl:
-        hdr = PropertyList.load(filename, 0)    
-        ra = hdr["RA"].value
-        de = hdr["DEC"].value
-        setting = hdr["ESO INS WLEN ID"].value
-        nod_type = hdr["ESO PRO CATG"].value
-        cal = PropertyList.load_regexp(filename, 0, "ESO PRO REC1 CAL", False)
-        
-        try:
-            # midtime; for data reduced with new DRS pipeline version
-            # ensure input spectra is a combined spectrum (nodA+nodB)
-            # non-combined nodA and nodB spectra have the same time stamp
-            # bug in the current DRS pipeline versions
-            if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
-            dateobs = Time(hdr["ESO DRS TMID"].value, format='mjd').isot
-        except:
-            dateobs = hdr["DATE-OBS"].value
-            ndit = hdr["ESO DET NDIT"].value
-            nods = hdr["ESO PRO DATANCOM"].value   # Number of combined frames
-            if str(nod_type) in ('OBS_NODDING_EXTRACTA', 'OBS_NODDING_EXTRACTB'):
-                # just half of the nods are combined
-                nods /= 2
-            exptime = hdr["ESO DET SEQ1 DIT"].value
-            exptime = (exptime*nods*ndit) / 2.0           
-
-        tbl = Table.load(filename, detector)
-        spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
-        err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
-
-    else:
-        hdu = fits.open(filename, ignore_blank=True)
-        hdr = hdu[0].header
+        exptime = 0
         ra = hdr.get('RA', np.nan)
         de = hdr.get('DEC', np.nan)
         setting = hdr['ESO INS WLEN ID']
         nod_type = hdr['ESO PRO CATG']
-        cal = hdr['ESO PRO REC1 CAL* CATG']
+        self.cal = cal = hdr['ESO PRO REC1 CAL* CATG']
         
         try:
             if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
@@ -116,48 +60,67 @@ def Spectrum(filename='', order=None, targ=None):
                 nods /= 2
             exptime = hdr.get('ESO DET SEQ1 DIT', 0)
             exptime = (exptime*nods*ndit) / 2.0
+        
+        targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
+        if not targ: targ = targdrs
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
+        bjd = midtime.tdb
+        
+        self.bjd, self.targ = bjd, targ
+        
+        
+    def Spectrum(self, order):           
+    
+        if str(self.setting)[0] != 'K':
+            # max DRS order for ech detector    
+            det_ord_max = [int((self.hdu[det].columns.names[-1]).split('_')[0]) for det in (1, 2, 3)]
+        
+            ord_max = np.nanmax(det_ord_max)		# max drs order of all detectors
+            ind_det_max = det_ord_max.index(ord_max) + 1	# idex of max drs order
+    
+            order_idx, detector = divmod(order, 3)
+            detector = (detector + ind_det_max) % 3
+            if detector == 0: detector = 3
 
-        err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
-        spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
+            order_drs = det_ord_max[detector-1] - order_idx	# DRS order for viper order
 
-    pixel = np.arange(spec.size)
-
-    targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
-    if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    berv = targ.radial_velocity_correction(obstime=midtime, location=crires)
-    berv = berv.to(u.km/u.s).value
-    bjd = midtime.tdb
-   
-    # currently running tests with wavesolution from DRS pipeline
-    # DRS is giving better results for some orders
-    # this may can be removed in the near future
-    if 0: #str(setting) in ('K2148', 'K2166', 'K2192'):
-	    # using an own wavelength solution instead of the one created by DRS
-        file_wls = np.genfromtxt(path+'wavesolution_own/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
-        coeff_wls = [file_wls.b1[order-1], file_wls.b2[order-1], file_wls.b3[order-1]]
-        wave = np.poly1d(coeff_wls[::-1])(pixel)
-
-    else:
-        if pycpl:
-            wave = np.array(tbl["0"+str(order_drs)+"_01_WL"]) *10
         else:
-            wave = (hdu[detector].data["0"+str(order_drs)+"_01_WL"]) * 10
+            # for now we tread K band data separately
+            order_drs, detector = divmod(order-1, 3)
+            order_drs = 7 - order_drs	# order number (CRIRES+ definition)
+            detector += 1			# detector number (1,2,3)
+    
+        err = self.hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
+        spec = self.hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
+
+        pixel = np.arange(spec.size)
+
+        # currently running tests with wavesolution from DRS pipeline
+        # DRS is giving better results for some orders
+        # this may can be removed in the near future
+        if 0: #str(setting) in ('K2148', 'K2166', 'K2192'):
+	        # using an own wavelength solution instead of the one created by DRS
+            file_wls = np.genfromtxt(path+'wavesolution_own/wave_solution_'+str(setting)+'.dat', dtype=None, names=True).view(np.recarray)
+            coeff_wls = [file_wls.b1[order-1], file_wls.b2[order-1], file_wls.b3[order-1]]
+            wave = np.poly1d(coeff_wls[::-1])(pixel)
+
+        else:        
+            wave = (self.hdu[detector].data["0"+str(order_drs)+"_01_WL"]) * 10
             
-    if 'CAL_FLAT_EXTRACT_1D' not in str(cal):
-        # check if data are already blaze corrected by DRS pipeline
-        # otherwise use own blaze correction generated from 1D FLAT spectra 
-        # not yet tested for all settings
-        if str(setting)[0] == 'K':
-             hdu = fits.open(path+'blaze_own.fits', ignore_blank=True) 
-        else:
-             hdu = fits.open(path+'blaze_new.fits', ignore_blank=True)        
-        blaze = hdu[setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]        
-        spec /= blaze
+        if 'CAL_FLAT_EXTRACT_1D' not in str(self.cal):
+            # check if data are already blaze corrected by DRS pipeline
+            # otherwise use own blaze correction generated from 1D FLAT spectra 
+            # not yet tested for all settings
+            if str(self.setting)[0] == 'K':
+                hdub = fits.open(path+'blaze_own.fits', ignore_blank=True) 
+            else:
+                hdub = fits.open(path+'blaze_new.fits', ignore_blank=True)        
+            blaze = hdub[self.setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]        
+            spec /= blaze
 
-    flag_pixel = 1 * np.isnan(spec)		# bad pixel map
+        flag_pixel = 1 * np.isnan(spec)		# bad pixel map
 
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        return pixel, wave, spec, err, flag_pixel
 
 
 def Tpl(tplname, order=None, targ=None):
@@ -186,23 +149,21 @@ def Tpl(tplname, order=None, targ=None):
             order_drs, detector = divmod(order-1, 3)
             order_drs = 7 - order_drs	# order number (CRIRES+ definition)
             detector += 1			# detector number (1,2,3)
-
-        if pycpl:
-            hdr = PropertyList.load(tplname, 1)
-            tbl = Table.load(tplname, detector)
-            spec = np.array(tbl["0"+str(order_drs)+"_01_SPEC"])
-            err = np.array(tbl["0"+str(order_drs)+"_01_ERR"])
-            wave = np.array(tbl["0"+str(order_drs)+"_01_WL"])
-        else:
-            hdu = fits.open(tplname, ignore_blank=True)
-            hdr = hdu[0].header    
-            err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
-            spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
-            wave = hdu[detector].data["0"+str(order_drs)+"_01_WL"]
-            pixel = np.arange(spec.size)
+      
+        hdu = fits.open(tplname, ignore_blank=True)
+        hdr = hdu[0].header    
+        err = hdu[detector].data["0"+str(order_drs)+"_01_ERR"]
+        spec = hdu[detector].data["0"+str(order_drs)+"_01_SPEC"]
+        wave = hdu[detector].data["0"+str(order_drs)+"_01_WL"]
+        pixel = np.arange(spec.size)
     else:
-        pixel, wave, spec, err, flag_pixel, bjd, berv = Spectrum(tplname, order=order, targ=targ)
-        wave *= 1 + (berv*u.km/u.s/c).to_value('')
+
+    #    obs2 = observation(filename=tplname, targ=targ)
+     #   berv = barycorr(obs2, 0, 'inst.inst_CRIRES')
+      #  pixel, wave, spec, err, flag_pixel = obs2.Spectrum(order=order)
+       # wave *= 1 + (berv*u.km/u.s/c).to_value('')
+        
+        wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ)
 
     return wave, spec
 

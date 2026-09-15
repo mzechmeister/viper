@@ -25,47 +25,54 @@ iset = '10:-10'
 # convert FHWM resolution to sigma
 ip_guess = {'s': 300_000/80_000/ (2*np.sqrt(2*np.log(2))) }   
 
-def Spectrum(filename='', order=None, targ=None):
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
+class observation:
 
-    dateobs = hdr.get('DATE-OBS', np.nan)
-    exptime = hdr.get('EXP', 0)   
-    ra = hdr.get('RA', np.nan)                        
-    de = hdr.get('DEC', np.nan)
-    tel_lat = hdr.get('TEL GEOLAT', np.nan)
-    tel_lon = hdr.get('TEL GEOLON', np.nan)
-    tel_hei = hdr.get('TEL GEOELEV', np.nan)
+    def __init__(self, filename, targ, *args):
+    
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)
+        self.hdr = hdr = hdu[0].header
 
-    if len(dateobs) < 12:
-        print('WARNING: Incorrect time information in FITS header. This will lead to a wrong barycentric correction.')
+        dateobs = hdr.get('DATE-OBS', np.nan)
+        exptime = hdr.get('EXP', 0)   
+        ra = hdr.get('RA', np.nan)                        
+        de = hdr.get('DEC', np.nan)
+        tel_lat = hdr.get('TEL GEOLAT', np.nan)
+        tel_lon = hdr.get('TEL GEOLON', np.nan)
+        tel_hei = hdr.get('TEL GEOELEV', np.nan)
 
-    targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
-    if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
+        if len(dateobs) < 12:
+            print('WARNING: Incorrect time information in FITS header. This will lead to a wrong barycentric correction.')
+
+        targdrs = SkyCoord(ra=ra*u.hour, dec=de*u.deg)
+        if not targ: targ = targdrs
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
     
-    location = tls = EarthLocation.from_geodetic(lat=tel_lat*u.deg, lon=tel_lon*u.deg, height=tel_hei*u.m)
+        self.location = location = EarthLocation.from_geodetic(lat=tel_lat*u.deg, lon=tel_lon*u.deg, height=tel_hei*u.m)
     
-    berv = targ.radial_velocity_correction(obstime=midtime, location=tls)
-    berv = berv.to(u.km/u.s).value
-    bjd = midtime.tdb
+        berv = targ.radial_velocity_correction(obstime=midtime, location=location)
+        berv = berv.to(u.km/u.s).value
+        bjd = midtime.tdb
     
-    if order is not None:
-         wave = hdu[order].data['wave']
-         spec = hdu[order].data['flux']
+        self.bjd, self.targ, self.berv = bjd, targ, berv
+    
+    def Spectrum(self, order):
+        if order is not None:
+            wave = self.hdu[order].data['wave']
+            spec = self.hdu[order].data['flux']
          
-         try:
-             err = hdu[order].data['error']
-         except:
-             err = spec*0+0.1
+            try:
+                err = hdu[order].data['error']
+            except:
+                err = spec*0+0.1
          
    # wave = airtovac(wave)
 
-    pixel = np.arange(spec.size) 
-    flag_pixel = 1 * np.isnan(spec) # bad pixel map
+        pixel = np.arange(spec.size) 
+        flag_pixel = 1 * np.isnan(spec) # bad pixel map
 
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
-
+        return pixel, wave, spec, err, flag_pixel
+    
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
     wave, spec = read_tpl(tplname, inst=os.path.basename(__file__), order=order, targ=targ) 

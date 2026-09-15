@@ -24,48 +24,52 @@ oset = '1:30'
 
 ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   # convert FHWM resolution to sigma
 
-def Spectrum(filename='', order=None, targ=None):
-    hdu = fits.open(filename, ignore_blank=True)[0]
-    hdr = hdu.header
+class observation:
 
-    dateobs = hdr['DATE-OBS']+ 'T' + hdr['UT']
-    exptime = hdr['EXPTIME']
+    def __init__(self, filename, targ, *args):
     
-    ra = hdr.get('RA', np.nan)                          
-    de = hdr.get('DEC', np.nan)
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)[0]
+        self.hdr = hdr = hdu.header
+
+        dateobs = hdr['DATE-OBS']+ 'T' + hdr['UT']
+        exptime = hdr['EXPTIME']
     
-    offs = 0
-    if str(de)[0] == '-': offs = 1
-    ra = ra.split(':')
-    de = de[offs:].split(':')
-    ra = (float(ra[0]) + float(ra[1])/60 + float(ra[2])/3600) * 15
-    de = float(de[0]) + float(de[1])/60 + float(de[2])/3600
-    if offs: de *= -1
+        ra = hdr.get('RA', np.nan)                          
+        de = hdr.get('DEC', np.nan)
+    
+        ra = tuple(map(float, ra.split(':')))
+        de = tuple(map(float, de.split(':')))
+        ra = np.polyval(ra[::-1], 1/60)*15
+        de = np.polyval(np.copysign(de[::-1], de[0]), 1/60)
 
+        targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
+        if not targ: targ = targdrs
 
-    targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
-    if not targ: targ = targdrs
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
+        bjd = midtime.tdb
+        
+        self.bjd, self.targ = bjd, targ
+        
+        # read in the complete data set
+        spec_all = self.hdu.data
+        spec_all /= np.nanmean(spec_all)
+        gg = readmultispec(self.filename, reform=True, quiet=True)
+        wave_all = gg['wavelen']
+        wave_all = airtovac(wave_all)
+        
+        self.wave_all, self.spec_all = wave_all, spec_all
+        
+    def Spectrum(self, order):
+        
+        if order is not None:
+            wave, spec = self.wave_all[order], self.spec_all[order]
 
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime * u.s
-    bjd = midtime.tdb
+        pixel = np.arange(spec.size) 
+        err = np.ones(spec.size)*0.1
+        flag_pixel = 1 * np.isnan(spec) # bad pixel map
 
-    berv = targ.radial_velocity_correction(obstime=midtime, location=oes)
-    berv = berv.to(u.km/u.s).value
-
-    spec = hdu.data
-    spec /= np.nanmean(spec)
-    gg = readmultispec(filename, reform=True, quiet=True)
-    wave = gg['wavelen']
-    wave = airtovac(wave)
-    if order is not None:
-         wave, spec= wave[order], spec[order]
-
-    pixel = np.arange(spec.size) 
-    err = np.ones(spec.size)*0.1
-    flag_pixel = 1 * np.isnan(spec) # bad pixel map
- #   b[f>1.5] |= 4 # large flux
-
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        return pixel, wave, spec, err, flag_pixel
 
 
 def Tpl(tplname, order=None, targ=None):

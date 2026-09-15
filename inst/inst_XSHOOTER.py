@@ -30,41 +30,49 @@ oset = '1:12'
 
 ip_guess = {'s': 300_000/20_000/ (2*np.sqrt(2*np.log(2))) } 
 
-def Spectrum(filename='', order=None, targ=None):
+class observation:
 
-    hdu = fits.open(filename, ignore_blank=True)
-    hdr = hdu[0].header
-    ra = hdr.get('RA', np.nan)
-    de = hdr.get('DEC', np.nan)
+    def __init__(self, filename, targ, *args):
 
-    dateobs = hdr['DATE-OBS']
-    berv = hdr['ESO QC VRAD BARYCOR']
+        self.filename = filename
 
-	# ESO Phase 3 format
-	# entire 1D spectra - separation into smaller chunks for viper
-    spec = hdu[1].data['FLUX'][0]
-    wave = hdu[1].data['WAVE'][0]
-    err = hdu[1].data['ERR'][0]
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)
+        self.hdr = hdr = hdu[0].header
+        ra = hdr.get('RA', np.nan)
+        de = hdr.get('DEC', np.nan)
+
+        dateobs = hdr['DATE-OBS']
+        berv = hdr['ESO QC VRAD BARYCOR']
+        
+        midtime = Time(dateobs, format='isot', scale='utc') 
+        bjd = midtime.tdb
+        
+        self.bjd, self.targ, self.berv = bjd, targ, berv
+
+    	# ESO Phase 3 format
+	    # entire 1D spectra - separation into smaller chunks for viper
+        spec = hdu[1].data['FLUX'][0]
+        wave = hdu[1].data['WAVE'][0]
+        err = hdu[1].data['ERR'][0]
+        
+        self.wave_all, self.spec_all, self.err_all = wave, spec, err
+        
+    def Spectrum(self, order):    
     
-    if 1:
-        px = 2048	# pixel number of original data ?
-        spec = spec[order*px:(order+1)*px]
-        wave = wave[order*px:(order+1)*px]*10
-        err = err[order*px:(order+1)*px]
-
- #   wave *= 1-berv/3e5		# wavelengths berv corrected?
+        if 1:
+            px = 2048	# pixel number of original data ?
+            spec = self.spec_all[order*px:(order+1)*px]
+            wave = self.wave_all[order*px:(order+1)*px]*10
+            err = self.err_all[order*px:(order+1)*px]
     
-    wave = airtovac(wave)
+        wave = airtovac(wave)
 
-    midtime = Time(dateobs, format='isot', scale='utc') 
-    bjd = midtime.tdb
+        pixel = np.arange(spec.size)
+        flag_pixel = 1 * np.isnan(spec)		# bad pixel map
+        flag_pixel[spec==1] |= 1
+        flag_pixel[spec<=0] |= 1
 
-    pixel = np.arange(spec.size)
-    flag_pixel = 1 * np.isnan(spec)		# bad pixel map
-    flag_pixel[spec==1] |= 1
-    flag_pixel[spec<=0] |= 1
-
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        return pixel, wave, spec, err, flag_pixel
 
 
 def Tpl(tplname, order=None, targ=None):

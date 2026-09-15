@@ -25,51 +25,63 @@ oset = '26:37'
 # convert FHWM resolution to sigma
 ip_guess = {'s': 300_000/67_000/ (2*np.sqrt(2*np.log(2))) }   
 
-def Spectrum(filename='', order=None, targ=None):
-    hdu = fits.open(filename, ignore_blank=True)[0]
-    hdr = hdu.header
+class observation:
+
+    def __init__(self, filename, targ, *args):
+
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)[0]
+        self.hdr = hdr = hdu.header
     
-    try:
-        # use barycorr from header if available
-        berv = hdr['BARYCORR'] / 1000         
-        # To do:  bjd = hdr['JDUTCMID'] ?
-    except:
-        berv = np.nan
+        try:
+            # use barycorr from header if available
+            berv = hdr['BARYCORR'] / 1000         
+            # To do:  bjd = hdr['JDUTCMID'] ?
+        except:
+            berv = np.nan
         
-    try:
-        dateobs = hdr['DATE-OBS']+ 'T' + hdr['MIDTIME']
-        exptime = 0
-    except:
-        dateobs = hdr['DATE-OBS']+ 'T' + (hdr['UT']).replace(' ', '')
-        exptime = hdr.get('EXPTIME')  
+        try:
+            dateobs = hdr['DATE-OBS']+ 'T' + hdr['MIDTIME']
+            exptime = 0
+        except:
+            dateobs = hdr['DATE-OBS']+ 'T' + (hdr['UT']).replace(' ', '')
+            exptime = hdr.get('EXPTIME')  
         
-    ra = hdr.get('RA', np.nan)                          
-    de = hdr.get('DEC', np.nan)
+        ra = hdr.get('RA', np.nan)                          
+        de = hdr.get('DEC', np.nan)
 
-    targdrs = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg))
-    if not targ: targ = targdrs
+        targdrs = SkyCoord(ra=ra, dec=de, unit=(u.hourangle, u.deg))
+        if not targ: targ = targdrs
    
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
   
-    if np.isnan(berv):
-        berv = targ.radial_velocity_correction(obstime=midtime, location=mcdonald)
-        berv = berv.to(u.km/u.s).value
+        if np.isnan(berv):
+            berv = targ.radial_velocity_correction(obstime=midtime, location=mcdonald)
+            berv = berv.to(u.km/u.s).value
         
-    bjd = midtime.tdb
+        bjd = midtime.tdb
+        
+        self.bjd, self.targ, self.berv = bjd, targ, berv
 
-    spec = hdu.data
-    gg = readmultispec(filename, reform=True, quiet=True)
-    wave = gg['wavelen']
-    wave = airtovac(wave)
-    if order is not None:
-         wave, spec = wave[order], spec[order]
+        # read in the complete data set
+        spec_all = self.hdu.data
+        gg = readmultispec(self.filename, reform=True, quiet=True)
+        wave_all = gg['wavelen']
+        wave_all = airtovac(wave_all)
+        
+        self.wave_all, self.spec_all = wave_all, spec_all
+        
+    def Spectrum(self, order):
+        
+        # select the order from the entire data set
+        if order is not None:
+             wave, spec = self.wave_all[order], self.spec_all[order]
 
-    pixel = np.arange(spec.size) 
-    err = np.zeros(spec.size)+0.1
-    flag_pixel = 1 * np.isnan(spec) # bad pixel map
-    #b[spec>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
-
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        pixel = np.arange(spec.size) 
+        err = np.zeros(spec.size)+0.1
+        flag_pixel = 1 * np.isnan(spec) # bad pixel map
+        
+        return pixel, wave, spec, err, flag_pixel
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''

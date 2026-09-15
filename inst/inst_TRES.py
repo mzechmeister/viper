@@ -27,46 +27,52 @@ oset = '10:40'
 # convert FHWM resolution to sigma
 ip_guess = {'s': 300_000/62_000/ (2*np.sqrt(2*np.log(2))) }   
 
-def Spectrum(filename='', order=None, targ=None):
-    hdu = fits.open(filename, ignore_blank=True)[0]
-    hdr = hdu.header
+class observation:
 
-    dateobs = hdr.get('DATE-OBS', 0)
-    exptime = hdr.get('EXPTIME', 0)   
-    ra = hdr.get('RA', np.nan)                          
-    de = hdr.get('DEC', np.nan)
+    def __init__(self, filename, targ, *args):
     
-    offs = 0
-    if str(de)[0] == '-': offs = 1
-    ra = ra.split(':')
-    de = de[offs:].split(':')
-    ra = (float(ra[0]) + float(ra[1])/60 + float(ra[2])/3600) * 15
-    de = float(de[0]) + float(de[1])/60 + float(de[2])/3600
-    if offs: de *= -1
+        self.filename = filename
+        self.hdu = hdu = fits.open(filename, ignore_blank=True)[0]
+        self.hdr = hdr = hdu.header
 
-    targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
+        dateobs = hdr.get('DATE-OBS', 0)
+        exptime = hdr.get('EXPTIME', 0)   
+        ra = hdr.get('RA', np.nan)                          
+        de = hdr.get('DEC', np.nan)
     
-    if not targ: targ = targdrs
-    midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
+        ra = tuple(map(float, ra.split(':')))
+        de = tuple(map(float, de.split(':')))
+        ra = np.polyval(ra[::-1], 1/60)*15
+        de = np.polyval(np.copysign(de[::-1], de[0]), 1/60)
+
+        targdrs = SkyCoord(ra=ra*u.deg, dec=de*u.deg)
     
-    berv = targ.radial_velocity_correction(obstime=midtime, location=tres)
-    berv = berv.to(u.km/u.s).value
-    bjd = midtime.tdb
+        if not targ: targ = targdrs
+        midtime = Time(dateobs, format='isot', scale='utc') + exptime/2. * u.s
+    
+        bjd = midtime.tdb
+        
+        self.bjd, self.targ = bjd, targ
 
-    spec = hdu.data
-    gg = readmultispec(filename, reform=True, quiet=True)
-    wave = gg['wavelen']
-    wave = airtovac(wave)
-    if order is not None:
-         wave, spec = wave[order], spec[order]
+        spec = hdu.data
+        gg = readmultispec(filename, reform=True, quiet=True)
+        wave = gg['wavelen']
+        wave = airtovac(wave)
+        
+        self.wave_all, self.spec_all = wave_all, spec_all
+        
+    def Spectrum(self, order):        
+        
+        if order is not None:
+            wave, spec = self.wave_all[order], self.spec_all[order]
 
-    pixel = np.arange(spec.size) 
-    err = np.zeros(spec.size)+0.1
-    flag_pixel = 1 * np.isnan(spec) # bad pixel map
-    #b[spec>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
-    flag_pixel[(5300<wave) & (wave<5343)] |= 256  # only for HARPS s1d template (this order misses)
+        pixel = np.arange(spec.size) 
+        err = np.zeros(spec.size)+0.1
+        flag_pixel = 1 * np.isnan(spec) # bad pixel map
+        #b[spec>1.] |= 4   # large flux, only for normalised spectra, use kapsig instead
+        flag_pixel[(5300<wave) & (wave<5343)] |= 256  # only for HARPS s1d template (this order misses)
 
-    return pixel, wave, spec, err, flag_pixel, bjd, berv
+        return pixel, wave, spec, err, flag_pixel
 
 def Tpl(tplname, order=None, targ=None):
     '''Tpl should return barycentric corrected wavelengths'''
