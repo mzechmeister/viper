@@ -8,6 +8,7 @@ import astropy.units as u
 from astropy.constants import c
 from astropy.io import fits
 from .airtovac import airtovac
+from .calc_drifts import barycorr
 
 
 def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax=8000):
@@ -63,10 +64,16 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
     elif tplname.endswith('.fits') or tplname.endswith('.model'):
        
         try:
-          #  print('read '+inst.split('.')[0][5:]+' template', tplname)
-            inst = importlib.import_module('inst.'+str(inst)[:-3])
-                       
-            pixel, wave, spec, err, flag_pixel, bjd, berv = inst.Spectrum(tplname, order=order, targ=targ)
+            inst = importlib.import_module('inst.'+str(inst)[:-3])                     
+            obs = inst.observation(filename=tplname, targ=targ)
+            
+            try:     
+                berv = obs.berv		# use barycetric motion from inst file, if given
+            except:
+                berv = barycorr(obs, 0, inst)
+            
+            pixel, wave, spec, err, flag_pixel = obs.Spectrum(order=order)
+        
             if not tplname.endswith('_tpl.model') and not tplname.endswith('_tpl.fits'):
                 # apply barycentric correction
                 wave *= 1 + (berv*u.km/u.s/c).to_value('')
