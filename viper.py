@@ -11,6 +11,7 @@ import os
 import time
 from collections import defaultdict
 import configparser
+import copy
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -27,6 +28,7 @@ from utils.pause import pause
 from utils.model import model, model_bnd, IPs, show_model, pade
 from utils.targ import Targ
 import utils.convert_output as convert_output
+import inst.calc_drifts as calc_drifts
 try:
     import viper.vpr as vpr
 except: 
@@ -144,7 +146,7 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     Inst = importlib.import_module('inst.inst_'+preargs.inst)
     FTS = Inst.FTS
     Tpl = Inst.Tpl
-    Spectrum = Inst.Spectrum
+  #  Spectrum = Inst.Spectrum
     Tell = getattr(Inst, 'Tell', None)
     iset = getattr(Inst, 'iset', slice(None))
     oset = getattr(Inst, 'oset')
@@ -232,10 +234,12 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     globals().update(vars(args))
 
 
-def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
+def fit_chunk(order, chunk, obs):
     ####  observation  ####
-    pixel, wave_obs, spec_obs, err_obs, flag_obs, bjd, berv = Spectrum(obsname, order=order, targ=targ)
-    
+
+    # read in spectrum of the order
+    pixel, wave_obs, spec_obs, err_obs, flag_obs = obs.Spectrum(order=order)
+   
     if telluric == 'mask':
         flag_obs[mskatm(wave_obs) > 0.1] |= flag.atm
     flag_obs[np.isnan(spec_obs)] |= flag.nan
@@ -529,7 +533,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         prms = np.nanstd(res) / fx.nanmean() * 100
         if order in look:
             pause()
-        return par_rv*1000, e_v*1000, bjd.jd, berv, best[0], np.diag(np.nan*best[0]), prms
+        return par_rv*1000, e_v*1000, best[0], np.diag(np.nan*best[0]), prms
     
     show = (order in look) or (order in lookfast)
 
@@ -740,7 +744,7 @@ def fit_chunk(order, chunk, obsname, targ=None, tpltarg=None):
         gplot.unset('multiplot')
         pause('lookpar', par.ip)
 
-    return rvo, e_rvo, bjd.jd, berv, par, e_params, prms
+    return rvo, e_rvo, par, e_params, prms
 
 
 obsnames = np.array(sorted(glob.glob(obspath)))[nset]
@@ -767,8 +771,9 @@ colnums = orders if chunks == 1 else [f'{order}-{ch}' for order in orders for ch
 print('BJD RV e_RV BERV', *map("rv{0} e_rv{0}".format, colnums), 'filename', file=rvounit)
 
 # estimate wavelength range from observation
-pixel, wave0, spec0, err0, flag0, bjd, berv = Spectrum(obsnames[0], order=orders[0], targ=targ)
-pixel, wave1, spec1, err1, flag1, bjd, berv = Spectrum(obsnames[0], order=orders[-1], targ=targ)
+obs = Inst.observation(filename=obsnames[0], targ=targ)
+pixel, wave0, spec0, err0, flag0 = obs.Spectrum(order=orders[0])
+pixel, wave1, spec1, err1, flag1 = obs.Spectrum(order=orders[-1])
     
 obs_lmin = np.min([wave0[0], wave0[-1], wave1[0], wave1[-1]])
 obs_lmax = np.max([wave0[0], wave0[-1], wave1[0], wave1[-1]])
@@ -892,6 +897,7 @@ if telluric == 'add' and (wave_cell[-1] < wmax):
     if not tplname:
         wave_tpl, spec_tpl = [wave_cell[[0, -1]]]*200, [np.ones(2)]*200
 
+
 T = time.time()
 headrow = True
 for n, obsname in enumerate(obsnames):
@@ -900,6 +906,22 @@ for n, obsname in enumerate(obsnames):
         if os.path.isdir(viperdir+'res') and os.listdir(viperdir+'res'):
             os.system('rm -rf '+viperdir+'res/*.dat')
     filename = os.path.basename(obsname)
+    
+    # read in the parameters from the observation
+    obs = Inst.observation(filename=obsname, targ=targ)
+
+    sa = 0
+    if targ: 
+        target = copy.deepcopy(targ)	# Otherwise it is overwritten. Why?
+        sa, obs.targ = calc_drifts.proper_motion(obs.bjd, target)
+
+    try:     
+        berv = obs.berv		# use barycetric motion from inst file, if given
+    except:
+        berv = calc_drifts.barycorr(obs, sa, Inst)
+        
+    bjd = obs.bjd.jd
+    
     print(f"{n+1:3d}/{N}", filename)
     for i_o, o in enumerate(orders):
         for ch in np.arange(chunks):
@@ -907,8 +929,8 @@ for n, obsname in enumerate(obsnames):
                 gplot.RV2title = lambda x: gplot.key('title noenhanced "%s (n=%s, o=%s%s)"'% (filename, n+1, o, x))
                 gplot.RV2title('')
         
-                rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], bjd, berv, params, e_params, prms = fit_chunk(o, ch, obsname=obsname, targ=targ)
-
+                rv[i_o*chunks+ch], e_rv[i_o*chunks+ch], params, e_params, prms = fit_chunk(o, ch, obs=obs)
+                
                 print(n+1, o, ch, rv[i_o*chunks+ch], e_rv[i_o*chunks+ch])
                 # just for compability, remove Params(ipB=[]) later !!
                 if 'ipB' in params: params.pop('ipB')
