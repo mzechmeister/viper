@@ -48,6 +48,8 @@ class observation:
         nod_type = hdr['ESO PRO CATG']
         self.cal = cal = hdr['ESO PRO REC1 CAL* CATG']
         
+        self.radvel = hdr.get('ESO OBJ RADVEL', 0)
+        
         try:
             if str(nod_type) != 'OBS_NODDING_EXTRACT_COMB': raise
             dateobs = Time(hdr["ESO DRS TMID"], format='mjd').isot
@@ -118,7 +120,7 @@ class observation:
             blaze = hdub[self.setting].data["0"+str(order_drs)+"_0"+str(detector)+"_BLAZE"]        
             spec /= blaze
 
-        flag_pixel = 1 * np.isnan(spec)		# bad pixel map
+        flag_pixel = 1 * np.isnan(spec)		# bad pixel map 
 
         return pixel, wave, spec, err, flag_pixel
 
