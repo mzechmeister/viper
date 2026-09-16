@@ -174,19 +174,19 @@ class GUI_viper:
         lfr_model.grid(row=1, column=1, sticky="news", padx=(10, 10), pady=y1, ipady=5)
 
         lfr_tpl = LabelFrame(fr2, text="Template", bg=bg_frame, bd=2)
-        lfr_tpl.grid(row=2, column=1, sticky="news", padx=(10, 10), pady=y1, ipady=5)
+        lfr_tpl.grid(row=2, column=1, sticky="news", padx=(10, 10), pady=y1, ipady=0)
 
         lfr_stat = LabelFrame(fr2, text="Fit Settings", bg=bg_frame, bd=2)
-        lfr_stat.grid(row=2, column=0, sticky="news", padx=(10, 0), pady=y1, ipady=5)
+        lfr_stat.grid(row=2, column=0, sticky="news", padx=(10, 0), pady=y1, ipady=0)
 
         self.lfr_tell = LabelFrame(fr2, text="Tellurics", bg=bg_frame, bd=2)
-        self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10, 0), pady=y1, ipady=5, columnspan=1)
+        self.lfr_tell.grid(row=3, column=0, sticky="news", padx=(10, 0), pady=y1, ipady=0, columnspan=1)
 
         self.lfr_ctpl = LabelFrame(fr2, text="Create Template", bg=bg_frame, bd=2)
-        self.lfr_ctpl.grid(row=3, column=1, sticky="news", padx=(10, 10), pady=y1, ipady=5, columnspan=1)
+        self.lfr_ctpl.grid(row=3, column=1, sticky="news", padx=(10, 10), pady=y1, ipady=0, columnspan=1)
 
         lfr_out = LabelFrame(fr2, text="Output", bg=bg_frame, bd=2)
-        lfr_out.grid(row=4, column=0, sticky="news", padx=(10, 10), pady=y1, ipady=5, columnspan=2)
+        lfr_out.grid(row=4, column=0, sticky="news", padx=(10, 10), pady=y1, ipady=2, columnspan=2)
 
         for lfr in [lfr_data, lfr_tpl, lfr_model, lfr_stat, self.lfr_tell]:
             lfr.grid_columnconfigure(1, weight=1)
@@ -274,6 +274,7 @@ class GUI_viper:
 
         # Checkboxes:
         self.cb_isconv = IntVar()
+        self.cb_radvel = IntVar()
         self.cb_createtpl = IntVar()
         self.cb_tellshift = IntVar()
         self.cb_format = [IntVar(), IntVar(), IntVar()]
@@ -286,6 +287,11 @@ class GUI_viper:
         self.cb_isconv.set(self.configs.get('tpl_is_conv', 0))
         l_isconv.grid(row=2, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
         Help_Box(widget=l_isconv, text=text_from_file("'-tpl_is_conv'"))
+        
+        l_radvel = ttk.Checkbutton(lfr_tpl, text="     RADVEL", variable=self.cb_radvel)
+        self.cb_radvel.set(self.configs.get('tRADVEL', 0))
+        l_radvel.grid(row=3, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
+        Help_Box(widget=l_radvel, text=text_from_file("'-RADVEL'"))
 
         l_create = ttk.Checkbutton(self.lfr_ctpl, text="     create tpl", variable=self.cb_createtpl, command=self.Update_ctpl)
         self.cb_createtpl.set(self.configs.get('createtpl', 0))
@@ -547,6 +553,7 @@ class GUI_viper:
       #  if self.cb_wgt.get(): str_arg += " -wgt "
         if self.e_overs.get(): str_arg += " -oversampling " + str(self.e_overs.get())
         if self.cb_isconv.get(): str_arg += " -tpl_is_conv "
+        if self.cb_radvel.get(): str_arg += " -RADVEL "
         if self.cb_lookpar.get(): str_arg += " -lookpar " + self.e_lookpar.get()
         if self.cb_lookguess.get(): str_arg += " -lookguess "
         if self.cb_lookres.get(): str_arg += " -lookres "
