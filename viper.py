@@ -210,6 +210,7 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-oset', help='Index for order.', default=oset, type=arg2slice)
     argopt('-output_format', nargs='*', help='Format of output files for rvo and par data (dat, fits, cpl).', default=['dat'], dest='oformat', type=str)
     argopt('-oversampling', help='Oversampling factor for the template data.', default=None, type=int)
+    argopt('-RADVEL', nargs='?', help='Use RADVEL from header as rv_guess. Helpful for targets with large RV shifts, like binaries.', default=False, const=True, type=int)
     argopt('-rv_guess', help='RV guess.', default=1., type=float)   # slightly offsetted
     argopt('-tag', help='Output tag for filename.', default='tmp', type=str)
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
@@ -612,7 +613,7 @@ def fit_chunk(order, chunk, obs):
         # select wavelength solution for the created template
         if tpl_wave in ('initial', 'berv'):
             # use wavelength solution from input file
-            wave_model= wave_obs + 0
+            wave_model = wave_obs + 0
         elif tpl_wave in ('tell'):
             # use wavelength solution calculated via telluric lines 
             wave_model = np.poly1d(par.wave[::-1])(pixel-xcen)
@@ -632,6 +633,11 @@ def fit_chunk(order, chunk, obs):
         weight = gas_model / (err_cor/np.nanmedian(spec_cor))**2
         # weight[gas_model<0.2] = 0.00001   # downweight deep telluric lines        
         weight = np.interp(wave_model, wave_model*(1+bervt/c)/(1+par.rv/c*int(not tpl_noRV)), weight)
+        
+        if RADVEL and not tplname:
+             # shift spectrum by given radial velocity
+             # helps to align spectral lines for targets with large RVs
+             wave_model *= (1-obs.radvel/3e5)
 
         # save telluric corrected spectrum
         spec_all[order, 0][n] = wave_model   # updated wavelength
@@ -921,6 +927,9 @@ for n, obsname in enumerate(obsnames):
         berv = calc_drifts.barycorr(obs, sa, Inst)
         
     bjd = obs.bjd.jd
+    
+    # use gievn RV value as start value; helpful for large RV shifts
+    if RADVEL: rv_guess = obs.radvel
     
     print(f"{n+1:3d}/{N}", filename)
     for i_o, o in enumerate(orders):
