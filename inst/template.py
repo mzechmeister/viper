@@ -28,7 +28,7 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
         wave = f[0][0]
         spec = f[0][1]         
         wave = airtovac(wave)
-        
+ 
         successful_read = 1
     
     elif str(instr) == 'PEPSI':
@@ -71,12 +71,12 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
                 berv = obs.berv		# use barycetric motion from inst file, if given
             except:
                 berv = barycorr(obs, 0, inst)
-            
+  
             pixel, wave, spec, err, flag_pixel = obs.Spectrum(order=order)
         
             if not tplname.endswith('_tpl.model') and not tplname.endswith('_tpl.fits'):
                 # apply barycentric correction
-                wave *= 1 + (berv*u.km/u.s/c).to_value('')
+           #     wave *= 1 + (berv*u.km/u.s/c).to_value('')
                 
                 # for stellar template generated with SERVAL
                 tpl_serval = 'HIERARCH SERVAL COADD NUM' in hdr    
@@ -102,6 +102,16 @@ def read_tpl(tplname, inst='inst_TLS.py', order=20, targ='None', wmin=3500, wmax
                 successful_read = 1
             except:
                 pass
+                
+        if not successful_read:        
+            try:        
+                hdu = fits.open(tplname, ignore_blank=True, output_verify='silentfix')
+                hdr = hdu[0].header
+                wave = hdu[order+1].data['wave']
+                spec = hdu[order+1].data['flux']
+                successful_read = 1
+            except:
+                pass        
 
     elif 'PHOENIX' in str(tplname):
         '''
