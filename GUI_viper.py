@@ -489,7 +489,7 @@ class GUI_viper:
             self.l_molec.destroy()
 
         if show:
-            if str(self.combo_inst.get()) in ('TLS', 'CES', 'OES', 'KECK', 'UVES', 'McDonald', 'ESPRESSO'):
+            if str(self.combo_inst.get()) in ('TLS', 'APF', 'CES', 'OES', 'KECK', 'UVES', 'McDonald', 'ESPRESSO'):
                 self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
                 self.molec = ['H2O', 'O2']
