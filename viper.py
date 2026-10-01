@@ -216,12 +216,13 @@ if __name__ == "__main__" or __name__ == "viper.viper":
     argopt('-targ', help='Target name requested in simbad for coordinates, proper motion, parallax and absolute RV.', dest='targname')
     argopt('-tellshift', nargs='?', help='Variable telluric wavelength shift (one value for all selected molecules).', default=False, const=True, type=int)
     argopt('-telluric', help='Treating tellurics (mask: mask tellurics; sig: downweight tellurics; add: telluric forward modelling with one coeff for each molecule; add2: telluric forward modelling with combined coeff for non-water molecules).', default='', type=str)
+    argopt('-tpl_1D', nargs='?', help='Final telluric corrected spectrum as 1D', default=False, const=True, type=int)
     argopt('-tpl_is_conv', nargs='?', help='Template is taken out of the convolution. Maybe useful for convolved or low-resolution stellar templates.', default=False, const=True, type=int)
     argopt('-tpl_noRV', nargs='?', help='No stellar RV shift is applied to the telluric corrected spectrum. Just in combination with -createtpl.', default=False, const=True, type=int)
     argopt('-tpl_wave', help='Output wavelength of generated template (initial: take wavelengths from imput file; berv: apply barycentric correction to input wavelengths; tell: updated wavelength solution estimated via telluric lines).', default='tell', type=str)
     argopt('-tsig', help='(Relative) sigma value for weighting tellurics.', default=1, type=float)
     argopt('-vcut', help='Trim the observation to a range valid for the model [km/s]', default=100, type=float)
-    argopt('-wgt', nargs='?', help='Weighted least square fit (error: employ data error; tell: upweight tellurics and downweight stellar lines)', default='', type=str)
+    argopt('-wgt', nargs='?', help='Weighted least square fit (error: employ data error; tell: upweight tellurics and downweight stellar lines; emission: spectra with emission lines)', default='', type=str)
     argopt('-?', '-h', '-help', '--help', help='Show this help message and exit.', action='help')
 
 
@@ -583,8 +584,18 @@ def fit_chunk(order, chunk, obs):
                 # modelled telluric spectrum
                 sig = smod**2/spec_obs
                 sig /= np.nanmedian(sig[i_ok])
+                
+                if wgt in 'emission': 
+                    # helpful for spectra with emission lines; like EXES/SOFIA
+                    # still in test modus; may will change
+                    du = np.diff(spec_obs)/ spec_obs[:-1] 
+                    sig[:-1][np.abs(du) < 0.005] = 0.5  
+                    sig[:-1][np.abs(du) > 0.8*np.nanmax(du)] = 2
+                    sig[abs(resid) >= (2*np.nanstd(resid))] = 2
+                
                 # down-weigth saturated lines
                 sig[spec_obs/np.nanmedian(spec_obs[i_ok])<0.1] = 2
+                
 
         if (nr_k1 != nr_k2) or ('tell' in wgt):
             par5, e_params = S_mod.fit(pixel_ok, spec_obs_ok, par3, dx=0.1*show, sig=sig[i_ok], res=(not createtpl)*show, rel_fac=createtpl*show)
@@ -628,6 +639,10 @@ def fit_chunk(order, chunk, obs):
      #   exit()
         spec_cor = np.interp(wave_model, wave_model*(1+bervt/c)/(1+par.rv/c*int(not tpl_noRV)), spec_cor/np.nanmedian(spec_cor))
         spec_cor /= np.nanmedian(spec_cor)
+        
+        if inst == "EXES":
+            spec_cor[:50] = np.nan
+            spec_cor[-50:] = np.nan
 
         # downweighting by telluric spectrum and errors
         weight = gas_model / (err_cor/np.nanmedian(spec_cor))**2
@@ -794,7 +809,7 @@ else:
     wave_cell = np.linspace(obs_lmin, obs_lmax, len(pixel)*len(orders)*200)
     spec_cell = wave_cell*0 + 1
     u = np.log(wave_cell)
-    lnwave_j_full = np.arange(u[0], u[-1], 200/3e8)
+    lnwave_j_full = np.arange(u[0], u[-1], 100/3e8)
     spec_cell_j_full = lnwave_j_full*0 + 1 
 
 if nocell:
@@ -824,8 +839,8 @@ if flagfile:
 if 'add' in telluric:
     # read in telluric spectra for wavelength range of the instrument
 
-    bands_all = ['vis', 'J', 'H', 'K']
-    wave_band = [0, 9000, 14000, 18500]
+    bands_all = ['vis', 'J', 'H', 'K', 'IR']
+    wave_band = [0, 9000, 14000, 18500, 60000]
     
     # select which bands are covered by the observation
     w0 = obs_lmin - wave_band
@@ -1029,13 +1044,23 @@ if createtpl:
             spec_tpl_new[order] = spec_t[0]
             err_tpl_new[order] = spec_t[0]*np.nan
 
-        if (order in lookfast) or (order in look) or (order in lookctpl):
+        if ((order in lookfast) or (order in look) or (order in lookctpl)) and not tpl_1D:
             gplot(wave_tpl_new[order], spec_tpl_new[order] - 1 , 'w l lc 7 t "combined tpl"')
             for n in range(len(spec_t)):
                 gplot+(wave_tpl_new[order], spec_t[n]/np.nanmedian(spec_t[n]), 'w l t "%s"' % (os.path.split(obsnames[n])[1]))          
             #gplot+(wave_tpl_new[order], np.nanstd(spec_t, axis=0)+1.5, 'w l t ""')
         if (order in look) or (order in lookctpl):
             pause()
+            
+    if tpl_1D: 
+        gplot.reset()
+        gplot.xlabel('"Vacuum wavelength [Å]"')
+        gplot.ylabel('"flux"')
+        gplot.yrange("[%g:%g]" % (0, 2))
+        gplot(1e8/wave_tpl_new[orders_ok[0]], spec_tpl_new[orders_ok[0]] , 'w l lc 7 t ""')
+        for order in orders_ok:       
+            gplot+(1e8/wave_tpl_new[order], spec_tpl_new[order] , 'w l lc 7 t ""')
+        pause()    
 
     Inst.write_fits(wave_tpl_new, spec_tpl_new, err_tpl_new, obsnames, tag)
 
