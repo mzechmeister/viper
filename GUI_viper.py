@@ -52,6 +52,7 @@ class GUI_viper:
         self.cbv_atm = []      # Variables telluric molecules
         self.cb_lookctpl = IntVar()
         self.cb_noRV = IntVar()
+        self.cb_1D = IntVar()
 
         self.master = master
         self.configs = configs
@@ -78,7 +79,7 @@ class GUI_viper:
     def fr_input(self):
         # Frame for data input
         fr1 = Frame(self.master, bg=bg_frame, bd=2, relief='groove')
-        fr1.grid(row=0, column=0, sticky="news", padx=20, pady=(xy0, 6), ipady=10, columnspan=2)
+        fr1.grid(row=0, column=0, sticky="news", padx=20, pady=(10, 6), ipady=10, columnspan=2)
         fr1.grid_propagate(False)
         fr1.grid_columnconfigure(2, weight=1)
         fr1.grid_columnconfigure(4, weight=1)
@@ -162,7 +163,7 @@ class GUI_viper:
     
         # Frame for parameter selection data reduction
         fr2 = Frame(self.master, bg=bg_frame, bd=2, relief='groove')
-        fr2.grid(row=1, column=0, sticky="news", padx=(xy0, 6), pady=(0, 15), rowspan=4)
+        fr2.grid(row=1, column=0, sticky="news", padx=(xy0, 6), pady=(0, 10), rowspan=4)
         fr2.grid_propagate(False)
         fr2.grid_columnconfigure(0, weight=1, uniform='x')
         fr2.grid_columnconfigure(1, weight=1, uniform='x')
@@ -199,7 +200,7 @@ class GUI_viper:
 
         # Label
         l_opt = ttk.Label(fr2, text='Options data reduction', font=(font_type, font_size, 'bold'))
-        l_opt.grid(row=0, column=0, sticky="nw", padx=(xy0, 0), pady=(10, y1), columnspan=3)
+        l_opt.grid(row=0, column=0, sticky="nw", padx=(xy0, 0), pady=(5, y1), columnspan=3)
 
         self.Label_list(lfr_data, ['nset', 'oset', 'chunks', 'vcut', 'iset'])
         self.Label_list(lfr_model, ['ip', 'iphs', 'ipB', 'deg_norm', 'deg_wave', 'deg_bkg'])
@@ -279,7 +280,7 @@ class GUI_viper:
         self.cb_tellshift = IntVar()
         self.cb_format = [IntVar(), IntVar(), IntVar()]
         
-        self.combo_wgt = ttk.Combobox(lfr_stat, values=['None', 'error', 'tell']) 
+        self.combo_wgt = ttk.Combobox(lfr_stat, values=['None', 'error', 'tell', 'emission']) 
         self.combo_wgt.set(self.configs.get('wgt', 'None'))
         self.combo_wgt.grid(row=2, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
         
@@ -289,7 +290,7 @@ class GUI_viper:
         Help_Box(widget=l_isconv, text=text_from_file("'-tpl_is_conv'"))
         
         l_radvel = ttk.Checkbutton(lfr_tpl, text="     RADVEL", variable=self.cb_radvel)
-        self.cb_radvel.set(self.configs.get('tRADVEL', 0))
+        self.cb_radvel.set(self.configs.get('RADVEL', 0))
         l_radvel.grid(row=3, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
         Help_Box(widget=l_radvel, text=text_from_file("'-RADVEL'"))
 
@@ -339,7 +340,7 @@ class GUI_viper:
 
         # Label
         l_plot = ttk.Label(fr3, text='Options plotting data', font=(font_type, font_size, 'bold'))
-        l_plot.grid(row=0, column=0, sticky="nw", padx=(xy0, 0), pady=(10, y1))
+        l_plot.grid(row=0, column=0, sticky="nw", padx=(xy0, 0), pady=(5, y1))
 
         # Entry
         self.e_lookpar = Entry(lfr_plot1)
@@ -428,33 +429,39 @@ class GUI_viper:
         if hasattr(self, 'combo_wtpl'): self.combo_wtpl.destroy()
         if hasattr(self, 'l_lookctpl'): self.l_lookctpl.destroy()
         if hasattr(self, 'l_noRV'): self.l_noRV.destroy()
+        if hasattr(self, 'l_1D'): self.l_1D.destroy()
 
         if self.cb_createtpl.get():
             self.l_kapctpl = ttk.Label(self.lfr_ctpl, text='kapsig_ctpl:')
-            self.l_kapctpl.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
+            self.l_kapctpl.grid(row=4, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
             Help_Box(widget=self.l_kapctpl, text=text_from_file("'-kapsig_ctpl'"))
 
             self.e_kapctpl = Entry(self.lfr_ctpl, width=9)
             self.e_kapctpl.insert(0, self.configs.get('kapsig_cptl', '0.2'))
-            self.e_kapctpl.grid(row=3, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
+            self.e_kapctpl.grid(row=4, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
             
             self.l_wavetpl = ttk.Label(self.lfr_ctpl, text='tpl_wave:')
-            self.l_wavetpl.grid(row=4, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
+            self.l_wavetpl.grid(row=5, column=0, sticky="nw", padx=(xy0, 0), pady=y1)
             Help_Box(widget=self.l_wavetpl, text=text_from_file("'-tpl_wave'"))
             
             self.combo_wtpl = ttk.Combobox(self.lfr_ctpl, values=['initial', 'berv', 'tell'], width=8) 
             self.combo_wtpl.set(self.configs.get('tpl_wave', 'tell'))
-            self.combo_wtpl.grid(row=4, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
+            self.combo_wtpl.grid(row=5, column=1, sticky="nw", padx=(x1, xy0), pady=y1)
 
             self.l_lookctpl = ttk.Checkbutton(self.lfr_ctpl, text="     lookctpl", variable=self.cb_lookctpl)
             self.l_lookctpl.grid(row=1, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
             Help_Box(widget=self.l_lookctpl, text=text_from_file("'-lookctpl'"))
             self.cb_lookctpl.set(self.configs.get('lookctpl', 1))
             
+            self.l_1D = ttk.Checkbutton(self.lfr_ctpl, text="     tpl_1D", variable=self.cb_1D)
+            self.l_1D.grid(row=2, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
+            Help_Box(widget=self.l_1D, text=text_from_file("'-tpl_1D'"))
+            self.cb_1D.set(self.configs.get('tpl_1D', 0))
+            
             self.l_noRV = ttk.Checkbutton(self.lfr_ctpl, text="     tpl_noRV", variable=self.cb_noRV)
-            self.l_noRV.grid(row=2, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
+            self.l_noRV.grid(row=3, column=0, sticky="nw", padx=(xy0, x1), pady=y1)
             Help_Box(widget=self.l_noRV, text=text_from_file("'-tpl_noRV'"))
-            self.cb_noRV.set(0)
+            self.cb_noRV.set(self.configs.get('tpl_noRV', 0))
 
     def Update_tell(self):
         if hasattr(self, 'l_tsig'): self.l_tsig.destroy()
@@ -493,6 +500,10 @@ class GUI_viper:
                 self.l_molec = ttk.Label(self.lfr_tell, text='Optical molecules:')
                 self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
                 self.molec = ['H2O', 'O2']
+            elif str(self.combo_inst.get()) in ('EXES'):
+                self.l_molec = ttk.Label(self.lfr_tell, text='IR molecules:')
+                self.l_molec.grid(row=3, column=0, sticky="nw", padx=(xy0, 0), pady=y1, columnspan=6)
+                self.molec = ['H2O', 'CH4', 'CO2', 'HNO3', 'N2O', 'NH3', 'O3']
             else:
                 # for instruments in the near-infrared or unknown bands
                 self.l_molec = ttk.Label(self.lfr_tell, text='Available molecules:')
@@ -588,6 +599,7 @@ class GUI_viper:
             str_arg += " -createtpl "
             if self.cb_lookctpl.get(): str_arg += " -lookctpl "
             if self.cb_noRV.get(): str_arg += " -tpl_noRV "
+            if self.cb_1D.get(): str_arg += " -tpl_1D "
             if self.combo_wtpl.get():
                 str_arg += " -tpl_wave " + str(self.combo_wtpl.get())
             str_arg += " -kapsig_ctpl " + str(self.e_kapctpl.get()) 
@@ -617,7 +629,7 @@ def main():
     win.grid_propagate(False)
     win.columnconfigure(0, weight=1, uniform=1)
     win.columnconfigure(1, weight=1, uniform=1)
-    win.rowconfigure(0, weight=5, uniform=1, minsize=188)
+    win.rowconfigure(0, weight=4, uniform=1, minsize=178)
     win.rowconfigure(1, weight=5, uniform=1, minsize=338)
     win.rowconfigure(2, weight=1, uniform=1)
     win.rowconfigure(3, weight=5, uniform=1) #, minsize=130)
